@@ -3,7 +3,6 @@ package test
 import (
 	"PS_Risk_server/baseDatos"
 	"PS_Risk_server/mensajes"
-	"PS_Risk_server/server"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -18,13 +17,6 @@ const (
 func NewSHA256(data []byte) []byte {
 	hash := sha256.Sum256(data)
 	return hash[:]
-}
-
-func TestHello(t *testing.T) {
-	esperado := "Hello, world."
-	if obtenido := server.Hello(); obtenido != esperado {
-		t.Errorf("Hello() = %q\nEsperado %q", obtenido, esperado)
-	}
 }
 
 func TestCrearCuenta(t *testing.T) {

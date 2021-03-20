@@ -10,24 +10,26 @@ import (
 	"strconv"
 )
 
-func Hello() string {
-	return "Hello, world."
-}
-
-type servidor struct {
+type Servidor struct {
 	puerto string
 	bd     *baseDatos.BD
 }
 
-func NuevoServidor(p, bbdd string) (*servidor, error) {
+func NuevoServidor(p, bbdd string) (*Servidor, error) {
 	b, err := baseDatos.NuevaBD(bbdd)
 	if err != nil {
 		return nil, err
 	}
-	return &servidor{puerto: p, bd: b}, nil
+	return &Servidor{puerto: p, bd: b}, nil
 }
 
-func (s *servidor) registroUsuario(w http.ResponseWriter, r *http.Request) {
+func (s *Servidor) Iniciar() error {
+	http.HandleFunc("/registrar", s.registroUsuario)
+	err := http.ListenAndServe(":"+os.Args[1], nil)
+	return err
+}
+
+func (s *Servidor) registroUsuario(w http.ResponseWriter, r *http.Request) {
 	var resultado mensajes.JsonData
 	err := r.ParseForm()
 	if err != nil {
@@ -45,18 +47,4 @@ func (s *servidor) registroUsuario(w http.ResponseWriter, r *http.Request) {
 	}
 	respuesta, _ := json.MarshalIndent(resultado, "", " ")
 	fmt.Fprintf(w, string(respuesta))
-}
-
-func main() {
-	fmt.Println("Hola mundo")
-	serv, err := NuevoServidor(os.Args[1], os.Args[2])
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	http.HandleFunc("/registrar", serv.registroUsuario)
-	err = http.ListenAndServe(":"+os.Args[1], nil)
-	if err != nil {
-		fmt.Println(err)
-	}
 }

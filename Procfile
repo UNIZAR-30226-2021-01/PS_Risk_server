@@ -1,1 +1,1 @@
-web: bin/server $PORT $DATABASE_URL
+web: bin/PS_Risk_server $PORT $DATABASE_URL
