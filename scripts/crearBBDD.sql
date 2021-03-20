@@ -68,3 +68,6 @@ CREATE TABLE juega (
     FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
     PRIMARY KEY (id_partida, id_usuario)
 );
+
+INSERT INTO icono (precio) VALUES (0);
+INSERT INTO aspecto (precio) VALUES (0);
