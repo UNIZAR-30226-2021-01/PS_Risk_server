@@ -44,8 +44,8 @@ func NuevaBD(bbdd string) (*BD, error) {
 	if err != nil {
 		return &BD{bbdd: bbdd, bd: db}, err
 	}
-	execScript(db, "../scripts/destruirBBDD.sql")
-	execScript(db, "../scripts/crearBBDD.sql")
+	execScript(db, "scripts/destruirBBDD.sql")
+	execScript(db, "scripts/crearBBDD.sql")
 	return &BD{bbdd: bbdd, bd: db}, err
 }
 
