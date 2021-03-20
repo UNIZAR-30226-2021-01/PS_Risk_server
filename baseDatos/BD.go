@@ -4,6 +4,9 @@ import (
 	"PS_Risk_server/mensajes"
 	"context"
 	"database/sql"
+	"fmt"
+	"io/ioutil"
+	"strings"
 
 	_ "github.com/lib/pq"
 )
@@ -38,6 +41,11 @@ const (
 
 func NuevaBD(bbdd string) (*BD, error) {
 	db, err := sql.Open("postgres", bbdd)
+	if err != nil {
+		return &BD{bbdd: bbdd, bd: db}, err
+	}
+	execScript(db, "../scripts/destruirBBDD.sql")
+	execScript(db, "../scripts/crearBBDD.sql")
 	return &BD{bbdd: bbdd, bd: db}, err
 }
 
@@ -108,4 +116,18 @@ func (b *BD) leerCosmetico(consulta string) ([]mensajes.JsonData, error) {
 		cosmeticos = append(cosmeticos, mensajes.CosmeticoJson(id, precio))
 	}
 	return cosmeticos, nil
+}
+
+func execScript(db *sql.DB, script string) {
+	file, err := ioutil.ReadFile(script)
+	if err != nil {
+		fmt.Println(err)
+	}
+	requests := strings.Split(string(file), ";")
+	for _, request := range requests {
+		_, err = db.Exec(request)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
 }

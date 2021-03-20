@@ -3,23 +3,7 @@ package baseDatos
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
-	"strings"
 )
-
-func execScript(db *sql.DB, script string) {
-	file, err := ioutil.ReadFile(script)
-	if err != nil {
-		fmt.Println(err)
-	}
-	requests := strings.Split(string(file), ";")
-	for _, request := range requests {
-		_, err = db.Exec(request)
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
-}
 
 func NuevaBDConexionLocal(bbdd string, restablecer bool) *BD {
 	//You should establish DB connection without SSL encryption, like that:
