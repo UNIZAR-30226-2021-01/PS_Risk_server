@@ -3,10 +3,14 @@ CREATE TABLE aspecto (
     precio INT NOT NULL CHECK (precio >= 0)
 );
 
+INSERT INTO aspecto (precio) VALUES (0);
+
 CREATE TABLE icono (
     id_icono SERIAL PRIMARY KEY,
     precio INT NOT NULL CHECK (precio >= 0)
 );
+
+INSERT INTO aspecto (precio) VALUES (0);
 
 CREATE TABLE usuario (
     id_usuario SERIAL PRIMARY KEY,

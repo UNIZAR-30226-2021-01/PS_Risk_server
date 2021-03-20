@@ -2,11 +2,16 @@ package test
 
 import (
 	"PS_Risk_server/baseDatos"
+	"PS_Risk_server/mensajes"
 	"PS_Risk_server/server"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"testing"
+)
+
+const (
+	baseDeDatos = "..."
 )
 
 // NewSHA256 ...
@@ -32,12 +37,13 @@ func TestCrearCuenta(t *testing.T) {
 		t.Errorf("want %v; got %v", clave, hex.EncodeToString(result))
 	}
 	recibeCorreos := true
-	bd := baseDatos.NuevaBDConexionLocal("postgres", true)
+	bd := baseDatos.NuevaBDConexionLocal(baseDeDatos, true)
 	idEsperado := bd.LeerMaxIdUsuario() + 1
 	fmt.Println("id esperado:", idEsperado)
 	obtenido := bd.CrearCuenta(nombre, correo, clave, recibeCorreos)
+	fmt.Println(obtenido)
 	coincide, esperado := coincideCrearUsuario(nombre, correo, clave,
-		recibeCorreos, idEsperado, obtenido)
+		recibeCorreos, idEsperado, obtenido["usuario"].(mensajes.JsonData))
 	if !coincide {
 		t.Errorf("CrearCuenta() = %q, se esperaba %q", obtenido, esperado)
 	}
@@ -45,98 +51,25 @@ func TestCrearCuenta(t *testing.T) {
 
 func coincideCrearUsuario(nombre, correo, clave string,
 	recibeCorreos bool, idEsperado int,
-	respuestaObtenida map[string]interface{}) (bool, map[string]interface{}) {
-	incorrecto := false
-	campoError := "error"
-	campoCodigo := "code"
-	campoUsuario := "usuario"
-	campoNombre := "nombre"
-	campoCorreo := "correo"
-	campoClave := "clave"
-	campoRecibe := "recibeCorreos"
-	campoId := "id"
+	respuestaObtenida mensajes.JsonData) (bool, map[string]interface{}) {
 
-	e := respuestaObtenida[campoError]
-	if e == nil {
-		incorrecto = true
-	} else {
-		switch errorObtenido := e.(type) {
-		case map[string]interface{}:
-			if errorObtenido[campoCodigo] == nil ||
-				errorObtenido[campoCodigo] != baseDatos.NoError {
-				incorrecto = true
-				fmt.Println("Error en el código de error")
-			}
-		default:
-			incorrecto = true
-			fmt.Println("Error en el campo error")
-		}
+	esperado := mensajes.UsuarioJson(idEsperado, 1, 1, 0, nombre, correo, clave, recibeCorreos)
+
+	err := respuestaObtenida["err"]
+	if err != nil {
+		return false, esperado
 	}
 
-	if !incorrecto {
-		u := respuestaObtenida["usuario"]
-		if u == nil {
-			incorrecto = true
-		} else {
-			switch usuarioObtenido := u.(type) {
-			case map[string]interface{}:
-				if usuarioObtenido[campoId] == nil ||
-					usuarioObtenido[campoId] != idEsperado {
-					incorrecto = true
-					fmt.Println("Error en el id_usuario")
-				} else if usuarioObtenido[campoNombre] == nil ||
-					usuarioObtenido[campoNombre] != nombre {
-					incorrecto = true
-					fmt.Println("Error en el nombre de usuario")
-				} else if usuarioObtenido[campoCorreo] == nil ||
-					usuarioObtenido[campoCorreo] != correo {
-					incorrecto = true
-					fmt.Println("Error en el correo")
-				} else if usuarioObtenido[campoClave] == nil ||
-					usuarioObtenido[campoClave] != clave {
-					incorrecto = true
-					fmt.Println("Error en la clave")
-				} else if usuarioObtenido[campoRecibe] == nil ||
-					usuarioObtenido[campoRecibe] != recibeCorreos {
-					incorrecto = true
-					fmt.Println("Error en el campo recibeCorreos")
-				}
-			default:
-				incorrecto = true
-				fmt.Println("Error en el campo usuario")
-			}
-		}
+	if respuestaObtenida["id"].(int) != esperado["id"].(int) ||
+		respuestaObtenida["nombre"].(string) != esperado["nombre"].(string) ||
+		respuestaObtenida["correo"].(string) != esperado["correo"].(string) ||
+		respuestaObtenida["clave"].(string) != esperado["clave"].(string) ||
+		respuestaObtenida["recibeCorreos"].(bool) != esperado["recibeCorreos"].(bool) ||
+		respuestaObtenida["icono"].(int) != esperado["icono"].(int) ||
+		respuestaObtenida["aspecto"].(int) != esperado["aspecto"].(int) ||
+		respuestaObtenida["riskos"].(int) != esperado["riskos"].(int) {
+		return false, esperado
 	}
 
-	if !incorrecto {
-		iconos := respuestaObtenida["iconos"]
-		aspectos := respuestaObtenida["aspectos"]
-		tiendaIconos := respuestaObtenida["tiendaIconos"]
-		tiendaAspectos := respuestaObtenida["tiendaAspectos"]
-		if iconos == nil || aspectos == nil || tiendaIconos == nil ||
-			tiendaAspectos == nil {
-			incorrecto = true
-			fmt.Println("Error con las listas de iconos o aspectos")
-		}
-	}
-
-	var esperado map[string]interface{}
-	esperado = nil
-
-	if incorrecto {
-		esperado = make(map[string]interface{})
-		errorEsperado := make(map[string]interface{})
-		errorEsperado[campoCodigo] = baseDatos.NoError
-		errorEsperado["err"] = ""
-		esperado[campoError] = errorEsperado
-		usuarioEsperado := make(map[string]interface{})
-		usuarioEsperado[campoId] = idEsperado
-		usuarioEsperado[campoNombre] = nombre
-		usuarioEsperado[campoCorreo] = correo
-		usuarioEsperado[campoClave] = clave
-		usuarioEsperado[campoRecibe] = recibeCorreos
-		esperado[campoUsuario] = usuarioEsperado
-	}
-
-	return !incorrecto, esperado
+	return true, esperado
 }

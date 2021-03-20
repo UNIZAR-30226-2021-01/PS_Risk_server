@@ -1,0 +1,1 @@
+web: bin/server $PORT $DATABASE_URL
