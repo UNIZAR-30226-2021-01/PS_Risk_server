@@ -27,6 +27,7 @@ const (
 	ErrorCrearCuenta        = iota
 	ErrorLeerAspectosTienda = iota
 	ErrorLeerIconosTienda   = iota
+	ErrorTipoIncorrecto     = iota
 )
 
 func execScript(db *sql.DB, script string) {
