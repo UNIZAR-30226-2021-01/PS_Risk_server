@@ -71,9 +71,29 @@ func TestModificarUsuario(t *testing.T) {
 	bd.Cerrar()
 }
 
+func TestIniciarSesionNombre(t *testing.T) {
+	bd := baseDatos.NuevaBDConexionLocal(baseDeDatos, false)
+	obtenido := bd.IniciarSesionNombre(nombreTest, claveTest)
+	coincide, esperado := coincideUsuario(nombreTest, correoTest, claveTest, recibeCorreosTest, 1, obtenido)
+	if !coincide {
+		t.Errorf("CrearCuenta() = %q, se esperaba %q", obtenido, esperado)
+	}
+	bd.Cerrar()
+}
+
+func TestIniciarSesionCorreo(t *testing.T) {
+	bd := baseDatos.NuevaBDConexionLocal(baseDeDatos, false)
+	obtenido := bd.IniciarSesionCorreo(correoTest, claveTest)
+	coincide, esperado := coincideUsuario(nombreTest, correoTest, claveTest, recibeCorreosTest, 1, obtenido)
+	if !coincide {
+		t.Errorf("CrearCuenta() = %q, se esperaba %q", obtenido, esperado)
+	}
+	bd.Cerrar()
+}
+
 func coincideUsuario(nombre, correo, clave string,
 	recibeCorreos bool, idEsperado int,
-	respuestaObtenida mensajes.JsonData) (bool, map[string]interface{}) {
+	respuestaObtenida mensajes.JsonData) (bool, mensajes.JsonData) {
 
 	usuarioEsperado := mensajes.UsuarioJson(idEsperado, 1, 1, 0, nombre, correo, clave, recibeCorreos)
 	cosmeticosEsperado := []mensajes.JsonData{mensajes.CosmeticoJson(1, 0)}

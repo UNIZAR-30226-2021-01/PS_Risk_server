@@ -27,6 +27,7 @@ const (
 	ErrorTipoIncorrecto     = iota
 	ErrorBusquedaUsuario    = iota
 	ErrorModificarUsuario   = iota
+	ErrorIniciarSesion      = iota
 )
 
 // Consultas SQL
@@ -42,6 +43,10 @@ const (
 	consultaIconos   = "SELECT id_icono AS id, precio FROM icono"
 	consultaUsuario  = "SELECT aspecto, correo, icono, nombre, recibeCorreos, " +
 		"riskos FROM usuario WHERE id_usuario = $1 AND clave = $2"
+	consultaUsuarioNombre = "SELECT aspecto, correo, icono, id_usuario, recibeCorreos, " +
+		"riskos FROM usuario WHERE nombre = $1 AND clave = $2"
+	consultaUsuarioCorreo = "SELECT aspecto, nombre, icono, id_usuario, recibeCorreos, " +
+		"riskos FROM usuario WHERE correo = $1 AND clave = $2"
 	consultaAspectosUsuario = "SELECT aspecto.id_aspecto AS id, aspecto.precio AS precio " +
 		"FROM aspecto INNER JOIN aspectoscomprados ON aspecto.id_aspecto = aspectoscomprados.id_aspecto " +
 		"WHERE aspectoscomprados.id_usuario = "
@@ -176,6 +181,38 @@ func (b *BD) leerCosmetico(consulta string) ([]mensajes.JsonData, error) {
 		cosmeticos = append(cosmeticos, mensajes.CosmeticoJson(id, precio))
 	}
 	return cosmeticos, nil
+}
+
+// IniciarSesionNombre devuelve el mensaje en formato json con todos los datos
+// de un usuario si la clave indicada coincide con la clave del usuario con el
+// nombre indicado.
+// Si ocurre algun error devuelve el error en formato json
+func (b *BD) IniciarSesionNombre(nombre, clave string) mensajes.JsonData {
+	var aspecto, icono, riskos, id int
+	var recibeCorreos bool
+	var correo string
+	err := b.bd.QueryRow(consultaUsuarioNombre, nombre, clave).Scan(&aspecto, &correo,
+		&icono, &id, &recibeCorreos, &riskos)
+	if err != nil {
+		return mensajes.ErrorJson(err.Error(), ErrorIniciarSesion)
+	}
+	return b.leerDatosUsuario(id, icono, aspecto, riskos, nombre, correo, clave, recibeCorreos)
+}
+
+// IniciarSesionCorreo devuelve el mensaje en formato json con todos los datos
+// de un usuario menos su clave si la clave indicada coincide con la clave del
+// usuario con el correo indicado.
+// Si ocurre algun error devuelve el error en formato json
+func (b *BD) IniciarSesionCorreo(correo, clave string) mensajes.JsonData {
+	var aspecto, icono, riskos, id int
+	var recibeCorreos bool
+	var nombre string
+	err := b.bd.QueryRow(consultaUsuarioCorreo, correo, clave).Scan(&aspecto, &nombre,
+		&icono, &id, &recibeCorreos, &riskos)
+	if err != nil {
+		return mensajes.ErrorJson(err.Error(), ErrorIniciarSesion)
+	}
+	return b.leerDatosUsuario(id, icono, aspecto, riskos, nombre, correo, clave, recibeCorreos)
 }
 
 // execScript ejecuta el script en la base de datos db
