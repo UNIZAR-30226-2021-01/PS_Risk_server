@@ -28,6 +28,7 @@ const (
 	ErrorBusquedaUsuario    = iota
 	ErrorModificarUsuario   = iota
 	ErrorIniciarSesion      = iota
+	ErrorCampoIncorrecto    = iota
 )
 
 // Consultas SQL
