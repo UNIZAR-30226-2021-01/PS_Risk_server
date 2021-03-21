@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
+	"strconv"
 	"strings"
 
 	_ "github.com/lib/pq"
@@ -24,6 +25,7 @@ const (
 	ErrorLeerAspectosTienda = iota
 	ErrorLeerIconosTienda   = iota
 	ErrorTipoIncorrecto     = iota
+	ErrorBusquedaUsuario    = iota
 )
 
 // Consultas
@@ -37,6 +39,14 @@ const (
 		"id_aspecto) VALUES ($1, 1)"
 	consultaAspectos = "SELECT id_aspecto AS id, precio FROM aspecto"
 	consultaIconos   = "SELECT id_icono AS id, precio FROM icono"
+	consultaUsuario  = "SELECT aspecto, correo, icono, nombre, recibeCorreos, " +
+		"riskos FROM usuario WHERE id_usuario = $1 AND clave = $2"
+	consultaAspectosUsuario = "SELECT aspecto.id_aspecto AS id, aspecto.precio AS precio " +
+		"FROM aspecto INNER JOIN aspectoscomprados ON aspecto.id_aspecto = aspectoscomprados.id_aspecto " +
+		"WHERE aspectoscomprados.id_usuario = "
+	consultaIconosUsuario = "SELECT icono.id_icono AS id, icono.precio AS precio " +
+		"FROM icono INNER JOIN iconoscomprados ON icono.id_icono = iconoscomprados.id_icono " +
+		"WHERE iconoscomprados.id_usuario = "
 )
 
 func NuevaBD(bbdd string) (*BD, error) {
@@ -64,13 +74,6 @@ func (b *BD) CrearCuenta(nombre, correo, clave string,
 		tx.Rollback()
 		return mensajes.ErrorJson(err.Error(), ErrorCrearCuenta)
 	}
-	// Un usuario recién creado solo ha "comprado" los iconos y aspectos por
-	// defecto. Ahora son los dos con id 1 y precio 0
-	// Si se añaden más deberíamos hacer dos funciones separadas que los
-	// devuelvan
-	iconos := [1]mensajes.JsonData{mensajes.CosmeticoJson(1, 0)}
-	aspectos := [1]mensajes.JsonData{mensajes.CosmeticoJson(1, 0)}
-	// Añadirlo también en la base de datos
 	_, err = tx.ExecContext(ctx, darIconosPorDefecto, id)
 	if err != nil {
 		tx.Rollback()
@@ -85,6 +88,25 @@ func (b *BD) CrearCuenta(nombre, correo, clave string,
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorCrearCuenta)
 	}
+
+	return b.leerDatosUsuario(id, 1, 1, 0, nombre, correo, clave, recibeCorreos)
+}
+
+func (b *BD) ObtenerUsuario(id int, clave string) mensajes.JsonData {
+	var aspecto, icono, riskos int
+	var recibeCorreos bool
+	var correo, nombre string
+	err := b.bd.QueryRow(consultaUsuario, id, clave).Scan(&aspecto, &correo,
+		&icono, &nombre, &recibeCorreos, &riskos)
+	if err != nil {
+		return mensajes.ErrorJson(err.Error(), ErrorBusquedaUsuario)
+	}
+	return b.leerDatosUsuario(id, icono, aspecto, riskos, nombre, correo, clave, recibeCorreos)
+}
+
+func (b *BD) leerDatosUsuario(id, icono, aspecto, riskos int, nombre, correo,
+	clave string, recibeCorreos bool) mensajes.JsonData {
+
 	tiendaAspectos, err := b.leerCosmetico(consultaAspectos)
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorCrearCuenta)
@@ -93,8 +115,16 @@ func (b *BD) CrearCuenta(nombre, correo, clave string,
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorCrearCuenta)
 	}
+	aspectos, err := b.leerCosmetico(consultaAspectosUsuario + strconv.Itoa(id))
+	if err != nil {
+		return mensajes.ErrorJson(err.Error(), ErrorCrearCuenta)
+	}
+	iconos, err := b.leerCosmetico(consultaIconosUsuario + strconv.Itoa(id))
+	if err != nil {
+		return mensajes.ErrorJson(err.Error(), ErrorCrearCuenta)
+	}
 	return mensajes.JsonData{
-		"usuario":        mensajes.UsuarioJson(id, 1, 1, 0, nombre, correo, clave, recibeCorreos),
+		"usuario":        mensajes.UsuarioJson(id, icono, aspecto, riskos, nombre, correo, clave, recibeCorreos),
 		"iconos":         iconos,
 		"aspectos":       aspectos,
 		"tiendaIconos":   tiendaIconos,

@@ -6,7 +6,6 @@ import (
 )
 
 func NuevaBDConexionLocal(bbdd string, restablecer bool) *BD {
-	//You should establish DB connection without SSL encryption, like that:
 	db, err := sql.Open("postgres", bbdd)
 	if err != nil {
 		fmt.Println("No se ha podido abrir conexión con la base de "+
