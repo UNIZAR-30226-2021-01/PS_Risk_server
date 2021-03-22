@@ -69,5 +69,5 @@ CREATE TABLE juega (
     PRIMARY KEY (id_partida, id_usuario)
 );
 
-INSERT INTO icono (precio) VALUES (0);
-INSERT INTO aspecto (precio) VALUES (0);
+INSERT INTO icono (id_icono, precio) VALUES (0, 0);
+INSERT INTO aspecto (id_aspecto, precio) VALUES (0, 0);
