@@ -50,6 +50,7 @@ func (s *Servidor) registroUsuario(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	respuesta, _ := json.MarshalIndent(resultado, "", " ")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	fmt.Fprintf(w, string(respuesta))
 }
 
@@ -68,6 +69,7 @@ func (s *Servidor) inicioSesion(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	respuesta, _ := json.MarshalIndent(resultado, "", " ")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	fmt.Fprintf(w, string(respuesta))
 }
 
@@ -86,6 +88,7 @@ func (s *Servidor) recargarUsuarioHandler(w http.ResponseWriter, r *http.Request
 		}
 	}
 	respuesta, _ := json.MarshalIndent(resultado, "", " ")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	fmt.Fprintf(w, string(respuesta))
 }
 
@@ -112,5 +115,6 @@ func (s *Servidor) personalizarUsuarioHandler(w http.ResponseWriter, r *http.Req
 		}
 	}
 	respuesta, _ := json.MarshalIndent(resultado, "", " ")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	fmt.Fprintf(w, string(respuesta))
 }
