@@ -47,18 +47,32 @@ CREATE TABLE esAmigo (
 
 CREATE TABLE partida (
     id_partida SERIAL PRIMARY KEY,
+    nombre VARCHAR(20),
     json_estado JSON
 );
 
-CREATE TABLE notificacion (
-    id_notificacion SERIAL PRIMARY KEY,
-    id_usuarioEnvia INT,
-    id_usuarioRecibe INT NOT NULL CHECK (id_usuarioRecibe != id_usuarioEnvia),
-    id_partida INT,
-    tipo INT NOT NULL,
-    FOREIGN KEY (id_usuarioEnvia) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
-    FOREIGN KEY (id_usuarioRecibe) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
-    FOREIGN KEY (id_partida) REFERENCES partida(id_partida) ON DELETE CASCADE
+CREATE TABLE notificacionTurno (
+    id_recibe INT,
+    id_envia INT,
+    FOREIGN KEY (id_recibe) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_envia) REFERENCES partida(id_partida) ON DELETE CASCADE,
+    PRIMARY KEY (id_recibe, id_envia)
+);
+
+CREATE TABLE solicitudAmistad (
+    id_recibe INT,
+    id_envia INT CHECK (id_recibe != id_envia),
+    FOREIGN KEY (id_recibe) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_envia) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    PRIMARY KEY (id_recibe, id_envia)
+);
+
+CREATE TABLE invitacionPartida (
+    id_recibe INT,
+    id_envia INT,
+    FOREIGN KEY (id_recibe) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_envia) REFERENCES partida(id_partida) ON DELETE CASCADE,
+    PRIMARY KEY (id_recibe, id_envia)
 );
 
 CREATE TABLE juega (

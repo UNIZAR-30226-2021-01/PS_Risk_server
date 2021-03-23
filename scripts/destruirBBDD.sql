@@ -1,7 +1,9 @@
 DROP TABLE aspectosComprados;
 DROP TABLE iconosComprados;
 DROP TABLE esAmigo;
-DROP TABLE notificacion;
+DROP TABLE notificacionTurno;
+DROP TABLE solicitudAmistad;
+DROP TABLE invitacionPartida;
 DROP TABLE juega;
 DROP TABLE partida;
 DROP TABLE usuario;

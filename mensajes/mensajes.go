@@ -28,3 +28,20 @@ func ErrorJson(e string, c int) JsonData {
 		"code": c,
 	}
 }
+
+func AmigoJson(id, icono, aspecto int, nombre string) JsonData {
+	return JsonData{
+		"id":      id,
+		"nombre":  nombre,
+		"icono":   icono,
+		"aspecto": aspecto,
+	}
+}
+
+func NotificacionJson(idE int, tipo, info string) JsonData {
+	return JsonData{
+		"infoExtra": info,
+		"tipo":      tipo,
+		"idEnvio":   idE,
+	}
+}

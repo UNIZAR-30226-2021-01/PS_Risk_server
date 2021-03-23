@@ -56,6 +56,17 @@ const (
 		"WHERE iconoscomprados.id_usuario = "
 	actualizarUsuarioInicio = "UPDATE usuario SET "
 	actualizarUsuarioFin    = " = $1 WHERE id_usuario = $2 AND clave = $3"
+	consultaAmigos          = "SELECT id_usuario as id, nombre, icono, aspecto FROM usuario, " +
+		"(SELECT id_usuario1 as idAmigo1 FROM esamigo WHERE id_usuario2 = $1) as amigos1, " +
+		"(SELECT id_usuario2 as idAmigo2 FROM esamigo WHERE id_usuario1 = $1) as amigos2 " +
+		"WHERE id_usuario = idAmigo1 OR id_usuario = idAmigo2"
+	consultaSolicitudes = "SELECT id_envia AS idEnvio, nombre FROM solicitudAmistad LEFT JOIN usuario ON " +
+		"id_usuario = id_envia WHERE id_recibe = $1"
+	consultaInvitaciones = "SELECT id_envia AS idEnvio, nombre FROM invitacionPartida LEFT JOIN partida ON " +
+		"id_partida = id_envia WHERE id_recibe = $1"
+	consultaTurnos = "SELECT id_envia AS idEnvio, nombre FROM notificacionTurno LEFT JOIN partida ON " +
+		"id_partida = id_envia WHERE id_recibe = $1"
+	solicitarAmistad = "INSERT INTO solicitudAmistad (id_envia, id_recibe) VALUES ($1, $2)"
 )
 
 // NuevaBD crea una nueva conexion a la base de datos bbdd y la formatea
@@ -115,9 +126,13 @@ func (b *BD) CrearCuenta(nombre, correo, clave string,
 // ModificarUsuario cambia el valor del campo del usuario(id, clave) por el nuevo valor
 // Si ocurre algun error devuelve el error en formato json
 func (b *BD) ModificarUsuario(id int, clave, campo string, valor interface{}) mensajes.JsonData {
-	_, err := b.bd.Exec(actualizarUsuarioInicio+campo+actualizarUsuarioFin, valor, id, clave)
+	res, err := b.bd.Exec(actualizarUsuarioInicio+campo+actualizarUsuarioFin, valor, id, clave)
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorModificarUsuario)
+	}
+	n, _ := res.RowsAffected()
+	if n != 1 {
+		return mensajes.ErrorJson("Clave incorrecta", ErrorModificarUsuario)
 	}
 	return mensajes.ErrorJson("", 0)
 }
@@ -229,4 +244,80 @@ func execScript(db *sql.DB, script string) {
 			fmt.Println(err)
 		}
 	}
+}
+
+func (b *BD) ObtenerAmigos(id int, clave string) mensajes.JsonData {
+	if err := b.comprobarClave(id, clave); err != nil {
+		return mensajes.ErrorJson(err.Error(), ErrorIniciarSesion)
+	}
+	filas, err := b.bd.Query(consultaAmigos, id)
+	if err != nil {
+		return mensajes.ErrorJson(err.Error(), ErrorIniciarSesion)
+	}
+	var amigos []mensajes.JsonData
+	for filas.Next() {
+		var id, icono, aspecto int
+		var nombre string
+		if err := filas.Scan(&id, &nombre, &icono, &aspecto); err != nil {
+			return mensajes.ErrorJson(err.Error(), ErrorIniciarSesion)
+		}
+		amigos = append(amigos, mensajes.AmigoJson(id, icono, aspecto, nombre))
+	}
+	return mensajes.JsonData{"amigos": amigos}
+}
+
+func (b *BD) ObtenerNotificaciones(id int, clave string) mensajes.JsonData {
+	if err := b.comprobarClave(id, clave); err != nil {
+		return mensajes.ErrorJson(err.Error(), ErrorIniciarSesion)
+	}
+	var notificaciones []mensajes.JsonData
+	n, err := b.leerNotificaciones(id, consultaSolicitudes, "Peticion de amistad")
+	notificaciones = append(notificaciones, n...)
+	if err != nil {
+		return mensajes.ErrorJson(err.Error(), ErrorIniciarSesion)
+	}
+	n, err = b.leerNotificaciones(id, consultaInvitaciones, "Invitacion")
+	if err != nil {
+		return mensajes.ErrorJson(err.Error(), ErrorIniciarSesion)
+	}
+	notificaciones = append(notificaciones, n...)
+	n, err = b.leerNotificaciones(id, consultaTurnos, "Notificacion de turno")
+	if err != nil {
+		return mensajes.ErrorJson(err.Error(), ErrorIniciarSesion)
+	}
+	notificaciones = append(notificaciones, n...)
+	return mensajes.JsonData{"notificaciones": notificaciones}
+}
+
+func (b *BD) EnviarSolicitudAmistad(id, amigo int, clave string) mensajes.JsonData {
+	if err := b.comprobarClave(id, clave); err != nil {
+		return mensajes.ErrorJson(err.Error(), ErrorIniciarSesion)
+	}
+	_, err := b.bd.Exec(solicitarAmistad, id, amigo)
+	if err != nil {
+		return mensajes.ErrorJson(err.Error(), ErrorIniciarSesion)
+	}
+	return mensajes.ErrorJson("", 0)
+}
+
+func (b *BD) leerNotificaciones(id int, consulta, tipo string) ([]mensajes.JsonData, error) {
+	filas, err := b.bd.Query(consulta, id)
+	if err != nil {
+		return nil, err
+	}
+	var notificaciones []mensajes.JsonData
+	for filas.Next() {
+		var idEnvia int
+		var nombre string
+		if err := filas.Scan(&idEnvia, &nombre); err != nil {
+			return nil, err
+		}
+		notificaciones = append(notificaciones, mensajes.NotificacionJson(idEnvia, tipo, nombre))
+	}
+	return notificaciones, nil
+}
+
+func (b *BD) comprobarClave(id int, clave string) error {
+	var aspecto int
+	return b.bd.QueryRow(consultaUsuario).Scan(&aspecto)
 }
