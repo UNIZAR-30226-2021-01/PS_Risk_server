@@ -94,14 +94,14 @@ func TestIniciarSesionCorreo(t *testing.T) {
 func TestAceptarSolicitudAmistad(t *testing.T) {
 	//nuevoNombre := "nuevo Nombre"
 	//nuevoCorreo := "nuevoCorreo@mail.com"
-	//nuevaClave := "82ef67bb06675af2d43639806236ad1189253ce86e6210c072a3a265987df429"
 	/*bd := baseDatos.NuevaBDConexionLocal(baseDeDatos, true)
 	// Necesario usuario 1 con clave claveTest
 	bd.CrearCuenta(nombreTest, correoTest, claveTest, recibeCorreosTest)*/
 	bd := baseDatos.NuevaBDConexionLocal(baseDeDatos, false)
-	// Necesario usuario 2
-	//bd.CrearCuenta(nuevoNombre, nuevoCorreo, nuevaClave, recibeCorreosTest)
+	// Necesario usuario 2 con clave claveTest
+	//bd.CrearCuenta(nuevoNombre, nuevoCorreo, claveTest, recibeCorreosTest)
 	// Necesaria notificación de solicitud de amistad enviada por 2 a 1
+	//bd.EnviarSolicitudAmistad(1, 2, claveTest)
 	obtenido := bd.AceptarSolicitudAmistad(1, 2, claveTest)
 	coincide, esperado := coincideErrorNulo(obtenido)
 	if !coincide {

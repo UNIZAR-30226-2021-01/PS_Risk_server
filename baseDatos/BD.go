@@ -35,11 +35,6 @@ const (
 	ErrorRechazarAmigo      = iota
 )
 
-// Códigos de tipo de notificación posibles
-const (
-	solicitudAmistad = iota
-)
-
 // Consultas SQL
 const (
 	crearUsuario = "INSERT INTO usuario (aspecto, icono, nombre, correo, clave," +
@@ -79,10 +74,9 @@ const (
 	comprobarClaveUsuario = "SELECT id_usuario FROM usuario WHERE id_usuario = $1 AND clave = $2"
 	consultaAmistad       = "SELECT id_usuario1 FROM esAmigo WHERE id_usuario1 = $1 AND " +
 		"id_usuario2 = $2"
-	eliminarAmistad       = "DELETE FROM esAmigo WHERE id_usuario1 = $1 AND id_usuario2 = $2"
-	crearAmistad          = "INSERT INTO esAmigo (id_usuario1, id_usuario2) VALUES ($1, $2)"
-	eliminarNotificacion1 = "DELETE FROM notificacion WHERE id_usuarioEnvia = $1 AND " +
-		"id_usuarioRecibe = $2 AND tipo = $3"
+	eliminarAmistad          = "DELETE FROM esAmigo WHERE id_usuario1 = $1 AND id_usuario2 = $2"
+	crearAmistad             = "INSERT INTO esAmigo (id_usuario1, id_usuario2) VALUES ($1, $2)"
+	eliminarSolicitudAmistad = "DELETE FROM solicitudAmistad WHERE id_envia = $1 AND id_recibe = $2"
 )
 
 // NuevaBD crea una nueva conexion a la base de datos bbdd y la formatea
@@ -273,7 +267,9 @@ func (b *BD) EliminarAmigo(idUsuario, idAmigo int, clave string) mensajes.JsonDa
 }
 
 // AceptarSolicitudAmistad añade en la base de datos una relación de amistad entre
-// los usuarios indicados y elimina la notificación de solicitud de amistad.
+// los usuarios indicados y elimina la solicitud de amistad.
+// Si el usuario que acepta también le había enviado una solicitud de amistad
+// al otro usuario, esta segunda solicitud también se elimina.
 // Devuelve en formato json el error ocurrido o la ausencia de errores
 func (b *BD) AceptarSolicitudAmistad(idUsuario, idAmigo int, clave string) mensajes.JsonData {
 	id1 := min(idUsuario, idAmigo)
@@ -287,7 +283,7 @@ func (b *BD) AceptarSolicitudAmistad(idUsuario, idAmigo int, clave string) mensa
 	if err != nil && err != sql.ErrNoRows {
 		return mensajes.ErrorJson(err.Error(), ErrorAceptarAmigo)
 	} else if err == nil {
-		b.bd.Exec(eliminarNotificacion1, idAmigo, idUsuario, solicitudAmistad)
+		b.bd.Exec(eliminarSolicitudAmistad, idAmigo, idUsuario)
 		return mensajes.ErrorJson("Los usuarios ya son amigos", ErrorAceptarAmigo)
 	}
 
@@ -298,7 +294,7 @@ func (b *BD) AceptarSolicitudAmistad(idUsuario, idAmigo int, clave string) mensa
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorIniciarTransaccion)
 	}
-	resultadoConsulta, err := tx.ExecContext(ctx, eliminarNotificacion1, idAmigo, idUsuario, solicitudAmistad)
+	resultadoConsulta, err := tx.ExecContext(ctx, eliminarSolicitudAmistad, idAmigo, idUsuario)
 	if err != nil {
 		tx.Rollback()
 		return mensajes.ErrorJson(err.Error(), ErrorAceptarAmigo)
@@ -310,6 +306,11 @@ func (b *BD) AceptarSolicitudAmistad(idUsuario, idAmigo int, clave string) mensa
 	} else if filasEliminadas == 0 {
 		tx.Rollback()
 		return mensajes.ErrorJson("No existe la solicitud de amistad", ErrorAceptarAmigo)
+	}
+	_, err = tx.ExecContext(ctx, eliminarSolicitudAmistad, idUsuario, idAmigo)
+	if err != nil {
+		tx.Rollback()
+		return mensajes.ErrorJson(err.Error(), ErrorAceptarAmigo)
 	}
 	_, err = tx.ExecContext(ctx, crearAmistad, id1, id2)
 	if err != nil {
@@ -333,7 +334,7 @@ func (b *BD) RechazarSolicitudAmistad(idUsuario, idAmigo int, clave string) mens
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorUsuarioIncorrecto)
 	}
-	resultadoConsulta, err := b.bd.Exec(eliminarNotificacion1, idAmigo, idUsuario, solicitudAmistad)
+	resultadoConsulta, err := b.bd.Exec(eliminarSolicitudAmistad, idAmigo, idUsuario)
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorRechazarAmigo)
 	}
