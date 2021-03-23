@@ -91,12 +91,54 @@ func TestIniciarSesionCorreo(t *testing.T) {
 	bd.Cerrar()
 }
 
+func TestAceptarSolicitudAmistad(t *testing.T) {
+	//nuevoNombre := "nuevo Nombre"
+	//nuevoCorreo := "nuevoCorreo@mail.com"
+	//nuevaClave := "82ef67bb06675af2d43639806236ad1189253ce86e6210c072a3a265987df429"
+	/*bd := baseDatos.NuevaBDConexionLocal(baseDeDatos, true)
+	// Necesario usuario 1 con clave claveTest
+	bd.CrearCuenta(nombreTest, correoTest, claveTest, recibeCorreosTest)*/
+	bd := baseDatos.NuevaBDConexionLocal(baseDeDatos, false)
+	// Necesario usuario 2
+	//bd.CrearCuenta(nuevoNombre, nuevoCorreo, nuevaClave, recibeCorreosTest)
+	// Necesaria notificación de solicitud de amistad enviada por 2 a 1
+	obtenido := bd.AceptarSolicitudAmistad(1, 2, claveTest)
+	coincide, esperado := coincideErrorNulo(obtenido)
+	if !coincide {
+		t.Errorf("AceptarSolicitudAmistad() = %q, se esperaba %q", obtenido, esperado)
+	}
+}
+
+func TestRechazarSolicitudAmistad(t *testing.T) {
+	// Necesario usuario 1 con clave claveTest
+	// Necesario usuario 2
+	// Necesaria notificación de solicitud de amistad enviada por 2 a 1
+	bd := baseDatos.NuevaBDConexionLocal(baseDeDatos, false)
+	obtenido := bd.RechazarSolicitudAmistad(1, 2, claveTest)
+	coincide, esperado := coincideErrorNulo(obtenido)
+	if !coincide {
+		t.Errorf("RechazarSolicitudAmistad() = %q, se esperaba %q", obtenido, esperado)
+	}
+}
+
+func TestEliminarAmigo(t *testing.T) {
+	// Necesario usuario 1
+	// Necesario usuario 2 con clave claveTest
+	// Necesario que sean amigos
+	bd := baseDatos.NuevaBDConexionLocal(baseDeDatos, false)
+	obtenido := bd.EliminarAmigo(2, 1, claveTest)
+	coincide, esperado := coincideErrorNulo(obtenido)
+	if !coincide {
+		t.Errorf("EliminarAmigo() = %q, se esperaba %q", obtenido, esperado)
+	}
+}
+
 func coincideUsuario(nombre, correo, clave string,
 	recibeCorreos bool, idEsperado int,
 	respuestaObtenida mensajes.JsonData) (bool, mensajes.JsonData) {
 
-	usuarioEsperado := mensajes.UsuarioJson(idEsperado, 1, 1, 0, nombre, correo, clave, recibeCorreos)
-	cosmeticosEsperado := []mensajes.JsonData{mensajes.CosmeticoJson(1, 0)}
+	usuarioEsperado := mensajes.UsuarioJson(idEsperado, 0, 0, 0, nombre, correo, clave, recibeCorreos)
+	cosmeticosEsperado := []mensajes.JsonData{mensajes.CosmeticoJson(0, 0)}
 	esperado := mensajes.JsonData{
 		"usuario":        usuarioEsperado,
 		"iconos":         cosmeticosEsperado,
@@ -117,5 +159,18 @@ func coincideUsuario(nombre, correo, clave string,
 		return false, esperado
 	}
 
+	return true, esperado
+}
+
+func coincideErrorNulo(respuestaObtenida mensajes.JsonData) (bool, mensajes.JsonData) {
+	esperado := mensajes.ErrorJson("", baseDatos.NoError)
+	err := respuestaObtenida["err"]
+	if err == nil || err != "" {
+		return false, esperado
+	}
+	codigoError := respuestaObtenida["code"]
+	if codigoError == nil || codigoError != baseDatos.NoError {
+		return false, esperado
+	}
 	return true, esperado
 }
