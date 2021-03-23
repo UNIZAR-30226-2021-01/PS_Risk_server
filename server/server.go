@@ -87,7 +87,8 @@ func (s *Servidor) recargarUsuarioHandler(w http.ResponseWriter, r *http.Request
 		clave := r.FormValue("clave")
 		id, err := strconv.Atoi(r.FormValue("idUsuario"))
 		if err != nil || clave == "" {
-			resultado = mensajes.ErrorJson(err.Error(), baseDatos.ErrorTipoIncorrecto)
+			resultado = mensajes.ErrorJson("Campos fromulario incorrectos",
+				baseDatos.ErrorTipoIncorrecto)
 		} else {
 			resultado = s.bd.ObtenerUsuario(id, clave)
 		}
