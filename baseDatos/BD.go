@@ -60,10 +60,9 @@ const (
 		"WHERE iconoscomprados.id_usuario = "
 	actualizarUsuarioInicio = "UPDATE usuario SET "
 	actualizarUsuarioFin    = " = $1 WHERE id_usuario = $2 AND clave = $3"
-	consultaAmigos          = "SELECT id_usuario as id, nombre, icono, aspecto FROM usuario, " +
-		"(SELECT id_usuario1 as idAmigo1 FROM esamigo WHERE id_usuario2 = $1) as amigos1, " +
-		"(SELECT id_usuario2 as idAmigo2 FROM esamigo WHERE id_usuario1 = $1) as amigos2 " +
-		"WHERE id_usuario = idAmigo1 OR id_usuario = idAmigo2"
+	consultaAmigos          = "SELECT id_usuario AS id, nombre, icono, aspecto FROM usuario INNER JOIN " +
+		"(SELECT id_usuario2 AS idAmigo FROM esamigo WHERE id_usuario1 = $1 UNION " +
+		"SELECT id_usuario1 AS idAmigo FROM esamigo WHERE id_usuario2 = $1) AS amigos ON id_usuario = idAmigo"
 	consultaSolicitudes = "SELECT id_envia AS idEnvio, nombre FROM solicitudAmistad LEFT JOIN usuario ON " +
 		"id_usuario = id_envia WHERE id_recibe = $1"
 	consultaInvitaciones = "SELECT id_envia AS idEnvio, nombre FROM invitacionPartida LEFT JOIN partida ON " +
@@ -77,6 +76,7 @@ const (
 	eliminarAmistad          = "DELETE FROM esAmigo WHERE id_usuario1 = $1 AND id_usuario2 = $2"
 	crearAmistad             = "INSERT INTO esAmigo (id_usuario1, id_usuario2) VALUES ($1, $2)"
 	eliminarSolicitudAmistad = "DELETE FROM solicitudAmistad WHERE id_envia = $1 AND id_recibe = $2"
+	obtenerIdUsuario         = "SELECT id_usuario FROM usuario WHERE nombre = $1"
 )
 
 // NuevaBD crea una nueva conexion a la base de datos bbdd y la formatea
@@ -405,11 +405,16 @@ func (b *BD) ObtenerNotificaciones(id int, clave string) mensajes.JsonData {
 	return mensajes.JsonData{"notificaciones": notificaciones}
 }
 
-func (b *BD) EnviarSolicitudAmistad(id, amigo int, clave string) mensajes.JsonData {
+func (b *BD) EnviarSolicitudAmistad(id int, amigo, clave string) mensajes.JsonData {
 	if err := b.comprobarClave(id, clave); err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorIniciarSesion)
 	}
-	_, err := b.bd.Exec(solicitarAmistad, id, amigo)
+	var idAmigo int
+	err := b.bd.QueryRow(obtenerIdUsuario, amigo).Scan(&idAmigo)
+	if err != nil {
+		return mensajes.ErrorJson(err.Error(), ErrorIniciarSesion)
+	}
+	_, err = b.bd.Exec(solicitarAmistad, id, idAmigo)
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorIniciarSesion)
 	}
@@ -434,8 +439,8 @@ func (b *BD) leerNotificaciones(id int, consulta, tipo string) ([]mensajes.JsonD
 }
 
 func (b *BD) comprobarClave(id int, clave string) error {
-	var aspecto int
-	return b.bd.QueryRow(consultaUsuario).Scan(&aspecto)
+	var idU int
+	return b.bd.QueryRow(comprobarClaveUsuario, id, clave).Scan(&idU)
 }
 
 func min(n1, n2 int) int {

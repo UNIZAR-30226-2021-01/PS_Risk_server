@@ -26,9 +26,12 @@ func NuevoServidor(p, bbdd string) (*Servidor, error) {
 func (s *Servidor) Iniciar() error {
 	http.HandleFunc("/registrar", s.registroUsuario)
 	http.HandleFunc("/iniciarSesion", s.inicioSesion)
-	http.HandleFunc("/recargarUsuario", s.recargarUsuarioHandler)
+	http.HandleFunc("/recargarUsuario", s.obtenerUsuarioHandler)
 	http.HandleFunc("/personalizarUsuario", s.personalizarUsuarioHandler)
 	http.HandleFunc("/gestionAmistad", s.gestionAmistadHandler)
+	http.HandleFunc("/notificaciones", s.notificacionesHandler)
+	http.HandleFunc("/amigos", s.amigosHandler)
+	http.HandleFunc("/enviarSolicitudAmistad", s.solicitudAmistadHandler)
 	err := http.ListenAndServe(":"+s.puerto, nil)
 	return err
 }
@@ -72,26 +75,6 @@ func (s *Servidor) inicioSesion(w http.ResponseWriter, r *http.Request) {
 			} else {
 				resultado = s.bd.IniciarSesionNombre(usuario, clave)
 			}
-		}
-	}
-	respuesta, _ := json.MarshalIndent(resultado, "", " ")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	fmt.Fprint(w, string(respuesta))
-}
-
-func (s *Servidor) recargarUsuarioHandler(w http.ResponseWriter, r *http.Request) {
-	var resultado mensajes.JsonData
-	err := r.ParseForm()
-	if err != nil {
-		resultado = mensajes.ErrorJson(err.Error(), baseDatos.ErrorTipoIncorrecto)
-	} else {
-		clave := r.FormValue("clave")
-		id, err := strconv.Atoi(r.FormValue("idUsuario"))
-		if err != nil || clave == "" {
-			resultado = mensajes.ErrorJson("Campos fromulario incorrectos",
-				baseDatos.ErrorTipoIncorrecto)
-		} else {
-			resultado = s.bd.ObtenerUsuario(id, clave)
 		}
 	}
 	respuesta, _ := json.MarshalIndent(resultado, "", " ")
@@ -162,6 +145,61 @@ func (s *Servidor) gestionAmistadHandler(w http.ResponseWriter, r *http.Request)
 						baseDatos.ErrorTipoIncorrecto)
 				}
 			}
+		}
+	}
+	respuesta, _ := json.MarshalIndent(resultado, "", " ")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	fmt.Fprint(w, string(respuesta))
+}
+
+func (s *Servidor) solicitudAmistadHandler(w http.ResponseWriter, r *http.Request) {
+	var resultado mensajes.JsonData
+	err := r.ParseForm()
+	if err != nil {
+		resultado = mensajes.ErrorJson(err.Error(), baseDatos.ErrorTipoIncorrecto)
+	} else {
+		nombre := r.FormValue("nombreAmigo")
+		clave := r.FormValue("clave")
+		idUsuario, err := strconv.Atoi(r.FormValue("idUsuario"))
+		if err != nil || nombre == "" || clave == "" {
+			resultado = mensajes.ErrorJson("Campos fromulario incorrectos",
+				baseDatos.ErrorTipoIncorrecto)
+		} else {
+			resultado = s.bd.EnviarSolicitudAmistad(idUsuario, nombre, clave)
+		}
+	}
+	respuesta, _ := json.MarshalIndent(resultado, "", " ")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	fmt.Fprint(w, string(respuesta))
+}
+
+func (s *Servidor) obtenerUsuarioHandler(w http.ResponseWriter, r *http.Request) {
+	obtenerHandler(w, r, s.bd.ObtenerUsuario)
+}
+
+func (s *Servidor) notificacionesHandler(w http.ResponseWriter, r *http.Request) {
+	obtenerHandler(w, r, s.bd.ObtenerNotificaciones)
+}
+
+func (s *Servidor) amigosHandler(w http.ResponseWriter, r *http.Request) {
+	obtenerHandler(w, r, s.bd.ObtenerAmigos)
+}
+
+func obtenerHandler(w http.ResponseWriter, r *http.Request,
+	metodo func(int, string) mensajes.JsonData) {
+
+	var resultado mensajes.JsonData
+	err := r.ParseForm()
+	if err != nil {
+		resultado = mensajes.ErrorJson(err.Error(), baseDatos.ErrorTipoIncorrecto)
+	} else {
+		clave := r.FormValue("clave")
+		idUsuario, err := strconv.Atoi(r.FormValue("idUsuario"))
+		if err != nil || clave == "" {
+			resultado = mensajes.ErrorJson("Campos fromulario incorrectos",
+				baseDatos.ErrorTipoIncorrecto)
+		} else {
+			resultado = metodo(idUsuario, clave)
 		}
 	}
 	respuesta, _ := json.MarshalIndent(resultado, "", " ")

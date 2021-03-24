@@ -13,7 +13,7 @@ CREATE TABLE usuario (
     aspecto INT NOT NULL,
     icono INT NOT NULL,
     nombre VARCHAR(20) UNIQUE NOT NULL,
-    correo VARCHAR(20) UNIQUE NOT NULL,
+    correo VARCHAR(256) UNIQUE NOT NULL,
     clave VARCHAR(64) NOT NULL,
     riskos INT NOT NULL CHECK (riskos >= 0),
     recibeCorreos BOOLEAN NOT NULL,
