@@ -33,42 +33,18 @@ const (
 	ErrorEliminarAmigo      = iota
 	ErrorAceptarAmigo       = iota
 	ErrorRechazarAmigo      = iota
+	ErrorNotificaciones     = iota
 )
 
 // Consultas SQL
 const (
-	crearUsuario = "INSERT INTO usuario (aspecto, icono, nombre, correo, clave," +
-		" riskos, recibeCorreos) VALUES (0, 0, $1, $2, $3, 0, $4) " +
-		"RETURNING id_usuario"
-	darIconosPorDefecto = "INSERT INTO iconosComprados (id_usuario, id_icono)" +
-		" VALUES ($1, 0)"
-	darAspectosPorDefecto = "INSERT INTO aspectosComprados (id_usuario, " +
-		"id_aspecto) VALUES ($1, 0)"
-	consultaAspectos = "SELECT id_aspecto AS id, precio FROM aspecto"
-	consultaIconos   = "SELECT id_icono AS id, precio FROM icono"
-	consultaUsuario  = "SELECT aspecto, correo, icono, nombre, recibeCorreos, " +
+	consultaUsuario = "SELECT aspecto, correo, icono, nombre, recibeCorreos, " +
 		"riskos FROM usuario WHERE id_usuario = $1 AND clave = $2"
-	consultaUsuarioNombre = "SELECT aspecto, correo, icono, id_usuario, recibeCorreos, " +
-		"riskos FROM usuario WHERE nombre = $1 AND clave = $2"
-	consultaUsuarioCorreo = "SELECT aspecto, nombre, icono, id_usuario, recibeCorreos, " +
-		"riskos FROM usuario WHERE correo = $1 AND clave = $2"
-	consultaAspectosUsuario = "SELECT aspecto.id_aspecto AS id, aspecto.precio AS precio " +
-		"FROM aspecto INNER JOIN aspectoscomprados ON aspecto.id_aspecto = aspectoscomprados.id_aspecto " +
-		"WHERE aspectoscomprados.id_usuario = "
-	consultaIconosUsuario = "SELECT icono.id_icono AS id, icono.precio AS precio " +
-		"FROM icono INNER JOIN iconoscomprados ON icono.id_icono = iconoscomprados.id_icono " +
-		"WHERE iconoscomprados.id_usuario = "
 	actualizarUsuarioInicio = "UPDATE usuario SET "
 	actualizarUsuarioFin    = " = $1 WHERE id_usuario = $2 AND clave = $3"
 	consultaAmigos          = "SELECT id_usuario AS id, nombre, icono, aspecto FROM usuario INNER JOIN " +
 		"(SELECT id_usuario2 AS idAmigo FROM esamigo WHERE id_usuario1 = $1 UNION " +
 		"SELECT id_usuario1 AS idAmigo FROM esamigo WHERE id_usuario2 = $1) AS amigos ON id_usuario = idAmigo"
-	consultaSolicitudes = "SELECT id_envia AS idEnvio, nombre FROM solicitudAmistad LEFT JOIN usuario ON " +
-		"id_usuario = id_envia WHERE id_recibe = $1"
-	consultaInvitaciones = "SELECT id_envia AS idEnvio, nombre FROM invitacionPartida LEFT JOIN partida ON " +
-		"id_partida = id_envia WHERE id_recibe = $1"
-	consultaTurnos = "SELECT id_envia AS idEnvio, nombre FROM notificacionTurno LEFT JOIN partida ON " +
-		"id_partida = id_envia WHERE id_recibe = $1"
 	solicitarAmistad      = "INSERT INTO solicitudAmistad (id_envia, id_recibe) VALUES ($1, $2)"
 	comprobarClaveUsuario = "SELECT id_usuario FROM usuario WHERE id_usuario = $1 AND clave = $2"
 	consultaAmistad       = "SELECT id_usuario1 FROM esAmigo WHERE id_usuario1 = $1 AND " +
