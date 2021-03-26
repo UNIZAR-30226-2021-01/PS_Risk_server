@@ -14,79 +14,9 @@ func NewSHA256(data []byte) []byte {
 	return hash[:]
 }
 
-func TestCrearCuenta(t *testing.T) {
-	bd := baseDatos.NuevaBDConexionLocal(baseDeDatos, true)
-	defer bd.Cerrar()
-	obtenido := bd.CrearCuenta(nombreTest, correoTest, claveTest, recibeCorreosTest)
-	coincide, esperado := coincideUsuario(nombreTest, correoTest, claveTest, recibeCorreosTest, 1, obtenido)
-	if !coincide {
-		t.Errorf("CrearCuenta() = %q, se esperaba %q", obtenido, esperado)
-		return
-	}
-	bd.CrearCuenta(nombreAmigo1, correoAmigo1, claveTest, true)
-	bd.CrearCuenta(nombreAmigo2, correoAmigo2, claveTest, true)
-}
-
 func TestActualizarUsuario(t *testing.T) {
 	bd := baseDatos.NuevaBDConexionLocal(baseDeDatos, false)
 	obtenido := bd.ObtenerUsuario(1, claveTest)
-	coincide, esperado := coincideUsuario(nombreTest, correoTest, claveTest, recibeCorreosTest, 1, obtenido)
-	if !coincide {
-		t.Errorf("CrearCuenta() = %q, se esperaba %q", obtenido, esperado)
-	}
-	bd.Cerrar()
-}
-
-func TestModificarUsuario(t *testing.T) {
-	nuevoNombre := "nuevo Nombre"
-	nuevoCorreo := "nuevoCorreo@mail.com"
-	nuevaClave := "82ef67bb06675af2d43639806236ad1189253ce86e6210c072a3a265987df429"
-
-	bd := baseDatos.NuevaBDConexionLocal(baseDeDatos, false)
-	defer bd.Cerrar()
-
-	obtenido := bd.ModificarUsuario(1, claveTest, "clave", nuevaClave)
-	if c, _ := coincideErrorNulo(obtenido); !c {
-		t.Errorf("Error %q, al aceptar solicitud de amistad", obtenido)
-		return
-	}
-	obtenido = bd.ModificarUsuario(1, nuevaClave, "nombre", nuevoNombre)
-	if c, _ := coincideErrorNulo(obtenido); !c {
-		t.Errorf("Error %q, al aceptar solicitud de amistad", obtenido)
-		return
-	}
-	obtenido = bd.ModificarUsuario(1, nuevaClave, "correo", nuevoCorreo)
-	if c, _ := coincideErrorNulo(obtenido); !c {
-		t.Errorf("Error %q, al aceptar solicitud de amistad", obtenido)
-		return
-	}
-	obtenido = bd.ModificarUsuario(1, nuevaClave, "recibeCorreos", !recibeCorreosTest)
-	if c, _ := coincideErrorNulo(obtenido); !c {
-		t.Errorf("Error %q, al aceptar solicitud de amistad", obtenido)
-		return
-	}
-
-	obtenido = bd.ObtenerUsuario(1, nuevaClave)
-	coincide, esperado := coincideUsuario(nuevoNombre, nuevoCorreo, nuevaClave, !recibeCorreosTest, 1, obtenido)
-	if !coincide {
-		t.Errorf("CrearCuenta() = %q, se esperaba %q", obtenido, esperado)
-	}
-	bd.Cerrar()
-}
-
-func TestIniciarSesionNombre(t *testing.T) {
-	bd := baseDatos.NuevaBDConexionLocal(baseDeDatos, false)
-	obtenido := bd.IniciarSesionNombre(nombreTest, claveTest)
-	coincide, esperado := coincideUsuario(nombreTest, correoTest, claveTest, recibeCorreosTest, 1, obtenido)
-	if !coincide {
-		t.Errorf("CrearCuenta() = %q, se esperaba %q", obtenido, esperado)
-	}
-	bd.Cerrar()
-}
-
-func TestIniciarSesionCorreo(t *testing.T) {
-	bd := baseDatos.NuevaBDConexionLocal(baseDeDatos, false)
-	obtenido := bd.IniciarSesionCorreo(correoTest, claveTest)
 	coincide, esperado := coincideUsuario(nombreTest, correoTest, claveTest, recibeCorreosTest, 1, obtenido)
 	if !coincide {
 		t.Errorf("CrearCuenta() = %q, se esperaba %q", obtenido, esperado)
