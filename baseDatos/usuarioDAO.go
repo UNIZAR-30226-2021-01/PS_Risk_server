@@ -122,7 +122,7 @@ func (dao *UsuarioDAO) IniciarSesionCorreo(correo, clave string) (Usuario, error
 	var recibeCorreos bool
 	var u Usuario
 
-	err := dao.bd.QueryRow(consultaUsuarioNombre, correo, clave).Scan(&id,
+	err := dao.bd.QueryRow(consultaUsuarioCorreo, correo, clave).Scan(&id,
 		&icono, &aspecto, &riskos, &nombre, &recibeCorreos)
 	if err != nil {
 		return u, err
@@ -170,7 +170,7 @@ func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
 
 func (dao *UsuarioDAO) ObtenerNotificaciones(u Usuario) mensajes.JsonData {
 	var notificaciones []mensajes.JsonData
-	n, err := dao.leerNotificaciones(u.Id, consultaSolicitudes, "Petición de amistad")
+	n, err := dao.leerNotificaciones(u.Id, consultaSolicitudes, "Peticion de amistad")
 	notificaciones = append(notificaciones, n...)
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorNotificaciones)

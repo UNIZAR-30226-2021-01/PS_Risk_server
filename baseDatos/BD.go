@@ -19,21 +19,25 @@ type BD struct {
 
 // Códigos de error posibles
 const (
-	NoError                 = 0
-	ErrorIniciarTransaccion = iota
-	ErrorCrearCuenta        = iota
-	ErrorLeerAspectosTienda = iota
-	ErrorLeerIconosTienda   = iota
-	ErrorTipoIncorrecto     = iota
-	ErrorBusquedaUsuario    = iota
-	ErrorModificarUsuario   = iota
-	ErrorIniciarSesion      = iota
-	ErrorCampoIncorrecto    = iota
-	ErrorUsuarioIncorrecto  = iota
-	ErrorEliminarAmigo      = iota
-	ErrorAceptarAmigo       = iota
-	ErrorRechazarAmigo      = iota
-	ErrorNotificaciones     = iota
+	NoError                     = 0
+	ErrorIniciarTransaccion     = iota
+	ErrorCrearCuenta            = iota
+	ErrorLeerAspectosTienda     = iota
+	ErrorLeerIconosTienda       = iota
+	ErrorTipoIncorrecto         = iota
+	ErrorBusquedaUsuario        = iota
+	ErrorModificarUsuario       = iota
+	ErrorIniciarSesion          = iota
+	ErrorCampoIncorrecto        = iota
+	ErrorUsuarioIncorrecto      = iota
+	ErrorEliminarAmigo          = iota
+	ErrorAceptarAmigo           = iota
+	ErrorRechazarAmigo          = iota
+	ErrorNotificaciones         = iota
+	ErrorLeerAmigos             = iota
+	ErrorNombreUsuario          = iota
+	ErrorEnviarSolicitudAmistad = iota
+	ErrorAmistadDuplicada       = iota
 )
 
 // Consultas SQL
@@ -42,17 +46,8 @@ const (
 		"riskos FROM usuario WHERE id_usuario = $1 AND clave = $2"
 	actualizarUsuarioInicio = "UPDATE usuario SET "
 	actualizarUsuarioFin    = " = $1 WHERE id_usuario = $2 AND clave = $3"
-	consultaAmigos          = "SELECT id_usuario AS id, nombre, icono, aspecto FROM usuario INNER JOIN " +
-		"(SELECT id_usuario2 AS idAmigo FROM esamigo WHERE id_usuario1 = $1 UNION " +
-		"SELECT id_usuario1 AS idAmigo FROM esamigo WHERE id_usuario2 = $1) AS amigos ON id_usuario = idAmigo"
-	solicitarAmistad      = "INSERT INTO solicitudAmistad (id_envia, id_recibe) VALUES ($1, $2)"
-	comprobarClaveUsuario = "SELECT id_usuario FROM usuario WHERE id_usuario = $1 AND clave = $2"
-	consultaAmistad       = "SELECT id_usuario1 FROM esAmigo WHERE id_usuario1 = $1 AND " +
-		"id_usuario2 = $2"
-	eliminarAmistad          = "DELETE FROM esAmigo WHERE id_usuario1 = $1 AND id_usuario2 = $2"
-	crearAmistad             = "INSERT INTO esAmigo (id_usuario1, id_usuario2) VALUES ($1, $2)"
-	eliminarSolicitudAmistad = "DELETE FROM solicitudAmistad WHERE id_envia = $1 AND id_recibe = $2"
-	obtenerIdUsuario         = "SELECT id_usuario FROM usuario WHERE nombre = $1"
+	comprobarClaveUsuario   = "SELECT id_usuario FROM usuario WHERE id_usuario = $1 AND clave = $2"
+	obtenerIdUsuario        = "SELECT id_usuario FROM usuario WHERE nombre = $1"
 )
 
 // NuevaBD crea una nueva conexion a la base de datos bbdd y la formatea
