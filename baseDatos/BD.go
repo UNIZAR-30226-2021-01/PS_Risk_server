@@ -50,6 +50,16 @@ const (
 	obtenerIdUsuario        = "SELECT id_usuario FROM usuario WHERE nombre = $1"
 )
 
+func CrearBD(bbdd string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", bbdd)
+	if err != nil {
+		return db, err
+	}
+	execScript(db, "scripts/destruirBBDD.sql")
+	execScript(db, "scripts/crearBBDD.sql")
+	return db, err
+}
+
 // NuevaBD crea una nueva conexion a la base de datos bbdd y la formatea
 func NuevaBD(bbdd string) (*BD, error) {
 	db, err := sql.Open("postgres", bbdd)

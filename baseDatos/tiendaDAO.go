@@ -19,6 +19,10 @@ type TiendaDAO struct {
 	bd *sql.DB
 }
 
+func NuevaTiendaDAO(bd *sql.DB) (dao TiendaDAO) {
+	return TiendaDAO{bd: bd}
+}
+
 func (dao *TiendaDAO) ObtenerTienda() (Tienda, error) {
 	var t Tienda
 	aspectos, err := dao.leerCosmetico(consultaAspectos)
