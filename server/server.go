@@ -45,6 +45,7 @@ func (s *Servidor) Iniciar() error {
 	http.HandleFunc("/notificaciones", s.notificacionesHandler)
 	http.HandleFunc("/amigos", s.amigosHandler)
 	http.HandleFunc("/enviarSolicitudAmistad", s.solicitudAmistadHandler)
+	http.HandleFunc("/comprar", s.comprarHandler)
 	err := http.ListenAndServe(":"+s.Puerto, nil)
 	return err
 }
@@ -285,5 +286,53 @@ func (s *Servidor) amigosHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respuesta, _ := json.MarshalIndent(s.AmigosDAO.ObtenerAmigos(user), "", " ")
+	fmt.Fprint(w, string(respuesta))
+}
+
+func (s *Servidor) comprarHandler(w http.ResponseWriter, r *http.Request) {
+	var resultado mensajes.JsonData
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	err := r.ParseForm()
+	if err != nil {
+		devolverError(1, err.Error(), w)
+		return
+	}
+	clave := r.FormValue("clave")
+	idUsuario, err := strconv.Atoi(r.FormValue("idUsuario"))
+	if err != nil || clave == "" {
+		devolverError(1, "Campos fromulario incorrectos", w)
+		return
+	}
+	user, err := s.UsuarioDAO.ObtenerUsuario(idUsuario, clave)
+	if err != nil {
+		devolverError(1, "No se ha podido obtener el usuario", w)
+		return
+	}
+	cosmetico, err := strconv.Atoi(r.FormValue("cosmetico"))
+	if err != nil {
+		devolverError(1, "Campos fromulario incorrectos", w)
+		return
+	}
+	tipo := r.FormValue("tipo")
+	switch tipo {
+	case "Aspecto":
+		p, enc := s.Tienda.ObtenerPrecioAspecto(cosmetico)
+		if !enc {
+			devolverError(1, "Aspecto no encontrado", w)
+			return
+		}
+		resultado = s.TiendaDAO.ComprarAspecto(&user, cosmetico, p)
+	case "Icono":
+		p, enc := s.Tienda.ObtenerPrecioIcono(cosmetico)
+		if !enc {
+			devolverError(1, "Icono no encontrado", w)
+			return
+		}
+		resultado = s.TiendaDAO.ComprarIcono(&user, cosmetico, p)
+	default:
+		devolverError(1, "El tipo no existe", w)
+		return
+	}
+	respuesta, _ := json.MarshalIndent(resultado, "", " ")
 	fmt.Fprint(w, string(respuesta))
 }
