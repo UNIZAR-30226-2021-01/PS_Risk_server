@@ -77,13 +77,6 @@ func (dao *AmigosDAO) EliminarAmigo(u Usuario, id int) mensajes.JsonData {
 func (dao *AmigosDAO) AceptarSolicitudAmistad(u Usuario, id int) mensajes.JsonData {
 	id1 := min(u.Id, id)
 	id2 := max(u.Id, id)
-	err := dao.bd.QueryRow(consultaAmistad, id1, id2).Scan(&id)
-	if err != nil && err != sql.ErrNoRows {
-		return mensajes.ErrorJson(err.Error(), ErrorAceptarAmigo)
-	} else if err == nil {
-		dao.bd.Exec(eliminarSolicitudAmistad, id, u.Id)
-		return mensajes.ErrorJson("Los usuarios ya son amigos", ErrorAceptarAmigo)
-	}
 
 	// Iniciar una transaccion, solo se modifican las tablas si se modifican
 	// todas
