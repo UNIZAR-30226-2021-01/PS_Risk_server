@@ -28,6 +28,7 @@ const (
 	solicitarAmistad         = "INSERT INTO solicitudAmistad (id_envia, id_recibe) VALUES ($1, $2)"
 	consultaAmistad          = "SELECT id_usuario1 FROM esAmigo WHERE id_usuario1 = $1 AND " +
 		"id_usuario2 = $2"
+	obtenerIdUsuario = "SELECT id_usuario FROM usuario WHERE nombre = $1"
 )
 
 // ObtenerAmigos devuelve la lista de amigos en formato json del usuario indicado.

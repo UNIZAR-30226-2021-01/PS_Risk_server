@@ -24,8 +24,7 @@ func TestComprar(t *testing.T) {
 	obtenido := ud.ActualizarUsuario(u1)
 	coincide, esperado := coincideErrorNulo(obtenido)
 	if !coincide {
-		t.Fatalf("RechazarSolicitudAmistad() = %q, se esperaba %q",
-			obtenido, esperado)
+		t.Fatalf("Error %q, se esperaba %q", obtenido, esperado)
 	}
 	ti, err := td.ObtenerTienda()
 	if err != nil {
@@ -38,8 +37,7 @@ func TestComprar(t *testing.T) {
 	obtenido = td.ComprarAspecto(&u1, 1, pre)
 	coincide, esperado = coincideErrorNulo(obtenido)
 	if !coincide {
-		t.Fatalf("RechazarSolicitudAmistad() = %q, se esperaba %q",
-			obtenido, esperado)
+		t.Fatalf("Error %q, se esperaba %q", obtenido, esperado)
 	}
 	pre, enc = ti.ObtenerPrecioIcono(1)
 	if !enc {
@@ -48,8 +46,7 @@ func TestComprar(t *testing.T) {
 	obtenido = td.ComprarIcono(&u1, 1, pre)
 	coincide, esperado = coincideErrorNulo(obtenido)
 	if !coincide {
-		t.Fatalf("RechazarSolicitudAmistad() = %q, se esperaba %q",
-			obtenido, esperado)
+		t.Fatalf("Error %q, se esperaba %q", obtenido, esperado)
 	}
 	u1, err = ud.ObtenerUsuario(1, claveTest)
 	if err != nil {

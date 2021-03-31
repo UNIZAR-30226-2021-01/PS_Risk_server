@@ -13,7 +13,7 @@ const (
 	reducirRiskos    = "UPDATE usuario SET riskos = riskos - $1 WHERE id_usuario = $2"
 	comprarAspecto   = "INSERT INTO aspectosComprados (id_usuario, id_aspecto) " +
 		"VALUES ($1, $2)"
-	comprarIcono = "INSERT INTO iconosComprados (id_usuario, id_aspecto) " +
+	comprarIcono = "INSERT INTO iconosComprados (id_usuario, id_icono) " +
 		"VALUES ($1, $2)"
 )
 
@@ -81,7 +81,6 @@ func (dao *TiendaDAO) comprar(u *Usuario, id, precio int, sql string) mensajes.J
 	if u.Riskos-precio < 0 {
 		return mensajes.ErrorJson("Riskos insuficientes", 1)
 	}
-	u.Riskos -= precio
 	// Iniciar una transaccion, solo se modifican las tablas si se modifican
 	// todas
 	ctx := context.Background()
@@ -104,6 +103,7 @@ func (dao *TiendaDAO) comprar(u *Usuario, id, precio int, sql string) mensajes.J
 		return mensajes.ErrorJson(err.Error(), 1)
 	}
 	// Fin de la transaccion
+	u.Riskos -= precio
 	return mensajes.ErrorJson("", 0)
 }
 

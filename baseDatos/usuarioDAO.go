@@ -4,6 +4,7 @@ import (
 	"PS_Risk_server/mensajes"
 	"context"
 	"database/sql"
+	"errors"
 	"strconv"
 )
 
@@ -20,11 +21,15 @@ const (
 		"correo, recibeCorreos FROM usuario WHERE nombre = $1 AND clave = $2"
 	consultaUsuarioCorreo = "SELECT id_usuario AS id, icono, aspecto, riskos, " +
 		"nombre, recibeCorreos FROM usuario WHERE correo = $1 AND clave = $2"
-	consultaUsuarioId = "SELECT icono, aspecto, riskos, correo, nombre," +
+	consultaUsuarioId = "SELECT icono, aspecto, riskos, correo, nombre, clave" +
+		" recibeCorreos FROM usuario WHERE id_usuario = $1"
+	consultaUsuario = "SELECT icono, aspecto, riskos, correo, nombre," +
 		" recibeCorreos FROM usuario WHERE id_usuario = $1 AND clave = $2"
 
 	actualizarUsuario = "UPDATE usuario SET aspecto = $1, icono = $2, nombre = $3, " +
-		"correo = $4, clave = $5, recibeCorreos = $6, riskos = $7 WHERE id_usuario = $8"
+		"correo = $4, clave = $5, recibeCorreos = $6 WHERE id_usuario = $8"
+	incrementarRiskos = "UPDATE usuario SET riskos = riskos + $1" +
+		"WHERE id_usuario = $2"
 
 	consultaSolicitudes = "SELECT id_envia AS idEnvio, nombre FROM solicitudAmistad " +
 		"LEFT JOIN usuario ON id_usuario = id_envia WHERE id_recibe = $1"
@@ -39,6 +44,11 @@ const (
 	consultaIconosUsuario = "SELECT icono.id_icono AS id, icono.precio AS precio " +
 		"FROM icono INNER JOIN iconoscomprados ON icono.id_icono = iconoscomprados.id_icono " +
 		"WHERE iconoscomprados.id_usuario = "
+
+	comprobarIconoComprado = "SELECT id_usuario AS id FROM iconosComprados " +
+		"WHERE id_usuario = $1 AND id_icono = $2"
+	comprobarAspectoComprado = "SELECT id_usuario AS id FROM aspectosComprados " +
+		"WHERE id_usuario = $1 AND id_aspecto = $2"
 )
 
 type Usuario struct {
@@ -84,6 +94,8 @@ func (u *Usuario) Modificar(c string, v string) error {
 		if err != nil {
 			return err
 		}
+	default:
+		return errors.New("el campo a modificar no existe")
 	}
 	return nil
 }
@@ -184,7 +196,7 @@ func (dao *UsuarioDAO) ObtenerUsuario(id int, clave string) (Usuario, error) {
 	var recibeCorreos bool
 	var u Usuario
 
-	err := dao.bd.QueryRow(consultaUsuarioId, id, clave).Scan(&icono,
+	err := dao.bd.QueryRow(consultaUsuario, id, clave).Scan(&icono,
 		&aspecto, &riskos, &correo, &nombre, &recibeCorreos)
 	if err != nil {
 		return u, err
@@ -197,9 +209,37 @@ func (dao *UsuarioDAO) ObtenerUsuario(id int, clave string) (Usuario, error) {
 	return u, nil
 }
 
+func (dao *UsuarioDAO) ObtenerUsuarioId(id int) (Usuario, error) {
+	var icono, aspecto, riskos int
+	var nombre, correo, clave string
+	var recibeCorreos bool
+	var u Usuario
+
+	err := dao.bd.QueryRow(consultaUsuarioId, id).Scan(&icono,
+		&aspecto, &riskos, &correo, &nombre, &clave, &recibeCorreos)
+	if err != nil {
+		return u, err
+	}
+	u = Usuario{
+		Id: id, Icono: icono, Aspecto: aspecto, Riskos: riskos,
+		Nombre: nombre, Correo: correo, Clave: clave,
+		RecibeCorreos: recibeCorreos,
+	}
+	return u, nil
+}
+
 func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
+	var id int
+	err := dao.bd.QueryRow(comprobarIconoComprado, u.Id, u.Icono).Scan(&id)
+	if err != nil {
+		return mensajes.ErrorJson("Icono no comprado", ErrorModificarUsuario)
+	}
+	err = dao.bd.QueryRow(comprobarAspectoComprado, u.Id, u.Aspecto).Scan(&id)
+	if err != nil {
+		return mensajes.ErrorJson("Aspecto no comprado", ErrorModificarUsuario)
+	}
 	res, err := dao.bd.Exec(actualizarUsuario, u.Aspecto, u.Icono, u.Nombre,
-		u.Correo, u.Clave, u.RecibeCorreos, u.Riskos, u.Id)
+		u.Correo, u.Clave, u.RecibeCorreos, u.Id)
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorModificarUsuario)
 	}
@@ -208,6 +248,15 @@ func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
 		return mensajes.ErrorJson("Error modificando usuario", ErrorModificarUsuario)
 	}
 	return mensajes.ErrorJson("", 0)
+}
+
+func (dao *UsuarioDAO) IncrementarRiskos(u *Usuario, r int) error {
+	_, err := dao.bd.Exec(incrementarRiskos, r, u.Id)
+	if err != nil {
+		return err
+	}
+	u.Riskos += r
+	return nil
 }
 
 func (dao *UsuarioDAO) ObtenerNotificaciones(u Usuario) mensajes.JsonData {

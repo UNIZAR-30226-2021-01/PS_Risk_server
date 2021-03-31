@@ -10,11 +10,11 @@ CREATE TABLE icono (
 
 CREATE TABLE usuario (
     id_usuario SERIAL PRIMARY KEY,
-    aspecto INT NOT NULL,
-    icono INT NOT NULL,
-    nombre VARCHAR(20) UNIQUE NOT NULL,
-    correo VARCHAR(256) UNIQUE NOT NULL,
-    clave VARCHAR(64) NOT NULL,
+    aspecto INT,
+    icono INT,
+    nombre VARCHAR(20) UNIQUE NOT NULL CHECK (nombre <> ''),
+    correo VARCHAR(256) UNIQUE NOT NULL CHECK (correo <> ''),
+    clave VARCHAR(64) NOT NULL CHECK (clave <> ''),
     riskos INT NOT NULL CHECK (riskos >= 0),
     recibeCorreos BOOLEAN NOT NULL,
     FOREIGN KEY (aspecto) REFERENCES aspecto(id_aspecto),
@@ -47,7 +47,7 @@ CREATE TABLE esAmigo (
 
 CREATE TABLE partida (
     id_partida SERIAL PRIMARY KEY,
-    nombre VARCHAR(20),
+    nombre VARCHAR(20) NOT NULL CHECK (nombre <> ''),
     json_estado JSON
 );
 

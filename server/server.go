@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
+
+	"github.com/go-playground/form/v4"
+	"github.com/rs/cors"
 )
 
 type Servidor struct {
@@ -37,16 +39,18 @@ func NuevoServidor(p, bbdd string) (*Servidor, error) {
 }
 
 func (s *Servidor) Iniciar() error {
-	http.HandleFunc("/registrar", s.registroUsuario)
-	http.HandleFunc("/iniciarSesion", s.inicioSesion)
-	http.HandleFunc("/recargarUsuario", s.obtenerUsuarioHandler)
-	http.HandleFunc("/personalizarUsuario", s.personalizarUsuarioHandler)
-	http.HandleFunc("/gestionAmistad", s.gestionAmistadHandler)
-	http.HandleFunc("/notificaciones", s.notificacionesHandler)
-	http.HandleFunc("/amigos", s.amigosHandler)
-	http.HandleFunc("/enviarSolicitudAmistad", s.solicitudAmistadHandler)
-	http.HandleFunc("/comprar", s.comprarHandler)
-	err := http.ListenAndServe(":"+s.Puerto, nil)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/registrar", s.registroUsuario)
+	mux.HandleFunc("/iniciarSesion", s.inicioSesion)
+	mux.HandleFunc("/recargarUsuario", s.obtenerUsuarioHandler)
+	mux.HandleFunc("/personalizarUsuario", s.personalizarUsuarioHandler)
+	mux.HandleFunc("/gestionAmistad", s.gestionAmistadHandler)
+	mux.HandleFunc("/notificaciones", s.notificacionesHandler)
+	mux.HandleFunc("/amigos", s.amigosHandler)
+	mux.HandleFunc("/enviarSolicitudAmistad", s.solicitudAmistadHandler)
+	mux.HandleFunc("/comprar", s.comprarHandler)
+	handler := cors.Default().Handler(mux)
+	err := http.ListenAndServe(":"+s.Puerto, handler)
 	return err
 }
 
@@ -74,22 +78,27 @@ func devolverError(code int, err string, w http.ResponseWriter) {
 	fmt.Fprint(w, string(respuesta))
 }
 
+type formularioRegistro struct {
+	Nombre        string `form:"nombre"`
+	Correo        string `form:"correo"`
+	Clave         string `form:"clave"`
+	RecibeCorreos bool   `form:"recibeCorreos"`
+}
+
 func (s *Servidor) registroUsuario(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	var f formularioRegistro
+	decoder := form.NewDecoder()
 	err := r.ParseForm()
 	if err != nil {
 		devolverError(1, err.Error(), w)
 		return
 	}
-	nombre := r.FormValue("nombre")
-	correo := r.FormValue("correo")
-	clave := r.FormValue("clave")
-	recibeCorreos, err := strconv.ParseBool(r.FormValue("recibeCorreos"))
-	if err != nil || nombre == "" || correo == "" || clave == "" {
+	err = decoder.Decode(&f, r.PostForm)
+	if err != nil {
 		devolverError(1, "Campos formulario incorrectos", w)
 		return
 	}
-	user, err := s.UsuarioDAO.CrearCuenta(nombre, correo, clave, recibeCorreos)
+	user, err := s.UsuarioDAO.CrearCuenta(f.Nombre, f.Correo, f.Clave, f.RecibeCorreos)
 	if err != nil {
 		devolverError(1, err.Error(), w)
 		return
@@ -98,24 +107,31 @@ func (s *Servidor) registroUsuario(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, string(respuesta))
 }
 
+type formularioInicioSesion struct {
+	Usuario string `form:"usuario"`
+	Clave   string `form:"clave"`
+}
+
 func (s *Servidor) inicioSesion(w http.ResponseWriter, r *http.Request) {
-	var user baseDatos.Usuario
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	var (
+		user baseDatos.Usuario
+		f    formularioInicioSesion
+	)
+	decoder := form.NewDecoder()
 	err := r.ParseForm()
 	if err != nil {
 		devolverError(1, err.Error(), w)
 		return
 	}
-	usuario := r.FormValue("usuario")
-	clave := r.FormValue("clave")
-	if err != nil || usuario == "" || clave == "" {
+	err = decoder.Decode(&f, r.PostForm)
+	if err != nil {
 		devolverError(1, "Campos formulario incorrectos", w)
 		return
 	}
-	if strings.Contains(usuario, "@") {
-		user, err = s.UsuarioDAO.IniciarSesionCorreo(usuario, clave)
+	if strings.Contains(f.Usuario, "@") {
+		user, err = s.UsuarioDAO.IniciarSesionCorreo(f.Usuario, f.Clave)
 	} else {
-		user, err = s.UsuarioDAO.IniciarSesionNombre(usuario, clave)
+		user, err = s.UsuarioDAO.IniciarSesionNombre(f.Usuario, f.Clave)
 	}
 	if err != nil {
 		devolverError(1, "No se ha podido iniciar sesion", w)
@@ -125,33 +141,32 @@ func (s *Servidor) inicioSesion(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, string(respuesta))
 }
 
+type formularioPersonalizarUsuario struct {
+	ID    int    `form:"idUsuario"`
+	Clave string `form:"clave"`
+	Tipo  string `form:"tipo"`
+	Dato  string `form:"nuevoDato"`
+}
+
 func (s *Servidor) personalizarUsuarioHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	var f formularioPersonalizarUsuario
+	decoder := form.NewDecoder()
 	err := r.ParseForm()
 	if err != nil {
 		devolverError(1, err.Error(), w)
 		return
 	}
-	nuevoDato := r.FormValue("nuevoDato")
-	clave := r.FormValue("clave")
-	campo := r.FormValue("tipo")
-	id, err := strconv.Atoi(r.FormValue("idUsuario"))
-	if nuevoDato == "" || clave == "" || campo == "" || err != nil {
+	err = decoder.Decode(&f, r.PostForm)
+	if err != nil {
 		devolverError(1, "Campos formulario incorrectos", w)
 		return
 	}
-	if !(strings.EqualFold(campo, "Aspecto") || strings.EqualFold(campo, "Icono") ||
-		strings.EqualFold(campo, "Correo") || strings.EqualFold(campo, "Clave") ||
-		strings.EqualFold(campo, "Nombre") || strings.EqualFold(campo, "RecibeCorreos")) {
-		devolverError(1, "El campo indicado a modificar no existe", w)
-		return
-	}
-	user, err := s.UsuarioDAO.ObtenerUsuario(id, clave)
+	user, err := s.UsuarioDAO.ObtenerUsuario(f.ID, f.Clave)
 	if err != nil {
 		devolverError(1, "No se ha podido obtener el usuario", w)
 		return
 	}
-	err = user.Modificar(campo, nuevoDato)
+	err = user.Modificar(f.Tipo, f.Dato)
 	if err != nil {
 		devolverError(1, err.Error(), w)
 		return
@@ -160,175 +175,160 @@ func (s *Servidor) personalizarUsuarioHandler(w http.ResponseWriter, r *http.Req
 	fmt.Fprint(w, string(respuesta))
 }
 
+type formularioGestionAmistad struct {
+	ID       int    `form:"idUsuario"`
+	IDamigo  int    `form:"idAmigo"`
+	Clave    string `form:"clave"`
+	Decision string `form:"decision"`
+}
+
 func (s *Servidor) gestionAmistadHandler(w http.ResponseWriter, r *http.Request) {
-	var resultado mensajes.JsonData
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	var (
+		resultado mensajes.JsonData
+		f         formularioGestionAmistad
+	)
+	decoder := form.NewDecoder()
 	err := r.ParseForm()
 	if err != nil {
 		devolverError(1, err.Error(), w)
 		return
 	}
-	clave := r.FormValue("clave")
-	decision := r.FormValue("decision")
-	idUsuario, err := strconv.Atoi(r.FormValue("idUsuario"))
-	if err != nil || clave == "" {
-		devolverError(1, "Campos formulario incorrectos", w)
-		return
-	}
-	idAmigo, err := strconv.Atoi(r.FormValue("idAmigo"))
+	err = decoder.Decode(&f, r.PostForm)
 	if err != nil {
 		devolverError(1, "Campos formulario incorrectos", w)
 		return
 	}
-	user, err := s.UsuarioDAO.ObtenerUsuario(idUsuario, clave)
+	user, err := s.UsuarioDAO.ObtenerUsuario(f.ID, f.Clave)
 	if err != nil {
 		devolverError(1, "No se ha podido obtener el usuario", w)
 		return
 	}
-	switch strings.ToLower(decision) {
+	switch strings.ToLower(f.Decision) {
 	case "borrar":
-		resultado = s.AmigosDAO.EliminarAmigo(user, idAmigo)
+		resultado = s.AmigosDAO.EliminarAmigo(user, f.IDamigo)
 	case "aceptar":
-		resultado = s.AmigosDAO.AceptarSolicitudAmistad(user, idAmigo)
+		resultado = s.AmigosDAO.AceptarSolicitudAmistad(user, f.IDamigo)
 	case "rechazar":
-		resultado = s.AmigosDAO.RechazarSolicitudAmistad(user, idAmigo)
+		resultado = s.AmigosDAO.RechazarSolicitudAmistad(user, f.IDamigo)
 	default:
-		resultado = mensajes.ErrorJson("Campos formulario incorrectos",
+		resultado = mensajes.ErrorJson("La decision no es valida",
 			baseDatos.ErrorTipoIncorrecto)
 	}
 	respuesta, _ := json.MarshalIndent(resultado, "", " ")
 	fmt.Fprint(w, string(respuesta))
 }
 
+type formularioSolicitudAmistad struct {
+	ID     int    `form:"idUsuario"`
+	Nombre string `form:"nombre"`
+	Clave  string `form:"clave"`
+}
+
 func (s *Servidor) solicitudAmistadHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	var f formularioSolicitudAmistad
+	decoder := form.NewDecoder()
 	err := r.ParseForm()
 	if err != nil {
 		devolverError(1, err.Error(), w)
 		return
 	}
-	nombre := r.FormValue("nombreAmigo")
-	clave := r.FormValue("clave")
-	idUsuario, err := strconv.Atoi(r.FormValue("idUsuario"))
-	if err != nil || nombre == "" || clave == "" {
-		devolverError(1, "Campos fromulario incorrectos", w)
+	err = decoder.Decode(&f, r.PostForm)
+	if err != nil {
+		devolverError(1, "Campos formulario incorrectos", w)
 		return
 	}
-	user, err := s.UsuarioDAO.ObtenerUsuario(idUsuario, clave)
+	user, err := s.UsuarioDAO.ObtenerUsuario(f.ID, f.Clave)
 	if err != nil {
 		devolverError(1, "No se ha podido obtener el usuario", w)
 		return
 	}
-	respuesta, _ := json.MarshalIndent(s.AmigosDAO.EnviarSolicitudAmistad(user, nombre), "", " ")
+	respuesta, _ := json.MarshalIndent(s.AmigosDAO.EnviarSolicitudAmistad(user, f.Nombre), "", " ")
+	fmt.Fprint(w, string(respuesta))
+}
+
+type formularioObtener struct {
+	ID    int    `form:"idUsuario"`
+	Clave string `form:"clave"`
+}
+
+func (s *Servidor) obtener(w http.ResponseWriter, r *http.Request,
+	metodo func(baseDatos.Usuario) mensajes.JsonData) {
+	var f formularioObtener
+	decoder := form.NewDecoder()
+	err := r.ParseForm()
+	if err != nil {
+		devolverError(1, err.Error(), w)
+		return
+	}
+	err = decoder.Decode(&f, r.PostForm)
+	if err != nil {
+		devolverError(1, "Campos formulario incorrectos", w)
+		return
+	}
+	user, err := s.UsuarioDAO.ObtenerUsuario(f.ID, f.Clave)
+	if err != nil {
+		devolverError(1, "No se ha podido obtener el usuario", w)
+		return
+	}
+	respuesta, _ := json.MarshalIndent(metodo(user), "", " ")
 	fmt.Fprint(w, string(respuesta))
 }
 
 func (s *Servidor) obtenerUsuarioHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	err := r.ParseForm()
-	if err != nil {
-		devolverError(1, err.Error(), w)
-		return
-	}
-	clave := r.FormValue("clave")
-	idUsuario, err := strconv.Atoi(r.FormValue("idUsuario"))
-	if err != nil || clave == "" {
-		devolverError(1, "Campos fromulario incorrectos", w)
-		return
-	}
-	user, err := s.UsuarioDAO.ObtenerUsuario(idUsuario, clave)
-	if err != nil {
-		devolverError(1, "No se ha podido obtener el usuario", w)
-		return
-	}
-	respuesta, _ := json.MarshalIndent(s.crearMensajeUsuario(user), "", " ")
-	fmt.Fprint(w, string(respuesta))
+	s.obtener(w, r, s.crearMensajeUsuario)
 }
 
 func (s *Servidor) notificacionesHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	err := r.ParseForm()
-	if err != nil {
-		devolverError(1, err.Error(), w)
-		return
-	}
-	clave := r.FormValue("clave")
-	idUsuario, err := strconv.Atoi(r.FormValue("idUsuario"))
-	if err != nil || clave == "" {
-		devolverError(1, "Campos fromulario incorrectos", w)
-		return
-	}
-	user, err := s.UsuarioDAO.ObtenerUsuario(idUsuario, clave)
-	if err != nil {
-		devolverError(1, "No se ha podido obtener el usuario", w)
-		return
-	}
-	respuesta, _ := json.MarshalIndent(s.UsuarioDAO.ObtenerNotificaciones(user), "", " ")
-	fmt.Fprint(w, string(respuesta))
+	s.obtener(w, r, s.UsuarioDAO.ObtenerNotificaciones)
 }
 
 func (s *Servidor) amigosHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	err := r.ParseForm()
-	if err != nil {
-		devolverError(1, err.Error(), w)
-		return
-	}
-	clave := r.FormValue("clave")
-	idUsuario, err := strconv.Atoi(r.FormValue("idUsuario"))
-	if err != nil || clave == "" {
-		devolverError(1, "Campos fromulario incorrectos", w)
-		return
-	}
-	user, err := s.UsuarioDAO.ObtenerUsuario(idUsuario, clave)
-	if err != nil {
-		devolverError(1, "No se ha podido obtener el usuario", w)
-		return
-	}
-	respuesta, _ := json.MarshalIndent(s.AmigosDAO.ObtenerAmigos(user), "", " ")
-	fmt.Fprint(w, string(respuesta))
+	s.obtener(w, r, s.AmigosDAO.ObtenerAmigos)
+}
+
+type formularioComprar struct {
+	ID        int    `form:"idUsuario"`
+	Cosmetico int    `form:"cosmetico"`
+	Clave     string `form:"clave"`
+	Tipo      string `form:"tipo"`
 }
 
 func (s *Servidor) comprarHandler(w http.ResponseWriter, r *http.Request) {
-	var resultado mensajes.JsonData
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	var (
+		resultado mensajes.JsonData
+		f         formularioComprar
+	)
+	decoder := form.NewDecoder()
 	err := r.ParseForm()
 	if err != nil {
 		devolverError(1, err.Error(), w)
 		return
 	}
-	clave := r.FormValue("clave")
-	idUsuario, err := strconv.Atoi(r.FormValue("idUsuario"))
-	if err != nil || clave == "" {
-		devolverError(1, "Campos fromulario incorrectos", w)
+	err = decoder.Decode(&f, r.PostForm)
+	if err != nil {
+		devolverError(1, "Campos formulario incorrectos", w)
 		return
 	}
-	user, err := s.UsuarioDAO.ObtenerUsuario(idUsuario, clave)
+	user, err := s.UsuarioDAO.ObtenerUsuario(f.ID, f.Clave)
 	if err != nil {
 		devolverError(1, "No se ha podido obtener el usuario", w)
 		return
 	}
-	cosmetico, err := strconv.Atoi(r.FormValue("cosmetico"))
-	if err != nil {
-		devolverError(1, "Campos fromulario incorrectos", w)
-		return
-	}
-	tipo := r.FormValue("tipo")
-	switch tipo {
+	switch f.Tipo {
 	case "Aspecto":
-		p, enc := s.Tienda.ObtenerPrecioAspecto(cosmetico)
+		p, enc := s.Tienda.ObtenerPrecioAspecto(f.Cosmetico)
 		if !enc {
 			devolverError(1, "Aspecto no encontrado", w)
 			return
 		}
-		resultado = s.TiendaDAO.ComprarAspecto(&user, cosmetico, p)
+		resultado = s.TiendaDAO.ComprarAspecto(&user, f.Cosmetico, p)
 	case "Icono":
-		p, enc := s.Tienda.ObtenerPrecioIcono(cosmetico)
+		p, enc := s.Tienda.ObtenerPrecioIcono(f.Cosmetico)
 		if !enc {
 			devolverError(1, "Icono no encontrado", w)
 			return
 		}
-		resultado = s.TiendaDAO.ComprarIcono(&user, cosmetico, p)
+		resultado = s.TiendaDAO.ComprarIcono(&user, f.Cosmetico, p)
 	default:
 		devolverError(1, "El tipo no existe", w)
 		return
