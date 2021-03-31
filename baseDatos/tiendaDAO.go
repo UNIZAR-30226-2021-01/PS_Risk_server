@@ -10,7 +10,7 @@ import (
 const (
 	consultaAspectos = "SELECT id_aspecto AS id, precio FROM aspecto"
 	consultaIconos   = "SELECT id_icono AS id, precio FROM icono"
-	reducirRiskos    = "UPDATE usuario SET riskos = $1 WHERE id_usuario = $2"
+	reducirRiskos    = "UPDATE usuario SET riskos = riskos - $1 WHERE id_usuario = $2"
 	comprarAspecto   = "INSERT INTO aspectosComprados (id_usuario, id_aspecto) " +
 		"VALUES ($1, $2)"
 	comprarIcono = "INSERT INTO iconosComprados (id_usuario, id_aspecto) " +
@@ -94,7 +94,7 @@ func (dao *TiendaDAO) comprar(u *Usuario, id, precio int, sql string) mensajes.J
 		tx.Rollback()
 		return mensajes.ErrorJson(err.Error(), 1)
 	}
-	_, err = tx.ExecContext(ctx, reducirRiskos, u.Riskos, u.Id)
+	_, err = tx.ExecContext(ctx, reducirRiskos, precio, u.Id)
 	if err != nil {
 		tx.Rollback()
 		return mensajes.ErrorJson(err.Error(), 1)
