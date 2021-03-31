@@ -85,5 +85,11 @@ CREATE TABLE juega (
 
 INSERT INTO icono (id_icono, precio) VALUES (0, 0);
 INSERT INTO icono (precio) VALUES (200);
+INSERT INTO icono (precio) VALUES (100);
+INSERT INTO icono (precio) VALUES (100);
+INSERT INTO icono (precio) VALUES (100);
 INSERT INTO aspecto (id_aspecto, precio) VALUES (0, 0);
 INSERT INTO aspecto (precio) VALUES (300);
+INSERT INTO aspecto (precio) VALUES (100);
+INSERT INTO aspecto (precio) VALUES (100);
+INSERT INTO aspecto (precio) VALUES (100);

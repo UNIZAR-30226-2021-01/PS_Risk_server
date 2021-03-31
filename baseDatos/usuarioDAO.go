@@ -10,7 +10,7 @@ import (
 
 const (
 	crearUsuario = "INSERT INTO usuario (aspecto, icono, nombre, correo, clave, " +
-		"riskos, recibeCorreos) VALUES (0, 0, $1, $2, $3, 0, $4) " +
+		"riskos, recibeCorreos) VALUES (0, 0, $1, $2, $3, 1000, $4) " +
 		"RETURNING id_usuario"
 	darIconosPorDefecto = "INSERT INTO iconosComprados (id_usuario, id_icono) " +
 		"VALUES ($1, 0)"
