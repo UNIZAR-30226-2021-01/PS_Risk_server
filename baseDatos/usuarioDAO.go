@@ -27,7 +27,7 @@ const (
 		" recibeCorreos FROM usuario WHERE id_usuario = $1 AND clave = $2"
 
 	actualizarUsuario = "UPDATE usuario SET aspecto = $1, icono = $2, nombre = $3, " +
-		"correo = $4, clave = $5, recibeCorreos = $6 WHERE id_usuario = $8"
+		"correo = $4, clave = $5, recibeCorreos = $6 WHERE id_usuario = $7"
 	incrementarRiskos = "UPDATE usuario SET riskos = riskos + $1" +
 		"WHERE id_usuario = $2"
 
