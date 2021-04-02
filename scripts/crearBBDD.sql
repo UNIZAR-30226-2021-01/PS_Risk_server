@@ -47,8 +47,10 @@ CREATE TABLE esAmigo (
 
 CREATE TABLE partida (
     id_partida SERIAL PRIMARY KEY,
+    id_creador INT NOT NULL,
     nombre VARCHAR(20) NOT NULL CHECK (nombre <> ''),
-    json_estado JSON
+    json_estado JSON,
+    FOREIGN KEY (id_creador) REFERENCES usuario(id_usuario)
 );
 
 CREATE TABLE notificacionTurno (

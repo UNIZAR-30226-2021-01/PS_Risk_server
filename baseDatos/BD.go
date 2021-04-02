@@ -30,6 +30,9 @@ const (
 	ErrorNombreUsuario          = iota
 	ErrorEnviarSolicitudAmistad = iota
 	ErrorAmistadDuplicada       = iota
+	ErrorIniciarPartida         = iota
+	ErrorUnirsePartida          = iota
+	ErrorFaltaPermisoUnirse     = iota
 )
 
 func CrearBD(bbdd string) (*sql.DB, error) {

@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	baseDeDatos       = "postgres://ehoyoqkpcgqyrc:c0f640db53a47820e660f19d987b013d7b01d9ac217b669f971070926969dfe0@ec2-54-72-155-238.eu-west-1.compute.amazonaws.com:5432/d3cnglhgpo3rgk"
+	baseDeDatos       = "..."
 	nombreTest        = "usuario0"
 	correoTest        = "correo0@mail.com"
 	nombreAmigo1      = "nombre1"
@@ -17,6 +17,8 @@ const (
 	correoAmigo2      = "correo2@mail.com"
 	claveTest         = "6d5074b4bf2b913866157d7674f1eda042c5c614876de876f7512702d2572a06"
 	recibeCorreosTest = true
+	nombreSalaTest    = "partida0"
+	tiempoTurnoTest   = 30
 )
 
 // NewSHA256 ...
