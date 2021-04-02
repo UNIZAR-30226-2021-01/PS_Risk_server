@@ -220,7 +220,7 @@ func (s *Servidor) gestionAmistadHandler(w http.ResponseWriter, r *http.Request)
 
 type formularioSolicitudAmistad struct {
 	ID     int    `form:"idUsuario"`
-	Nombre string `form:"nombre"`
+	Nombre string `form:"nombreAmigo"`
 	Clave  string `form:"clave"`
 }
 
