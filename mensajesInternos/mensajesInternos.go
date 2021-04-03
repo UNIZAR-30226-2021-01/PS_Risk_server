@@ -12,6 +12,10 @@ type LlegadaUsuario struct {
 	Ws *websocket.Conn
 }
 
+type SalidaUsuario struct {
+	IdUsuario int
+}
+
 type InicioPartida struct {
 	IdUsuario int
 }
