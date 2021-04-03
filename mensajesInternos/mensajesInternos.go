@@ -31,6 +31,11 @@ type AccionPartida struct {
 
 type FinPartida struct{}
 
+type MensajeInvalido struct {
+	IdUsuario int
+	Err       string
+}
+
 /*
 func AccionDesdeJson(accion JsonData, idUsuario int) (AccionPartida, error) {
 	var respuesta AccionPartida

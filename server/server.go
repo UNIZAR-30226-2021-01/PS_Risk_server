@@ -24,7 +24,7 @@ type Servidor struct {
 	Tienda      baseDatos.Tienda
 	upgrader    websocket.Upgrader
 	PartidasDAO baseDatos.PartidaDAO
-	Partidas    map[int]partidas.Partida
+	Partidas    map[int]*partidas.Partida
 }
 
 func NuevoServidor(p, bbdd string) (*Servidor, error) {
@@ -45,7 +45,7 @@ func NuevoServidor(p, bbdd string) (*Servidor, error) {
 		Tienda:      tienda,
 		upgrader:    websocket.Upgrader{},
 		PartidasDAO: baseDatos.NuevaPartidaDAO(b),
-		Partidas:    make(map[int]partidas.Partida)}, nil
+		Partidas:    make(map[int]*partidas.Partida)}, nil
 }
 
 func (s *Servidor) Iniciar() error {
@@ -60,6 +60,7 @@ func (s *Servidor) Iniciar() error {
 	mux.HandleFunc("/enviarSolicitudAmistad", s.solicitudAmistadHandler)
 	mux.HandleFunc("/comprar", s.comprarHandler)
 	mux.HandleFunc("/crearSala", s.crearPartidaHandler)
+	mux.HandleFunc("/aceptarSala", s.aceptarSalaHandler)
 	handler := cors.Default().Handler(mux)
 	err := http.ListenAndServe(":"+s.Puerto, handler)
 	return err
@@ -389,7 +390,7 @@ func (s *Servidor) crearPartidaHandler(w http.ResponseWriter, r *http.Request) {
 		devolverErrorWebsocket(1, err.Error(), ws)
 		return
 	}
-	s.Partidas[p.IdPartida] = p
+	s.Partidas[p.IdPartida] = &p
 
 	go s.atenderSala(&p)
 
@@ -417,6 +418,56 @@ func (s *Servidor) crearPartidaHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		} else {
 			devolverErrorWebsocket(1, "El tipo de acción debe ser Invitar o Iniciar", ws)
+		}
+	}
+}
+
+func (s *Servidor) aceptarSalaHandler(w http.ResponseWriter, r *http.Request) {
+	ws, err := s.upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		fmt.Printf("Upgrader err: %v\n", err)
+		return
+	}
+	defer ws.Close()
+	mensajeRecibido := mensajes.JsonData{}
+	err = ws.ReadJSON(&mensajeRecibido)
+	if err != nil {
+		devolverErrorWebsocket(1, err.Error(), ws)
+		return
+	}
+	idUsuario, ok := mensajeRecibido["idUsuario"].(int)
+	if !ok {
+		devolverErrorWebsocket(1, "El id del usuario debe ser un entero", ws)
+		return
+	}
+	u, err := s.UsuarioDAO.ObtenerUsuario(idUsuario, mensajeRecibido["clave"].(string))
+	if err != nil {
+		devolverErrorWebsocket(1, err.Error(), ws)
+		return
+	}
+	idPartida := mensajeRecibido["idSala"].(int)
+	s.Partidas[idPartida].Mensajes <- mensajesInternos.LlegadaUsuario{
+		IdUsuario: u.Id,
+		Ws:        ws,
+	}
+	for {
+		err = ws.ReadJSON(&mensajeRecibido)
+		if err != nil {
+			if err == io.ErrUnexpectedEOF {
+				s.Partidas[idPartida].Mensajes <- mensajesInternos.SalidaUsuario{
+					IdUsuario: u.Id,
+				}
+			} else {
+				s.Partidas[idPartida].Mensajes <- mensajesInternos.MensajeInvalido{
+					IdUsuario: u.Id,
+					Err:       err.Error(),
+				}
+			}
+			return
+		}
+		s.Partidas[idPartida].Mensajes <- mensajesInternos.MensajeInvalido{
+			IdUsuario: u.Id,
+			Err:       "Un invitado no puede realizar acciones sobre la sala de espera",
 		}
 	}
 }
@@ -475,6 +526,10 @@ func (s *Servidor) atenderSala(p *partidas.Partida) {
 			fmt.Println("Error al leer un usuario:", err.Error())
 			err = s.PartidasDAO.QuitarJugadorPartida(p, u)
 			fmt.Println("Error al quitar un usuario de una partida:", err.Error())
+		case mensajesInternos.MensajeInvalido:
+			if ws := p.Conexiones[mt.IdUsuario]; ws != nil {
+				devolverErrorWebsocket(1, mt.Err, ws)
+			}
 		case mensajesInternos.FinPartida:
 			s.PartidasDAO.BorrarPartida(p)
 			return
