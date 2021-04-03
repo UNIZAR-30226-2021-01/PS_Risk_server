@@ -23,6 +23,8 @@ const (
 		"id_recibe = $1 AND id_envia = $2"
 	borrarPartida    = "DELETE FROM partida WHERE id_partida = $1"
 	guardarJugadores = "INSERT INTO juega (id_partida, id_usuario) VALUES ($1, $2)"
+	obtenerPartida   = "SELECT id_creador, json_estado FROM partida " +
+		"WHERE id_partida = $1"
 )
 
 type PartidaDAO struct {
@@ -37,24 +39,21 @@ func (dao *PartidaDAO) CrearPartida(creador Usuario, tiempoTurno int,
 	nombreSala string, wsCreador *websocket.Conn) (partidas.Partida, error) {
 	var p partidas.Partida
 	var idPartida int
-	//var territorios []mensajes.JsonData
-	var jugadores []mensajes.JsonData
-	jugadores = append(jugadores, mensajes.JsonData{"id": creador.Id})
-	estado := mensajes.JsonData{
-		"nombre":      nombreSala,
-		"empezada":    false,
-		"jugadores":   jugadores,
-		"tiempoTurno": tiempoTurno,
+	err := dao.bd.QueryRow(crearPartida, creador.Id, nombreSala, []byte(`{}`)).Scan(&idPartida)
+	if err != nil {
+		return p, err
+	}
+	p = partidas.NuevaPartida(idPartida, creador.Id, tiempoTurno, nombreSala, wsCreador)
+	estado, err := dao.estadoJsonPartida(p, false)
+	if err != nil {
+		return p, err
 	}
 	estadoJson, err := json.Marshal(estado)
 	if err != nil {
 		return p, err
 	}
-	err = dao.bd.QueryRow(crearPartida, creador.Id, nombreSala, estadoJson).Scan(&idPartida)
-	if err != nil {
-		return p, err
-	}
-	return partidas.NuevaPartida(idPartida, creador.Id, nombreSala, wsCreador), nil
+	_, err = dao.bd.Exec(actualizarEstadoPartida, estadoJson, idPartida)
+	return p, err
 }
 
 func (dao *PartidaDAO) IniciarPartida(p *partidas.Partida,
@@ -194,6 +193,22 @@ func (dao *PartidaDAO) QuitarJugadorPartida(p *partidas.Partida, u Usuario) erro
 		p.UnirsePartida(u.Id, ws)
 	}
 	return err
+}
+
+func (dao *PartidaDAO) ObtenerPartida(idPartida int) (partidas.Partida, error) {
+	var p partidas.Partida
+	var idCreador int
+	estadoJson := []byte{}
+	err := dao.bd.QueryRow(obtenerPartida, idPartida).Scan(&idCreador, &estadoJson)
+	if err != nil {
+		return p, err
+	}
+	estado := mensajes.JsonData{}
+	err = json.Unmarshal(estadoJson, &estado)
+	if err != nil {
+		return p, err
+	}
+	return partidas.PartidaDesdeJson(estado, idCreador)
 }
 
 func (dao *PartidaDAO) listaJugadoresJson(p partidas.Partida,

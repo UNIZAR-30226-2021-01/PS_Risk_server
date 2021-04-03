@@ -1,6 +1,7 @@
 package partidas
 
 import (
+	"PS_Risk_server/mensajes"
 	"PS_Risk_server/mensajesInternos"
 	"errors"
 	"math/rand"
@@ -22,18 +23,19 @@ type Partida struct {
 	Mensajes                       chan mensajesInternos.MensajePartida
 }
 
-func NuevaPartida(idPartida, idCreador int, nombreSala string,
+func NuevaPartida(idPartida, idCreador, tiempoTurno int, nombreSala string,
 	wsCreador *websocket.Conn) Partida {
 	conexiones := make(map[int]*websocket.Conn)
 	conexiones[idCreador] = wsCreador
 	return Partida{
-		IdPartida:  idPartida,
-		IdCreador:  idCreador,
-		Nombre:     nombreSala,
-		Empezada:   false,
-		Jugadores:  []int{idCreador},
-		Conexiones: conexiones,
-		Mensajes:   make(chan mensajesInternos.MensajePartida, MaxMensajes),
+		IdPartida:   idPartida,
+		IdCreador:   idCreador,
+		TiempoTurno: tiempoTurno,
+		Nombre:      nombreSala,
+		Empezada:    false,
+		Jugadores:   []int{idCreador},
+		Conexiones:  conexiones,
+		Mensajes:    make(chan mensajesInternos.MensajePartida, MaxMensajes),
 	}
 }
 
@@ -115,6 +117,64 @@ func (p *Partida) QuitarJugadorPartida(idJugador int) error {
 
 func (p *Partida) EstaEnPartida(idUsuario int) bool {
 	return contenido(p.Jugadores, idUsuario)
+}
+
+func PartidaDesdeJson(estado mensajes.JsonData, idCreador int) (Partida, error) {
+	if i, ok := estado["idSala"]; !ok || i == nil {
+		return Partida{}, errors.New("el json no contiene datos sobre una partida")
+	}
+	var turnoActual, fase int
+	conexiones := make(map[int]*websocket.Conn)
+	territorios := []Territorio{}
+	jugadores := []int{}
+	jugadoresVivos := make(map[int]bool)
+	j := estado["jugadores"].([]interface{})
+	for _, datosJugador := range j {
+		datos := datosJugador.(map[string]interface{})
+		id := int(datos["id"].(float64))
+		jugadores = append(jugadores, id)
+		if sigueVivo, ok := datos["sigueVivo"]; ok {
+			jugadoresVivos[id] = sigueVivo.(bool)
+		}
+		conexiones[id] = nil
+	}
+	listaTerritorios := estado["listaTerritorios"]
+	if listaTerritorios != nil {
+		t := listaTerritorios.([]interface{})
+		for _, datosTerritorio := range t {
+			datos := datosTerritorio.(map[string]interface{})
+			territorios = append(territorios, Territorio{
+				IdJugador: int(datos["numJugador"].(float64)),
+				NumTropas: int(datos["tropas"].(float64)),
+			})
+		}
+	}
+	aux, ok := estado["turnoActual"]
+	if ok {
+		turnoActual = int(aux.(float64))
+	} else {
+		turnoActual = 0
+	}
+	aux, ok = estado["fase"]
+	if ok {
+		fase = int(aux.(float64))
+	} else {
+		fase = 0
+	}
+	return Partida{
+		IdPartida:      int(estado["idSala"].(float64)),
+		IdCreador:      idCreador,
+		TiempoTurno:    int(estado["tiempoTurno"].(float64)),
+		TurnoActual:    turnoActual,
+		Fase:           fase,
+		Nombre:         estado["nombreSala"].(string),
+		Empezada:       estado["empezada"].(bool),
+		Territorios:    territorios,
+		Jugadores:      jugadores,
+		JugadoresVivos: jugadoresVivos,
+		Conexiones:     conexiones,
+		Mensajes:       make(chan mensajesInternos.MensajePartida, MaxMensajes),
+	}, nil
 }
 
 func contenido(lista []int, valor int) bool {

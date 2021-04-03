@@ -21,7 +21,7 @@ const (
 		"correo, recibeCorreos FROM usuario WHERE nombre = $1 AND clave = $2"
 	consultaUsuarioCorreo = "SELECT id_usuario AS id, icono, aspecto, riskos, " +
 		"nombre, recibeCorreos FROM usuario WHERE correo = $1 AND clave = $2"
-	consultaUsuarioId = "SELECT icono, aspecto, riskos, correo, nombre, clave" +
+	consultaUsuarioId = "SELECT icono, aspecto, riskos, correo, nombre, clave," +
 		" recibeCorreos FROM usuario WHERE id_usuario = $1"
 	consultaUsuario = "SELECT icono, aspecto, riskos, correo, nombre," +
 		" recibeCorreos FROM usuario WHERE id_usuario = $1 AND clave = $2"
@@ -142,7 +142,7 @@ func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 	}
 	// Fin de la transaccion
 	u = Usuario{
-		Id: id, Icono: 0, Aspecto: 0, Riskos: 0,
+		Id: id, Icono: 0, Aspecto: 0, Riskos: 1000,
 		Nombre: nombre, Correo: correo, Clave: clave,
 		RecibeCorreos: recibeCorreos,
 	}
