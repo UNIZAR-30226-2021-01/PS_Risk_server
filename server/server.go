@@ -394,32 +394,7 @@ func (s *Servidor) crearPartidaHandler(w http.ResponseWriter, r *http.Request) {
 
 	go s.atenderSala(&p)
 
-	for {
-		err = ws.ReadJSON(&mensajeRecibido)
-		if err != nil {
-			if err == io.ErrUnexpectedEOF {
-				p.Mensajes <- mensajesInternos.FinPartida{}
-			} else {
-				devolverErrorWebsocket(1, err.Error(), ws)
-			}
-			return
-		}
-		tipoAccion, ok := mensajeRecibido["tipo"].(string)
-		if !ok {
-			devolverErrorWebsocket(1, "El tipo de acción debe ser un string", ws)
-		} else if strings.ToLower(tipoAccion) == "invitar" {
-			p.Mensajes <- mensajesInternos.InvitacionPartida{
-				IdCreador:  u.Id,
-				IdInvitado: mensajeRecibido["idInvitado"].(int),
-			}
-		} else if strings.ToLower(tipoAccion) == "iniciar" {
-			p.Mensajes <- mensajesInternos.InicioPartida{
-				IdUsuario: u.Id,
-			}
-		} else {
-			devolverErrorWebsocket(1, "El tipo de acción debe ser Invitar o Iniciar", ws)
-		}
-	}
+	s.recibirMensajesUsuarioEnSala(p.IdPartida, u, ws)
 }
 
 func (s *Servidor) aceptarSalaHandler(w http.ResponseWriter, r *http.Request) {
@@ -450,8 +425,14 @@ func (s *Servidor) aceptarSalaHandler(w http.ResponseWriter, r *http.Request) {
 		IdUsuario: u.Id,
 		Ws:        ws,
 	}
+	s.recibirMensajesUsuarioEnSala(idPartida, u, ws)
+}
+
+func (s *Servidor) recibirMensajesUsuarioEnSala(idPartida int, u baseDatos.Usuario,
+	ws *websocket.Conn) {
+	var mensajeRecibido mensajes.JsonData
 	for {
-		err = ws.ReadJSON(&mensajeRecibido)
+		err := ws.ReadJSON(&mensajeRecibido)
 		if err != nil {
 			if err == io.ErrUnexpectedEOF {
 				s.Partidas[idPartida].Mensajes <- mensajesInternos.SalidaUsuario{
@@ -465,9 +446,26 @@ func (s *Servidor) aceptarSalaHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		s.Partidas[idPartida].Mensajes <- mensajesInternos.MensajeInvalido{
-			IdUsuario: u.Id,
-			Err:       "Un invitado no puede realizar acciones sobre la sala de espera",
+		tipoAccion, ok := mensajeRecibido["tipo"].(string)
+		if !ok {
+			s.Partidas[idPartida].Mensajes <- mensajesInternos.MensajeInvalido{
+				IdUsuario: u.Id,
+				Err:       "El tipo de acción debe ser un string",
+			}
+		} else if strings.ToLower(tipoAccion) == "invitar" {
+			s.Partidas[idPartida].Mensajes <- mensajesInternos.InvitacionPartida{
+				IdCreador:  u.Id,
+				IdInvitado: mensajeRecibido["idInvitado"].(int),
+			}
+		} else if strings.ToLower(tipoAccion) == "iniciar" {
+			s.Partidas[idPartida].Mensajes <- mensajesInternos.InicioPartida{
+				IdUsuario: u.Id,
+			}
+		} else {
+			s.Partidas[idPartida].Mensajes <- mensajesInternos.MensajeInvalido{
+				IdUsuario: u.Id,
+				Err:       "El tipo de acción debe ser Invitar o Iniciar",
+			}
 		}
 	}
 }
@@ -523,14 +521,30 @@ func (s *Servidor) atenderSala(p *partidas.Partida) {
 			return
 		case mensajesInternos.SalidaUsuario:
 			u, err := s.UsuarioDAO.ObtenerUsuarioId(mt.IdUsuario)
-			fmt.Println("Error al leer un usuario:", err.Error())
-			err = s.PartidasDAO.QuitarJugadorPartida(p, u)
-			fmt.Println("Error al quitar un usuario de una partida:", err.Error())
+			if err != nil {
+				fmt.Println("Error al leer un usuario:", err.Error())
+			} else {
+				if u.Id == p.IdCreador {
+					enviarATodos(*p, mensajes.ErrorJson("El creador de la sala"+
+						" se ha desconectado", 1))
+					s.PartidasDAO.BorrarPartida(p)
+				} else {
+					err = s.PartidasDAO.QuitarJugadorPartida(p, u)
+					if err != nil {
+						fmt.Println("Error al quitar un usuario de una partida:",
+							err.Error())
+					}
+				}
+			}
 		case mensajesInternos.MensajeInvalido:
 			if ws := p.Conexiones[mt.IdUsuario]; ws != nil {
 				devolverErrorWebsocket(1, mt.Err, ws)
 			}
 		case mensajesInternos.FinPartida:
+			enviarATodos(*p, mensajes.JsonData{
+				"ganador": "",
+				"riskos":  0,
+			})
 			s.PartidasDAO.BorrarPartida(p)
 			return
 		}
