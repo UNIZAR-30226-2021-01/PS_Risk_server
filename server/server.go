@@ -369,22 +369,22 @@ func (s *Servidor) crearPartidaHandler(w http.ResponseWriter, r *http.Request) {
 		devolverErrorWebsocket(1, err.Error(), ws)
 		return
 	}
-	idUsuario, ok := mensajeRecibido["idUsuario"].(int)
+	idUsuario, ok := mensajeRecibido["idUsuario"].(float64)
 	if !ok {
 		devolverErrorWebsocket(1, "El id del usuario debe ser un entero", ws)
 		return
 	}
-	u, err := s.UsuarioDAO.ObtenerUsuario(idUsuario, mensajeRecibido["clave"].(string))
+	u, err := s.UsuarioDAO.ObtenerUsuario(int(idUsuario), mensajeRecibido["clave"].(string))
 	if err != nil {
 		devolverErrorWebsocket(1, err.Error(), ws)
 		return
 	}
-	tiempoTurno, ok := mensajeRecibido["tiempoTurno"].(int)
+	tiempoTurno, ok := mensajeRecibido["tiempoTurno"].(float64)
 	if !ok {
 		devolverErrorWebsocket(1, "El tiempo de turno debe ser un entero (minutos)", ws)
 		return
 	}
-	p, err := s.PartidasDAO.CrearPartida(u, tiempoTurno,
+	p, err := s.PartidasDAO.CrearPartida(u, int(tiempoTurno),
 		mensajeRecibido["nombreSala"].(string), ws)
 	if err != nil {
 		devolverErrorWebsocket(1, err.Error(), ws)
@@ -410,17 +410,17 @@ func (s *Servidor) aceptarSalaHandler(w http.ResponseWriter, r *http.Request) {
 		devolverErrorWebsocket(1, err.Error(), ws)
 		return
 	}
-	idUsuario, ok := mensajeRecibido["idUsuario"].(int)
+	idUsuario, ok := mensajeRecibido["idUsuario"].(float64)
 	if !ok {
 		devolverErrorWebsocket(1, "El id del usuario debe ser un entero", ws)
 		return
 	}
-	u, err := s.UsuarioDAO.ObtenerUsuario(idUsuario, mensajeRecibido["clave"].(string))
+	u, err := s.UsuarioDAO.ObtenerUsuario(int(idUsuario), mensajeRecibido["clave"].(string))
 	if err != nil {
 		devolverErrorWebsocket(1, err.Error(), ws)
 		return
 	}
-	idPartida := mensajeRecibido["idSala"].(int)
+	idPartida := int(mensajeRecibido["idSala"].(float64))
 	s.Partidas[idPartida].Mensajes <- mensajesInternos.LlegadaUsuario{
 		IdUsuario: u.Id,
 		Ws:        ws,
@@ -455,7 +455,7 @@ func (s *Servidor) recibirMensajesUsuarioEnSala(idPartida int, u baseDatos.Usuar
 		} else if strings.ToLower(tipoAccion) == "invitar" {
 			s.Partidas[idPartida].Mensajes <- mensajesInternos.InvitacionPartida{
 				IdCreador:  u.Id,
-				IdInvitado: mensajeRecibido["idInvitado"].(int),
+				IdInvitado: int(mensajeRecibido["idInvitado"].(float64)),
 			}
 		} else if strings.ToLower(tipoAccion) == "iniciar" {
 			s.Partidas[idPartida].Mensajes <- mensajesInternos.InicioPartida{
