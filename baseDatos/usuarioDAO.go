@@ -266,12 +266,12 @@ func (dao *UsuarioDAO) ObtenerNotificaciones(u Usuario) mensajes.JsonData {
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorNotificaciones)
 	}
-	n, err = dao.leerNotificaciones(u.Id, consultaInvitaciones, "Invitación")
+	n, err = dao.leerNotificaciones(u.Id, consultaInvitaciones, "Invitacion")
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorNotificaciones)
 	}
 	notificaciones = append(notificaciones, n...)
-	n, err = dao.leerNotificaciones(u.Id, consultaTurnos, "Notificación de turno")
+	n, err = dao.leerNotificaciones(u.Id, consultaTurnos, "Notificacion de turno")
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorNotificaciones)
 	}
