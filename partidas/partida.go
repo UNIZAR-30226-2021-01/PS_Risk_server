@@ -5,6 +5,7 @@ import (
 	"PS_Risk_server/mensajesInternos"
 	"errors"
 	"math/rand"
+	"sync"
 
 	"github.com/gorilla/websocket"
 )
@@ -12,31 +13,41 @@ import (
 const MaxMensajes = 100
 
 type Partida struct {
-	IdPartida, IdCreador           int
-	TiempoTurno, TurnoActual, Fase int
-	Nombre                         string
-	Empezada                       bool
-	Territorios                    []Territorio
-	Jugadores                      []int
-	JugadoresVivos                 map[int]bool
-	Conexiones                     map[int]*websocket.Conn
-	Mensajes                       chan mensajesInternos.MensajePartida
+	partidaJson
+	IdCreador      int
+	Territorios    []Territorio
+	Jugadores      []int
+	JugadoresVivos map[int]bool
+	Conexiones     sync.Map //map[int]*websocket.Conn
+	Mensajes       chan mensajesInternos.MensajePartida
+}
+
+type partidaJson struct {
+	IdPartida   int    `json:"idSala"`
+	TiempoTurno int    `json:"tiempoTurno"`
+	TurnoActual int    `json:"turnoActual,omitempty"`
+	Fase        int    `json:"fase,omitempty"`
+	Nombre      string `json:"nombreSala"`
+	Empezada    bool   `json:"empezada"`
 }
 
 func NuevaPartida(idPartida, idCreador, tiempoTurno int, nombreSala string,
-	wsCreador *websocket.Conn) Partida {
-	conexiones := make(map[int]*websocket.Conn)
-	conexiones[idCreador] = wsCreador
-	return Partida{
+	wsCreador *websocket.Conn) *Partida {
+	pJson := partidaJson{
 		IdPartida:   idPartida,
-		IdCreador:   idCreador,
 		TiempoTurno: tiempoTurno,
 		Nombre:      nombreSala,
 		Empezada:    false,
+	}
+	p := &Partida{
+		partidaJson: pJson,
+		IdCreador:   idCreador,
 		Jugadores:   []int{idCreador},
-		Conexiones:  conexiones,
+		Conexiones:  sync.Map{},
 		Mensajes:    make(chan mensajesInternos.MensajePartida, MaxMensajes),
 	}
+	p.Conexiones.Store(idCreador, wsCreador)
+	return p
 }
 
 func (p *Partida) IniciarPartida(idUsuario int) error {
@@ -95,7 +106,7 @@ func (p *Partida) UnirsePartida(idUsuario int, ws *websocket.Conn) error {
 		return errors.New("no se puede unir a una partida que ya ha empezado")
 	}
 	p.Jugadores = append(p.Jugadores, idUsuario)
-	p.Conexiones[idUsuario] = ws
+	p.Conexiones.Store(idUsuario, ws)
 	return nil
 }
 
@@ -105,12 +116,12 @@ func (p *Partida) QuitarJugadorPartida(idJugador int) error {
 	}
 	if p.Empezada {
 		p.JugadoresVivos[idJugador] = false
-		delete(p.Conexiones, idJugador)
+		p.Conexiones.Delete(idJugador)
 	} else if p.IdCreador == idJugador {
 		return errors.New("no se puede eliminar de la partida al creador")
 	} else {
 		p.Jugadores = borrar(p.Jugadores, idJugador)
-		delete(p.Conexiones, idJugador)
+		p.Conexiones.Delete(idJugador)
 	}
 	return nil
 }
@@ -119,12 +130,12 @@ func (p *Partida) EstaEnPartida(idUsuario int) bool {
 	return contenido(p.Jugadores, idUsuario)
 }
 
-func PartidaDesdeJson(estado mensajes.JsonData, idCreador int) (Partida, error) {
+func PartidaDesdeJson(estado mensajes.JsonData, idCreador int) (*Partida, error) {
 	if i, ok := estado["idSala"]; !ok || i == nil {
-		return Partida{}, errors.New("el json no contiene datos sobre una partida")
+		return &Partida{}, errors.New("el json no contiene datos sobre una partida")
 	}
 	var turnoActual, fase int
-	conexiones := make(map[int]*websocket.Conn)
+	conexiones := sync.Map{}
 	territorios := []Territorio{}
 	jugadores := []int{}
 	jugadoresVivos := make(map[int]bool)
@@ -136,7 +147,7 @@ func PartidaDesdeJson(estado mensajes.JsonData, idCreador int) (Partida, error) 
 		if sigueVivo, ok := datos["sigueVivo"]; ok {
 			jugadoresVivos[id] = sigueVivo.(bool)
 		}
-		conexiones[id] = nil
+		conexiones.Store(id, nil)
 	}
 	listaTerritorios := estado["listaTerritorios"]
 	if listaTerritorios != nil {
@@ -161,20 +172,24 @@ func PartidaDesdeJson(estado mensajes.JsonData, idCreador int) (Partida, error) 
 	} else {
 		fase = 0
 	}
-	return Partida{
-		IdPartida:      int(estado["idSala"].(float64)),
+	pJson := partidaJson{
+		IdPartida:   int(estado["idSala"].(float64)),
+		Empezada:    estado["empezada"].(bool),
+		TiempoTurno: int(estado["tiempoTurno"].(float64)),
+		TurnoActual: turnoActual,
+		Fase:        fase,
+		Nombre:      estado["nombreSala"].(string),
+	}
+	p := &Partida{
+		partidaJson:    pJson,
 		IdCreador:      idCreador,
-		TiempoTurno:    int(estado["tiempoTurno"].(float64)),
-		TurnoActual:    turnoActual,
-		Fase:           fase,
-		Nombre:         estado["nombreSala"].(string),
-		Empezada:       estado["empezada"].(bool),
 		Territorios:    territorios,
 		Jugadores:      jugadores,
 		JugadoresVivos: jugadoresVivos,
-		Conexiones:     conexiones,
+		Conexiones:     sync.Map{},
 		Mensajes:       make(chan mensajesInternos.MensajePartida, MaxMensajes),
-	}, nil
+	}
+	return p, nil
 }
 
 func contenido(lista []int, valor int) bool {

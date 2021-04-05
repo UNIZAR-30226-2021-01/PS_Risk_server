@@ -389,10 +389,12 @@ func (s *Servidor) crearPartidaHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		devolverErrorWebsocket(1, err.Error(), ws)
 		return
+	} else {
+		devolverErrorWebsocket(baseDatos.NoError, "", ws)
 	}
-	s.Partidas[p.IdPartida] = &p
+	s.Partidas[p.IdPartida] = p
 
-	go s.atenderSala(&p)
+	go s.atenderSala(p)
 
 	s.recibirMensajesUsuarioEnSala(p.IdPartida, u, ws)
 }
@@ -470,10 +472,28 @@ func (s *Servidor) recibirMensajesUsuarioEnSala(idPartida int, u baseDatos.Usuar
 	}
 }
 
-func enviarATodos(p partidas.Partida, mensaje mensajes.JsonData) {
-	for _, ws := range p.Conexiones {
-		if ws != nil {
+func enviarPorWebsocket(p *partidas.Partida, mensaje mensajes.JsonData, idUsuario int) {
+	wsInterface, _ := p.Conexiones.Load(idUsuario)
+	if wsInterface != nil {
+		ws, ok := wsInterface.(*websocket.Conn)
+		if ok {
 			ws.WriteJSON(mensaje)
+		}
+	}
+}
+
+func enviarATodos(p *partidas.Partida, mensaje mensajes.JsonData) {
+	for _, id := range p.Jugadores {
+		enviarPorWebsocket(p, mensaje, id)
+	}
+}
+
+func devolverErrorUsuario(p *partidas.Partida, code, idUsuario int, err string) {
+	wsInterface, _ := p.Conexiones.Load(idUsuario)
+	if wsInterface != nil {
+		ws, ok := wsInterface.(*websocket.Conn)
+		if ok {
+			devolverErrorWebsocket(code, err, ws)
 		}
 	}
 }
@@ -492,30 +512,30 @@ func (s *Servidor) atenderSala(p *partidas.Partida) {
 				if hayError {
 					mt.Ws.WriteJSON(mensajeEnviar)
 				} else {
-					enviarATodos(*p, mensajeEnviar)
+					enviarATodos(p, mensajeEnviar)
 				}
 			}
 		case mensajesInternos.InvitacionPartida:
 			u, err := s.UsuarioDAO.ObtenerUsuarioId(mt.IdCreador)
 			if err != nil {
-				devolverErrorWebsocket(1, err.Error(), p.Conexiones[mt.IdCreador])
+				devolverErrorUsuario(p, 1, mt.IdCreador, err.Error())
 			} else {
 				err := s.PartidasDAO.InvitarPartida(p, u, mt.IdInvitado)
 				if err != nil {
-					devolverErrorWebsocket(1, err.Error(), p.Conexiones[mt.IdCreador])
+					devolverErrorUsuario(p, 1, mt.IdCreador, err.Error())
 				}
 			}
 		case mensajesInternos.InicioPartida:
 			u, err := s.UsuarioDAO.ObtenerUsuarioId(mt.IdUsuario)
 			if err != nil {
-				devolverErrorWebsocket(1, err.Error(), p.Conexiones[mt.IdUsuario])
+				devolverErrorUsuario(p, 1, mt.IdUsuario, err.Error())
 			} else {
 				mensajeEnviar := s.PartidasDAO.IniciarPartida(p, u)
 				_, hayError := mensajeEnviar["err"]
 				if hayError {
-					p.Conexiones[mt.IdUsuario].WriteJSON(mensajeEnviar)
+					enviarPorWebsocket(p, mensajeEnviar, mt.IdUsuario)
 				} else {
-					enviarATodos(*p, mensajeEnviar)
+					enviarATodos(p, mensajeEnviar)
 				}
 			}
 			return
@@ -525,7 +545,7 @@ func (s *Servidor) atenderSala(p *partidas.Partida) {
 				fmt.Println("Error al leer un usuario:", err.Error())
 			} else {
 				if u.Id == p.IdCreador {
-					enviarATodos(*p, mensajes.ErrorJson("El creador de la sala"+
+					enviarATodos(p, mensajes.ErrorJson("El creador de la sala"+
 						" se ha desconectado", 1))
 					s.PartidasDAO.BorrarPartida(p)
 				} else {
@@ -537,11 +557,9 @@ func (s *Servidor) atenderSala(p *partidas.Partida) {
 				}
 			}
 		case mensajesInternos.MensajeInvalido:
-			if ws := p.Conexiones[mt.IdUsuario]; ws != nil {
-				devolverErrorWebsocket(1, mt.Err, ws)
-			}
+			devolverErrorUsuario(p, 1, mt.IdUsuario, mt.Err)
 		case mensajesInternos.FinPartida:
-			enviarATodos(*p, mensajes.JsonData{
+			enviarATodos(p, mensajes.JsonData{
 				"ganador": "",
 				"riskos":  0,
 			})

@@ -36,8 +36,8 @@ func NuevaPartidaDAO(bd *sql.DB) PartidaDAO {
 }
 
 func (dao *PartidaDAO) CrearPartida(creador Usuario, tiempoTurno int,
-	nombreSala string, wsCreador *websocket.Conn) (partidas.Partida, error) {
-	var p partidas.Partida
+	nombreSala string, wsCreador *websocket.Conn) (*partidas.Partida, error) {
+	var p *partidas.Partida
 	var idPartida int
 	err := dao.bd.QueryRow(crearPartida, creador.Id, nombreSala, []byte(`{}`)).Scan(&idPartida)
 	if err != nil {
@@ -62,7 +62,7 @@ func (dao *PartidaDAO) IniciarPartida(p *partidas.Partida,
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorIniciarPartida)
 	}
-	estado, err := dao.estadoJsonPartida(*p, false)
+	estado, err := dao.estadoJsonPartida(p, false)
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorIniciarPartida)
 	}
@@ -142,11 +142,11 @@ func (dao *PartidaDAO) UnirsePartida(p *partidas.Partida, u Usuario,
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorUnirsePartida)
 	}
-	respuesta, err := dao.listaJugadoresJson(*p, false)
+	respuesta, err := dao.listaJugadoresJson(p, false)
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorUnirsePartida)
 	}
-	estado, err := dao.estadoJsonPartida(*p, false)
+	estado, err := dao.estadoJsonPartida(p, false)
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorUnirsePartida)
 	}
@@ -173,12 +173,19 @@ func (dao *PartidaDAO) QuitarJugadorPartida(p *partidas.Partida, u Usuario) erro
 	if p.IdCreador == u.Id {
 		return dao.BorrarPartida(p)
 	}
-	ws := p.Conexiones[u.Id]
+	wsInterface, ok := p.Conexiones.Load(u.Id)
+	if !ok {
+		return errors.New("el usuario no existe en la partida")
+	}
 	err := p.QuitarJugadorPartida(u.Id)
 	if err != nil {
 		return err
 	}
-	estado, err := dao.estadoJsonPartida(*p, false)
+	ws, tieneWs := wsInterface.(*websocket.Conn)
+	if !tieneWs {
+		ws = nil
+	}
+	estado, err := dao.estadoJsonPartida(p, false)
 	if err != nil {
 		p.UnirsePartida(u.Id, ws)
 		return err
@@ -195,8 +202,8 @@ func (dao *PartidaDAO) QuitarJugadorPartida(p *partidas.Partida, u Usuario) erro
 	return err
 }
 
-func (dao *PartidaDAO) ObtenerPartida(idPartida int) (partidas.Partida, error) {
-	var p partidas.Partida
+func (dao *PartidaDAO) ObtenerPartida(idPartida int) (*partidas.Partida, error) {
+	var p *partidas.Partida
 	var idCreador int
 	estadoJson := []byte{}
 	err := dao.bd.QueryRow(obtenerPartida, idPartida).Scan(&idCreador, &estadoJson)
@@ -211,7 +218,7 @@ func (dao *PartidaDAO) ObtenerPartida(idPartida int) (partidas.Partida, error) {
 	return partidas.PartidaDesdeJson(estado, idCreador)
 }
 
-func (dao *PartidaDAO) listaJugadoresJson(p partidas.Partida,
+func (dao *PartidaDAO) listaJugadoresJson(p *partidas.Partida,
 	incluirEstadoJugadores bool) ([]mensajes.JsonData, error) {
 	jugadores := []mensajes.JsonData{}
 	daoUsuario := NuevoUsuarioDAO(dao.bd)
@@ -234,7 +241,7 @@ func (dao *PartidaDAO) listaJugadoresJson(p partidas.Partida,
 	return jugadores, nil
 }
 
-func (dao *PartidaDAO) estadoJsonPartida(p partidas.Partida,
+func (dao *PartidaDAO) estadoJsonPartida(p *partidas.Partida,
 	incluirEstadoJugadores bool) (mensajes.JsonData, error) {
 	var respuesta mensajes.JsonData
 	jugadores, err := dao.listaJugadoresJson(p, incluirEstadoJugadores)

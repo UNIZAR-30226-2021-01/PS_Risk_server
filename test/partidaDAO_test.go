@@ -77,7 +77,7 @@ func TestInvitarPartida(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error iniciando sesión %q", err)
 	}
-	err = pd.InvitarPartida(&p, u1, u2.Id)
+	err = pd.InvitarPartida(p, u1, u2.Id)
 	if err != nil {
 		t.Fatalf("Error invitando usuario a partida %q", err)
 	}
@@ -99,7 +99,7 @@ func TestUnirsePartida(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error iniciando sesión %q", err)
 	}
-	obtenido := pd.UnirsePartida(&p, u, nil)
+	obtenido := pd.UnirsePartida(p, u, nil)
 	u1, err := ud.ObtenerUsuarioId(p.IdCreador)
 	if err != nil {
 		t.Fatalf("Error obteniendo datos de usuario %q", err)
@@ -152,9 +152,9 @@ func TestIniciarPartida(t *testing.T) {
 	}
 	ad.EnviarSolicitudAmistad(u1, u3.Nombre)
 	ad.AceptarSolicitudAmistad(u3, u1.Id)
-	pd.InvitarPartida(&p, u1, u3.Id)
-	pd.UnirsePartida(&p, u3, nil)
-	obtenido := pd.IniciarPartida(&p, u1)
+	pd.InvitarPartida(p, u1, u3.Id)
+	pd.UnirsePartida(p, u3, nil)
+	obtenido := pd.IniciarPartida(p, u1)
 	esperado := mensajes.JsonData{
 		"tiempoTurno": tiempoTurnoTest,
 		"nombreSala":  nombreSalaTest,
@@ -196,7 +196,7 @@ func TestBorrarPartida(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error obteniendo datos de partida %q", err)
 	}
-	err = pd.BorrarPartida(&p)
+	err = pd.BorrarPartida(p)
 	if err != nil {
 		t.Fatalf("Error al borrar la partida %q", err)
 	}
@@ -226,9 +226,9 @@ func TestQuitarJugadorPartida(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error creando partida %q", err)
 	}
-	pd.InvitarPartida(&p, u1, u2.Id)
-	pd.UnirsePartida(&p, u2, nil)
-	err = pd.QuitarJugadorPartida(&p, u2)
+	pd.InvitarPartida(p, u1, u2.Id)
+	pd.UnirsePartida(p, u2, nil)
+	err = pd.QuitarJugadorPartida(p, u2)
 	if err != nil {
 		t.Fatalf("Error eliminando de la partida al segundo jugador %q", err)
 	}
@@ -239,7 +239,7 @@ func TestQuitarJugadorPartida(t *testing.T) {
 	}
 }
 
-func distintas(p1, p2 partidas.Partida) bool {
+func distintas(p1, p2 *partidas.Partida) bool {
 	if p1.IdPartida != p2.IdPartida || p1.IdCreador != p2.IdCreador ||
 		p1.Empezada != p2.Empezada || p1.Nombre != p2.Nombre ||
 		!reflect.DeepEqual(p1.Jugadores, p2.Jugadores) {

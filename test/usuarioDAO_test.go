@@ -7,7 +7,8 @@ import (
 )
 
 func TestCrearCuenta(t *testing.T) {
-	db, err := sql.Open("postgres", baseDeDatos)
+	db, err := baseDatos.CrearBDLocal(baseDeDatos)
+	//db, err := sql.Open("postgres", baseDeDatos)
 	if err != nil {
 		t.Fatalf("No se ha podido abrir conexión con la base de "+
 			"datos.\nError:%q", err)

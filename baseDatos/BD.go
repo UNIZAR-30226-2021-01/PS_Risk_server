@@ -45,6 +45,16 @@ func CrearBD(bbdd string) (*sql.DB, error) {
 	return db, err
 }
 
+func CrearBDLocal(bbdd string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", bbdd)
+	if err != nil {
+		return db, err
+	}
+	execScript(db, "../scripts/destruirBBDD.sql")
+	execScript(db, "../scripts/crearBBDD.sql")
+	return db, err
+}
+
 // execScript ejecuta el script en la base de datos db
 func execScript(db *sql.DB, script string) {
 	file, err := ioutil.ReadFile(script)
