@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
+	"github.com/mitchellh/mapstructure"
 )
 
 const MaxMensajes = 100
@@ -15,20 +16,28 @@ const MaxMensajes = 100
 type Partida struct {
 	partidaJson
 	IdCreador      int
-	Territorios    []Territorio
 	Jugadores      []int
 	JugadoresVivos map[int]bool
-	Conexiones     sync.Map //map[int]*websocket.Conn
+	Conexiones     sync.Map
 	Mensajes       chan mensajesInternos.MensajePartida
 }
 
 type partidaJson struct {
-	IdPartida   int    `json:"idSala"`
-	TiempoTurno int    `json:"tiempoTurno"`
-	TurnoActual int    `json:"turnoActual,omitempty"`
-	Fase        int    `json:"fase,omitempty"`
-	Nombre      string `json:"nombreSala"`
-	Empezada    bool   `json:"empezada"`
+	IdPartida   int          `mapstructure:"idSala"`
+	TiempoTurno int          `mapstructure:"tiempoTurno"`
+	TurnoActual int          `mapstructure:"turnoActual,omitempty"`
+	Fase        int          `mapstructure:"fase,omitempty"`
+	Nombre      string       `mapstructure:"nombreSala"`
+	Empezada    bool         `mapstructure:"empezada"`
+	Territorios []Territorio `mapstructure:"listaTerritorios,omitempty"`
+}
+
+type jugadorJson struct {
+	Id        int    `mapstructure:"id"`
+	Nombre    string `mapstructure:"nombre,omitempty"`
+	Icono     int    `mapstructure:"icono,omitempty"`
+	Aspecto   int    `mapstructure:"aspecto,omitempty"`
+	SigueVivo bool   `mapstructure:"sigueVivo"`
 }
 
 func NuevaPartida(idPartida, idCreador, tiempoTurno int, nombreSala string,
@@ -40,11 +49,12 @@ func NuevaPartida(idPartida, idCreador, tiempoTurno int, nombreSala string,
 		Empezada:    false,
 	}
 	p := &Partida{
-		partidaJson: pJson,
-		IdCreador:   idCreador,
-		Jugadores:   []int{idCreador},
-		Conexiones:  sync.Map{},
-		Mensajes:    make(chan mensajesInternos.MensajePartida, MaxMensajes),
+		partidaJson:    pJson,
+		IdCreador:      idCreador,
+		Jugadores:      []int{idCreador},
+		JugadoresVivos: make(map[int]bool),
+		Conexiones:     sync.Map{},
+		Mensajes:       make(chan mensajesInternos.MensajePartida, MaxMensajes),
 	}
 	p.Conexiones.Store(idCreador, wsCreador)
 	return p
@@ -76,12 +86,12 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 	}
 
 	// Decidir asignación de territorios
-	p.Territorios = make([]Territorio, numTerritorios)
+	p.Territorios = make([]Territorio, 0, numTerritorios)
+	t := Territorio{
+		IdJugador: 0,
+		NumTropas: 0,
+	}
 	for i := 0; i < numTerritorios; i++ {
-		t := Territorio{
-			IdJugador: 0,
-			NumTropas: 0,
-		}
 		p.Territorios = append(p.Territorios, t)
 	}
 	asignados := make([]int, len(p.Jugadores))
@@ -98,19 +108,22 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 	return nil
 }
 
-func (p *Partida) UnirsePartida(idUsuario int, ws *websocket.Conn) error {
+func (p *Partida) EntrarPartida(idUsuario int, ws *websocket.Conn) error {
 	if len(p.Jugadores) >= 6 {
 		return errors.New("ya se ha alcanzado el número máximo de jugadores permitido")
 	}
 	if p.Empezada {
 		return errors.New("no se puede unir a una partida que ya ha empezado")
 	}
+	if contenido(p.Jugadores, idUsuario) {
+		return errors.New("no puedes unirte a una partida en la que ya estás")
+	}
 	p.Jugadores = append(p.Jugadores, idUsuario)
 	p.Conexiones.Store(idUsuario, ws)
 	return nil
 }
 
-func (p *Partida) QuitarJugadorPartida(idJugador int) error {
+func (p *Partida) AbandonarPartida(idJugador int) error {
 	if !p.EstaEnPartida(idJugador) {
 		return errors.New("el jugador no está en la partida, no se puede retirar")
 	}
@@ -134,56 +147,27 @@ func PartidaDesdeJson(estado mensajes.JsonData, idCreador int) (*Partida, error)
 	if i, ok := estado["idSala"]; !ok || i == nil {
 		return &Partida{}, errors.New("el json no contiene datos sobre una partida")
 	}
-	var turnoActual, fase int
-	conexiones := sync.Map{}
-	territorios := []Territorio{}
+	var pJson partidaJson
+	err := mapstructure.Decode(estado, &pJson)
+	if err != nil {
+		return &Partida{}, err
+	}
 	jugadores := []int{}
 	jugadoresVivos := make(map[int]bool)
 	j := estado["jugadores"].([]interface{})
+	var jugador jugadorJson
 	for _, datosJugador := range j {
-		datos := datosJugador.(map[string]interface{})
-		id := int(datos["id"].(float64))
+		err = mapstructure.Decode(datosJugador, &jugador)
+		if err != nil {
+			return &Partida{}, err
+		}
+		id := jugador.Id
 		jugadores = append(jugadores, id)
-		if sigueVivo, ok := datos["sigueVivo"]; ok {
-			jugadoresVivos[id] = sigueVivo.(bool)
-		}
-		conexiones.Store(id, nil)
-	}
-	listaTerritorios := estado["listaTerritorios"]
-	if listaTerritorios != nil {
-		t := listaTerritorios.([]interface{})
-		for _, datosTerritorio := range t {
-			datos := datosTerritorio.(map[string]interface{})
-			territorios = append(territorios, Territorio{
-				IdJugador: int(datos["numJugador"].(float64)),
-				NumTropas: int(datos["tropas"].(float64)),
-			})
-		}
-	}
-	aux, ok := estado["turnoActual"]
-	if ok {
-		turnoActual = int(aux.(float64))
-	} else {
-		turnoActual = 0
-	}
-	aux, ok = estado["fase"]
-	if ok {
-		fase = int(aux.(float64))
-	} else {
-		fase = 0
-	}
-	pJson := partidaJson{
-		IdPartida:   int(estado["idSala"].(float64)),
-		Empezada:    estado["empezada"].(bool),
-		TiempoTurno: int(estado["tiempoTurno"].(float64)),
-		TurnoActual: turnoActual,
-		Fase:        fase,
-		Nombre:      estado["nombreSala"].(string),
+		jugadoresVivos[id] = jugador.SigueVivo
 	}
 	p := &Partida{
 		partidaJson:    pJson,
 		IdCreador:      idCreador,
-		Territorios:    territorios,
 		Jugadores:      jugadores,
 		JugadoresVivos: jugadoresVivos,
 		Conexiones:     sync.Map{},

@@ -83,7 +83,7 @@ func TestInvitarPartida(t *testing.T) {
 	}
 }
 
-func TestUnirsePartida(t *testing.T) {
+func TestEntrarPartida(t *testing.T) {
 	db, err := sql.Open("postgres", baseDeDatos)
 	if err != nil {
 		t.Fatalf("No se ha podido abrir conexión con la base de "+
@@ -99,12 +99,16 @@ func TestUnirsePartida(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error iniciando sesión %q", err)
 	}
-	obtenido := pd.UnirsePartida(p, u, nil)
+	obtenido := pd.EntrarPartida(p, u, nil)
 	u1, err := ud.ObtenerUsuarioId(p.IdCreador)
 	if err != nil {
 		t.Fatalf("Error obteniendo datos de usuario %q", err)
 	}
 	esperado := mensajes.JsonData{
+		"_tipoMensaje": "d",
+		"tiempoTurno":  tiempoTurnoTest,
+		"nombreSala":   nombreSalaTest,
+		"idSala":       1,
 		"jugadores": []mensajes.JsonData{
 			{
 				"id":      u1.Id,
@@ -153,34 +157,48 @@ func TestIniciarPartida(t *testing.T) {
 	ad.EnviarSolicitudAmistad(u1, u3.Nombre)
 	ad.AceptarSolicitudAmistad(u3, u1.Id)
 	pd.InvitarPartida(p, u1, u3.Id)
-	pd.UnirsePartida(p, u3, nil)
+	pd.EntrarPartida(p, u3, nil)
 	obtenido := pd.IniciarPartida(p, u1)
+	territoriosEsperados := []mensajes.JsonData{}
+	for i := 0; i < 42; i++ {
+		territoriosEsperados = append(territoriosEsperados, mensajes.JsonData{
+			"numJugador": 0,
+			"tropas":     0,
+		})
+	}
 	esperado := mensajes.JsonData{
-		"tiempoTurno": tiempoTurnoTest,
-		"nombreSala":  nombreSalaTest,
-		"idSala":      1,
+		"_tipoMensaje": "p",
+		"tiempoTurno":  tiempoTurnoTest,
+		"nombreSala":   nombreSalaTest,
+		//"idSala":           1,
+		"turnoActual":      0,
+		"fase":             0,
+		"listaTerritorios": territoriosEsperados,
 		"jugadores": []mensajes.JsonData{
 			{
-				"id":      u1.Id,
-				"nombre":  u1.Nombre,
-				"icono":   u1.Icono,
-				"aspecto": u1.Aspecto,
+				"id":        u1.Id,
+				"nombre":    u1.Nombre,
+				"icono":     u1.Icono,
+				"aspecto":   u1.Aspecto,
+				"sigueVivo": true,
 			},
 			{
-				"id":      u2.Id,
-				"nombre":  u2.Nombre,
-				"icono":   u2.Icono,
-				"aspecto": u2.Aspecto,
+				"id":        u2.Id,
+				"nombre":    u2.Nombre,
+				"icono":     u2.Icono,
+				"aspecto":   u2.Aspecto,
+				"sigueVivo": true,
 			},
 			{
-				"id":      u3.Id,
-				"nombre":  u3.Nombre,
-				"icono":   u3.Icono,
-				"aspecto": u3.Aspecto,
+				"id":        u3.Id,
+				"nombre":    u3.Nombre,
+				"icono":     u3.Icono,
+				"aspecto":   u3.Aspecto,
+				"sigueVivo": true,
 			},
 		},
 	}
-	if !comprobarJson(obtenido, esperado) {
+	if !comprobarDatosPartida(obtenido, esperado, false) {
 		t.Fatalf("El mensaje esperado: %v\n No coincide con el obtenido: %v", esperado, obtenido)
 	}
 }
@@ -206,7 +224,7 @@ func TestBorrarPartida(t *testing.T) {
 	}
 }
 
-func TestQuitarJugadorPartida(t *testing.T) {
+func TestAbandonarPartida(t *testing.T) {
 	db, err := sql.Open("postgres", baseDeDatos)
 	if err != nil {
 		t.Fatalf("No se ha podido abrir conexión con la base de "+
@@ -227,8 +245,8 @@ func TestQuitarJugadorPartida(t *testing.T) {
 		t.Fatalf("Error creando partida %q", err)
 	}
 	pd.InvitarPartida(p, u1, u2.Id)
-	pd.UnirsePartida(p, u2, nil)
-	err = pd.QuitarJugadorPartida(p, u2)
+	pd.EntrarPartida(p, u2, nil)
+	err = pd.AbandonarPartida(p, u2)
 	if err != nil {
 		t.Fatalf("Error eliminando de la partida al segundo jugador %q", err)
 	}

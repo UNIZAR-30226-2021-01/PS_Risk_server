@@ -29,6 +29,14 @@ func ErrorJson(e string, c int) JsonData {
 	}
 }
 
+func ErrorJsonPartida(e string, c int) JsonData {
+	return JsonData{
+		"_tipoMensaje": "e",
+		"err":          e,
+		"code":         c,
+	}
+}
+
 func AmigoJson(id, icono, aspecto int, nombre string) JsonData {
 	return JsonData{
 		"id":      id,

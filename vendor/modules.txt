@@ -9,6 +9,9 @@ github.com/gorilla/websocket
 github.com/lib/pq
 github.com/lib/pq/oid
 github.com/lib/pq/scram
+# github.com/mitchellh/mapstructure v1.4.1
+## explicit
+github.com/mitchellh/mapstructure
 # github.com/rs/cors v1.7.0
 ## explicit
 github.com/rs/cors

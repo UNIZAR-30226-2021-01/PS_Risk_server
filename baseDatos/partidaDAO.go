@@ -60,46 +60,46 @@ func (dao *PartidaDAO) IniciarPartida(p *partidas.Partida,
 	u Usuario) mensajes.JsonData {
 	err := p.IniciarPartida(u.Id)
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorIniciarPartida)
+		return mensajes.ErrorJsonPartida(err.Error(), ErrorIniciarPartida)
 	}
 	estado, err := dao.estadoJsonPartida(p, false)
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorIniciarPartida)
+		return mensajes.ErrorJsonPartida(err.Error(), ErrorIniciarPartida)
 	}
 	estadoJson, err := json.Marshal(estado)
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorIniciarPartida)
+		return mensajes.ErrorJsonPartida(err.Error(), ErrorIniciarPartida)
 	}
 	ctx := context.Background()
 	tx, err := dao.bd.BeginTx(ctx, nil)
 	if err != nil {
 		p.Empezada = false
-		return mensajes.ErrorJson(err.Error(), ErrorIniciarPartida)
+		return mensajes.ErrorJsonPartida(err.Error(), ErrorIniciarPartida)
 	}
 	_, err = tx.ExecContext(ctx, borrarInvitaciones, p.IdPartida)
 	if err != nil {
 		tx.Rollback()
 		p.Empezada = false
-		return mensajes.ErrorJson(err.Error(), ErrorIniciarPartida)
+		return mensajes.ErrorJsonPartida(err.Error(), ErrorIniciarPartida)
 	}
 	_, err = tx.ExecContext(ctx, actualizarEstadoPartida, estadoJson, p.IdPartida)
 	if err != nil {
 		tx.Rollback()
 		p.Empezada = false
-		return mensajes.ErrorJson(err.Error(), ErrorIniciarPartida)
+		return mensajes.ErrorJsonPartida(err.Error(), ErrorIniciarPartida)
 	}
 	for _, j := range p.Jugadores {
 		_, err = tx.ExecContext(ctx, guardarJugadores, p.IdPartida, j)
 		if err != nil {
 			tx.Rollback()
 			p.Empezada = false
-			return mensajes.ErrorJson(err.Error(), ErrorIniciarPartida)
+			return mensajes.ErrorJsonPartida(err.Error(), ErrorIniciarPartida)
 		}
 	}
 	err = tx.Commit()
 	if err != nil {
 		p.Empezada = false
-		return mensajes.ErrorJson(err.Error(), ErrorIniciarPartida)
+		return mensajes.ErrorJsonPartida(err.Error(), ErrorIniciarPartida)
 	}
 	return respuestaInicioPartida(estado)
 }
@@ -127,41 +127,35 @@ func (dao *PartidaDAO) InvitarPartida(p *partidas.Partida, u Usuario,
 	return err
 }
 
-func (dao *PartidaDAO) UnirsePartida(p *partidas.Partida, u Usuario,
+func (dao *PartidaDAO) EntrarPartida(p *partidas.Partida, u Usuario,
 	ws *websocket.Conn) mensajes.JsonData {
 	var numInvitaciones int
 	err := dao.bd.QueryRow(consultaInvitacion, u.Id, p.IdPartida).Scan(&numInvitaciones)
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorUnirsePartida)
+		return mensajes.ErrorJsonPartida(err.Error(), ErrorUnirsePartida)
 	}
 	if numInvitaciones == 0 {
-		return mensajes.ErrorJson("No puedes unirte a una partida sin ser invitado",
+		return mensajes.ErrorJsonPartida("No puedes unirte a una partida sin ser invitado",
 			ErrorFaltaPermisoUnirse)
 	}
-	err = p.UnirsePartida(u.Id, ws)
+	err = p.EntrarPartida(u.Id, ws)
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorUnirsePartida)
-	}
-	respuesta, err := dao.listaJugadoresJson(p, false)
-	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorUnirsePartida)
+		return mensajes.ErrorJsonPartida(err.Error(), ErrorUnirsePartida)
 	}
 	estado, err := dao.estadoJsonPartida(p, false)
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorUnirsePartida)
+		return mensajes.ErrorJsonPartida(err.Error(), ErrorUnirsePartida)
 	}
 	estadoJson, err := json.Marshal(estado)
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorUnirsePartida)
+		return mensajes.ErrorJsonPartida(err.Error(), ErrorUnirsePartida)
 	}
 	_, err = dao.bd.Exec(actualizarEstadoPartida, estadoJson, p.IdPartida)
 	if err != nil {
-		p.QuitarJugadorPartida(u.Id)
-		return mensajes.ErrorJson(err.Error(), ErrorUnirsePartida)
+		p.AbandonarPartida(u.Id)
+		return mensajes.ErrorJsonPartida(err.Error(), ErrorUnirsePartida)
 	}
-	return mensajes.JsonData{
-		"jugadores": respuesta,
-	}
+	return respuestaDatosSala(estado)
 }
 
 func (dao *PartidaDAO) BorrarPartida(p *partidas.Partida) error {
@@ -169,7 +163,7 @@ func (dao *PartidaDAO) BorrarPartida(p *partidas.Partida) error {
 	return err
 }
 
-func (dao *PartidaDAO) QuitarJugadorPartida(p *partidas.Partida, u Usuario) error {
+func (dao *PartidaDAO) AbandonarPartida(p *partidas.Partida, u Usuario) error {
 	if p.IdCreador == u.Id {
 		return dao.BorrarPartida(p)
 	}
@@ -177,7 +171,7 @@ func (dao *PartidaDAO) QuitarJugadorPartida(p *partidas.Partida, u Usuario) erro
 	if !ok {
 		return errors.New("el usuario no existe en la partida")
 	}
-	err := p.QuitarJugadorPartida(u.Id)
+	err := p.AbandonarPartida(u.Id)
 	if err != nil {
 		return err
 	}
@@ -187,17 +181,17 @@ func (dao *PartidaDAO) QuitarJugadorPartida(p *partidas.Partida, u Usuario) erro
 	}
 	estado, err := dao.estadoJsonPartida(p, false)
 	if err != nil {
-		p.UnirsePartida(u.Id, ws)
+		p.EntrarPartida(u.Id, ws)
 		return err
 	}
 	estadoJson, err := json.Marshal(estado)
 	if err != nil {
-		p.UnirsePartida(u.Id, ws)
+		p.EntrarPartida(u.Id, ws)
 		return err
 	}
 	_, err = dao.bd.Exec(actualizarEstadoPartida, estadoJson, p.IdPartida)
 	if err != nil {
-		p.UnirsePartida(u.Id, ws)
+		p.EntrarPartida(u.Id, ws)
 	}
 	return err
 }
@@ -265,11 +259,24 @@ func (dao *PartidaDAO) estadoJsonPartida(p *partidas.Partida,
 	return respuesta, nil
 }
 
+func respuestaDatosSala(estadoCompleto mensajes.JsonData) mensajes.JsonData {
+	return mensajes.JsonData{
+		"_tipoMensaje": "d",
+		"idSala":       estadoCompleto["idSala"],
+		"nombreSala":   estadoCompleto["nombreSala"],
+		"tiempoTurno":  estadoCompleto["tiempoTurno"],
+		"jugadores":    estadoCompleto["jugadores"],
+	}
+}
+
 func respuestaInicioPartida(estadoCompleto mensajes.JsonData) mensajes.JsonData {
 	return mensajes.JsonData{
-		"idSala":      estadoCompleto["idSala"],
-		"nombreSala":  estadoCompleto["nombreSala"],
-		"tiempoTurno": estadoCompleto["tiempoTurno"],
-		"jugadores":   estadoCompleto["jugadores"],
+		"_tipoMensaje":     "p",
+		"nombreSala":       estadoCompleto["nombreSala"],
+		"fase":             estadoCompleto["fase"],
+		"tiempoTurno":      estadoCompleto["tiempoTurno"],
+		"turnoActual":      estadoCompleto["turnoActual"],
+		"jugadores":        estadoCompleto["jugadores"],
+		"listaTerritorios": estadoCompleto["listaTerritorios"],
 	}
 }
