@@ -1,32 +1,40 @@
 package mensajesInternos
 
 import (
+	"PS_Risk_server/usuarios"
+
 	"github.com/gorilla/websocket"
 )
 
 type MensajePartida interface{}
 
 type LlegadaUsuario struct {
-	IdUsuario int
-	//U  baseDatos.Usuario
+	//IdUsuario int
+	U  usuarios.Usuario
 	Ws *websocket.Conn
 }
 
 type SalidaUsuario struct {
-	IdUsuario int
+	U usuarios.Usuario
+	//IdUsuario int
 }
 
 type InicioPartida struct {
-	IdUsuario int
+	U usuarios.Usuario
+	//IdUsuario int
 }
 
 type InvitacionPartida struct {
-	IdCreador, IdInvitado int
+	U          usuarios.Usuario
+	IdInvitado int
+	//IdCreador, IdInvitado int
 }
 
 type AccionPartida struct {
-	IdUsuario, Origen, Objetivo, NumTropasOrigen, NumTropasObjetivo int
-	Tipo                                                            string
+	U usuarios.Usuario
+	//IdUsuario int
+	Origen, Objetivo, NumTropasOrigen, NumTropasObjetivo int
+	Tipo                                                 string
 }
 
 type FinPartida struct{}

@@ -5,8 +5,10 @@ import (
 	"PS_Risk_server/mensajes"
 	"PS_Risk_server/mensajesInternos"
 	"PS_Risk_server/partidas"
+	"PS_Risk_server/usuarios"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 
@@ -15,6 +17,7 @@ import (
 
 func devolverErrorWebsocket(code int, err string, ws *websocket.Conn) {
 	resultado := mensajes.ErrorJsonPartida(err, code)
+	log.Println("devolverErrorWebsocket:", resultado)
 	ws.WriteJSON(resultado)
 }
 
@@ -85,8 +88,9 @@ func (s *Servidor) aceptarSalaHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	idPartida := mensajeInicial.IdSala
 	s.Partidas[idPartida].Mensajes <- mensajesInternos.LlegadaUsuario{
-		IdUsuario: u.Id,
-		Ws:        ws,
+		U: u,
+		//IdUsuario: u.Id,
+		Ws: ws,
 	}
 	s.recibirMensajesUsuarioEnSala(idPartida, u, ws)
 }
@@ -96,7 +100,7 @@ type mensajeSala struct {
 	IdInvitado int    `json:"idInvitado,omitempty"`
 }
 
-func (s *Servidor) recibirMensajesUsuarioEnSala(idPartida int, u baseDatos.Usuario,
+func (s *Servidor) recibirMensajesUsuarioEnSala(idPartida int, u usuarios.Usuario,
 	ws *websocket.Conn) {
 	var mensajeRecibido mensajeSala
 	for {
@@ -104,7 +108,8 @@ func (s *Servidor) recibirMensajesUsuarioEnSala(idPartida int, u baseDatos.Usuar
 		if err != nil {
 			if err == io.ErrUnexpectedEOF {
 				s.Partidas[idPartida].Mensajes <- mensajesInternos.SalidaUsuario{
-					IdUsuario: u.Id,
+					U: u,
+					//IdUsuario: u.Id,
 				}
 			} else {
 				s.Partidas[idPartida].Mensajes <- mensajesInternos.MensajeInvalido{
@@ -116,12 +121,14 @@ func (s *Servidor) recibirMensajesUsuarioEnSala(idPartida int, u baseDatos.Usuar
 		}
 		if strings.EqualFold(mensajeRecibido.Tipo, "Iniciar") {
 			s.Partidas[idPartida].Mensajes <- mensajesInternos.InicioPartida{
-				IdUsuario: u.Id,
+				U: u,
+				//IdUsuario: u.Id,
 			}
 		} else if strings.EqualFold(mensajeRecibido.Tipo, "Invitar") {
 
 			s.Partidas[idPartida].Mensajes <- mensajesInternos.InvitacionPartida{
-				IdCreador:  u.Id,
+				U: u,
+				//IdCreador:  u.Id,
 				IdInvitado: mensajeRecibido.IdInvitado,
 			}
 		} else {
@@ -150,6 +157,7 @@ func enviarATodos(p *partidas.Partida, mensaje mensajes.JsonData) {
 }
 
 func devolverErrorUsuario(p *partidas.Partida, code, idUsuario int, err string) {
+	log.Println("devolverErrorUsuario:", err)
 	wsInterface, _ := p.Conexiones.Load(idUsuario)
 	if wsInterface != nil {
 		ws, ok := wsInterface.(*websocket.Conn)
@@ -164,61 +172,73 @@ func (s *Servidor) atenderSala(p *partidas.Partida) {
 		mensajeRecibido := <-p.Mensajes
 		switch mt := mensajeRecibido.(type) {
 		case mensajesInternos.LlegadaUsuario:
-			u, err := s.UsuarioDAO.ObtenerUsuarioId(mt.IdUsuario)
+			u := mt.U
+			/*u, err := s.UsuarioDAO.ObtenerUsuarioId(mt.IdUsuario)
 			if err != nil {
 				devolverErrorWebsocket(1, err.Error(), mt.Ws)
+			} else {*/
+			mensajeEnviar := s.PartidasDAO.EntrarPartida(p, u, mt.Ws)
+			_, hayError := mensajeEnviar["err"]
+			if hayError {
+				mt.Ws.WriteJSON(mensajeEnviar)
 			} else {
-				mensajeEnviar := s.PartidasDAO.EntrarPartida(p, u, mt.Ws)
-				_, hayError := mensajeEnviar["err"]
-				if hayError {
-					mt.Ws.WriteJSON(mensajeEnviar)
-				} else {
-					enviarATodos(p, mensajeEnviar)
-				}
+				enviarATodos(p, mensajeEnviar)
 			}
+			//}
 		case mensajesInternos.InvitacionPartida:
-			u, err := s.UsuarioDAO.ObtenerUsuarioId(mt.IdCreador)
+			u := mt.U
+			err := s.PartidasDAO.InvitarPartida(p, u, mt.IdInvitado)
+			if err != nil {
+				log.Print(err)
+				devolverErrorUsuario(p, 1, u.Id, err.Error())
+			} else {
+				devolverErrorUsuario(p, baseDatos.NoError, u.Id, "")
+			}
+			/*u, err := s.UsuarioDAO.ObtenerUsuarioId(mt.IdCreador)
 			if err != nil {
 				devolverErrorUsuario(p, 1, mt.IdCreador, err.Error())
 			} else {
-				err := s.PartidasDAO.InvitarPartida(p, u, mt.IdInvitado)
+				err = s.PartidasDAO.InvitarPartida(p, u, mt.IdInvitado)
 				if err != nil {
 					devolverErrorUsuario(p, 1, mt.IdCreador, err.Error())
 				} else {
 					devolverErrorUsuario(p, baseDatos.NoError, mt.IdCreador, "")
 				}
-			}
+			}*/
 		case mensajesInternos.InicioPartida:
-			u, err := s.UsuarioDAO.ObtenerUsuarioId(mt.IdUsuario)
+			u := mt.U
+			/*u, err := s.UsuarioDAO.ObtenerUsuarioId(mt.IdUsuario)
 			if err != nil {
 				devolverErrorUsuario(p, 1, mt.IdUsuario, err.Error())
+			} else {*/
+			mensajeEnviar := s.PartidasDAO.IniciarPartida(p, u)
+			_, hayError := mensajeEnviar["err"]
+			if hayError {
+				enviarPorWebsocket(p, mensajeEnviar, u.Id)
+				//enviarPorWebsocket(p, mensajeEnviar, mt.IdUsuario)
 			} else {
-				mensajeEnviar := s.PartidasDAO.IniciarPartida(p, u)
-				_, hayError := mensajeEnviar["err"]
-				if hayError {
-					enviarPorWebsocket(p, mensajeEnviar, mt.IdUsuario)
-				} else {
-					enviarATodos(p, mensajeEnviar)
-					return
-				}
+				enviarATodos(p, mensajeEnviar)
+				return
 			}
+			//}
 		case mensajesInternos.SalidaUsuario:
-			u, err := s.UsuarioDAO.ObtenerUsuarioId(mt.IdUsuario)
+			u := mt.U
+			/*u, err := s.UsuarioDAO.ObtenerUsuarioId(mt.IdUsuario)
 			if err != nil {
 				fmt.Println("Error al leer un usuario:", err.Error())
+			} else {*/
+			if u.Id == p.IdCreador {
+				enviarATodos(p, mensajes.ErrorJsonPartida("El creador de "+
+					"la sala se ha desconectado", 1))
+				s.PartidasDAO.BorrarPartida(p)
 			} else {
-				if u.Id == p.IdCreador {
-					enviarATodos(p, mensajes.ErrorJsonPartida("El creador de "+
-						"la sala se ha desconectado", 1))
-					s.PartidasDAO.BorrarPartida(p)
-				} else {
-					err = s.PartidasDAO.AbandonarPartida(p, u)
-					if err != nil {
-						fmt.Println("Error al quitar un usuario de una partida:",
-							err.Error())
-					}
+				err := s.PartidasDAO.AbandonarPartida(p, u)
+				if err != nil {
+					fmt.Println("Error al quitar un usuario de una partida:",
+						err.Error())
 				}
 			}
+			//}
 		case mensajesInternos.MensajeInvalido:
 			devolverErrorUsuario(p, 1, mt.IdUsuario, mt.Err)
 		case mensajesInternos.FinPartida:

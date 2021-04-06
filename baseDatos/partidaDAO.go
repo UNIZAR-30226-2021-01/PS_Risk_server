@@ -3,6 +3,7 @@ package baseDatos
 import (
 	"PS_Risk_server/mensajes"
 	"PS_Risk_server/partidas"
+	"PS_Risk_server/usuarios"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -35,7 +36,7 @@ func NuevaPartidaDAO(bd *sql.DB) PartidaDAO {
 	return PartidaDAO{bd: bd}
 }
 
-func (dao *PartidaDAO) CrearPartida(creador Usuario, tiempoTurno int,
+func (dao *PartidaDAO) CrearPartida(creador usuarios.Usuario, tiempoTurno int,
 	nombreSala string, wsCreador *websocket.Conn) (*partidas.Partida, error) {
 	var p *partidas.Partida
 	var idPartida int
@@ -57,7 +58,7 @@ func (dao *PartidaDAO) CrearPartida(creador Usuario, tiempoTurno int,
 }
 
 func (dao *PartidaDAO) IniciarPartida(p *partidas.Partida,
-	u Usuario) mensajes.JsonData {
+	u usuarios.Usuario) mensajes.JsonData {
 	err := p.IniciarPartida(u.Id)
 	if err != nil {
 		return mensajes.ErrorJsonPartida(err.Error(), ErrorIniciarPartida)
@@ -104,7 +105,7 @@ func (dao *PartidaDAO) IniciarPartida(p *partidas.Partida,
 	return respuestaInicioPartida(estado)
 }
 
-func (dao *PartidaDAO) InvitarPartida(p *partidas.Partida, u Usuario,
+func (dao *PartidaDAO) InvitarPartida(p *partidas.Partida, u usuarios.Usuario,
 	idInvitado int) error {
 	if p.Empezada {
 		return errors.New("no se puede invitar a nadie a una partida que ya ha empezado")
@@ -127,7 +128,7 @@ func (dao *PartidaDAO) InvitarPartida(p *partidas.Partida, u Usuario,
 	return err
 }
 
-func (dao *PartidaDAO) EntrarPartida(p *partidas.Partida, u Usuario,
+func (dao *PartidaDAO) EntrarPartida(p *partidas.Partida, u usuarios.Usuario,
 	ws *websocket.Conn) mensajes.JsonData {
 	var numInvitaciones int
 	err := dao.bd.QueryRow(consultaInvitacion, u.Id, p.IdPartida).Scan(&numInvitaciones)
@@ -163,7 +164,7 @@ func (dao *PartidaDAO) BorrarPartida(p *partidas.Partida) error {
 	return err
 }
 
-func (dao *PartidaDAO) AbandonarPartida(p *partidas.Partida, u Usuario) error {
+func (dao *PartidaDAO) AbandonarPartida(p *partidas.Partida, u usuarios.Usuario) error {
 	if p.IdCreador == u.Id {
 		return dao.BorrarPartida(p)
 	}

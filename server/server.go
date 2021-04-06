@@ -4,6 +4,7 @@ import (
 	"PS_Risk_server/baseDatos"
 	"PS_Risk_server/mensajes"
 	"PS_Risk_server/partidas"
+	"PS_Risk_server/usuarios"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -64,7 +65,7 @@ func (s *Servidor) Iniciar() error {
 	return err
 }
 
-func (s *Servidor) crearMensajeUsuario(u baseDatos.Usuario) mensajes.JsonData {
+func (s *Servidor) crearMensajeUsuario(u usuarios.Usuario) mensajes.JsonData {
 	iconos, err := s.TiendaDAO.ObtenerIconos(u)
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), 1)
@@ -124,7 +125,7 @@ type formularioInicioSesion struct {
 
 func (s *Servidor) inicioSesion(w http.ResponseWriter, r *http.Request) {
 	var (
-		user baseDatos.Usuario
+		user usuarios.Usuario
 		f    formularioInicioSesion
 	)
 	decoder := form.NewDecoder()
@@ -262,7 +263,7 @@ type formularioObtener struct {
 }
 
 func (s *Servidor) obtener(w http.ResponseWriter, r *http.Request,
-	metodo func(baseDatos.Usuario) mensajes.JsonData) {
+	metodo func(usuarios.Usuario) mensajes.JsonData) {
 	var f formularioObtener
 	decoder := form.NewDecoder()
 	err := r.ParseForm()

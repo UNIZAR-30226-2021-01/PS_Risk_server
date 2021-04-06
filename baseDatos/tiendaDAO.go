@@ -2,6 +2,7 @@ package baseDatos
 
 import (
 	"PS_Risk_server/mensajes"
+	"PS_Risk_server/usuarios"
 	"context"
 	"database/sql"
 	"strconv"
@@ -61,23 +62,23 @@ func (dao *TiendaDAO) ObtenerTienda() (Tienda, error) {
 	return t, nil
 }
 
-func (dao *TiendaDAO) ObtenerAspectos(u Usuario) ([]mensajes.JsonData, error) {
+func (dao *TiendaDAO) ObtenerAspectos(u usuarios.Usuario) ([]mensajes.JsonData, error) {
 	return dao.leerCosmetico(consultaAspectosUsuario + strconv.Itoa(u.Id))
 }
 
-func (dao *TiendaDAO) ObtenerIconos(u Usuario) ([]mensajes.JsonData, error) {
+func (dao *TiendaDAO) ObtenerIconos(u usuarios.Usuario) ([]mensajes.JsonData, error) {
 	return dao.leerCosmetico(consultaIconosUsuario + strconv.Itoa(u.Id))
 }
 
-func (dao *TiendaDAO) ComprarIcono(u *Usuario, id, precio int) mensajes.JsonData {
+func (dao *TiendaDAO) ComprarIcono(u *usuarios.Usuario, id, precio int) mensajes.JsonData {
 	return dao.comprar(u, id, precio, comprarIcono)
 }
 
-func (dao *TiendaDAO) ComprarAspecto(u *Usuario, id, precio int) mensajes.JsonData {
+func (dao *TiendaDAO) ComprarAspecto(u *usuarios.Usuario, id, precio int) mensajes.JsonData {
 	return dao.comprar(u, id, precio, comprarAspecto)
 }
 
-func (dao *TiendaDAO) comprar(u *Usuario, id, precio int, sql string) mensajes.JsonData {
+func (dao *TiendaDAO) comprar(u *usuarios.Usuario, id, precio int, sql string) mensajes.JsonData {
 	if u.Riskos-precio < 0 {
 		return mensajes.ErrorJson("Riskos insuficientes", 1)
 	}

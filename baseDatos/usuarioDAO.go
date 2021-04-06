@@ -2,10 +2,9 @@ package baseDatos
 
 import (
 	"PS_Risk_server/mensajes"
+	"PS_Risk_server/usuarios"
 	"context"
 	"database/sql"
-	"errors"
-	"strconv"
 )
 
 const (
@@ -51,55 +50,6 @@ const (
 		"WHERE id_usuario = $1 AND id_aspecto = $2"
 )
 
-type Usuario struct {
-	Id, Icono, Aspecto, Riskos int
-	Nombre, Correo, Clave      string
-	RecibeCorreos              bool
-}
-
-func (u *Usuario) ToJSON() mensajes.JsonData {
-	return mensajes.JsonData{
-		"id":            u.Id,
-		"nombre":        u.Nombre,
-		"correo":        u.Correo,
-		"clave":         u.Clave,
-		"recibeCorreos": u.RecibeCorreos,
-		"icono":         u.Icono,
-		"aspecto":       u.Aspecto,
-		"riskos":        u.Riskos,
-	}
-}
-
-func (u *Usuario) Modificar(c string, v string) error {
-	var err error
-	switch c {
-	case "Aspecto":
-		u.Aspecto, err = strconv.Atoi(v)
-		if err != nil {
-			return err
-		}
-	case "Icono":
-		u.Icono, err = strconv.Atoi(v)
-		if err != nil {
-			return err
-		}
-	case "Correo":
-		u.Correo = v
-	case "Clave":
-		u.Clave = v
-	case "Nombre":
-		u.Nombre = v
-	case "RecibeCorreos":
-		u.RecibeCorreos, err = strconv.ParseBool(v)
-		if err != nil {
-			return err
-		}
-	default:
-		return errors.New("el campo a modificar no existe")
-	}
-	return nil
-}
-
 type UsuarioDAO struct {
 	bd *sql.DB
 }
@@ -109,9 +59,9 @@ func NuevoUsuarioDAO(bd *sql.DB) UsuarioDAO {
 }
 
 func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
-	recibeCorreos bool) (Usuario, error) {
+	recibeCorreos bool) (usuarios.Usuario, error) {
 
-	var u Usuario
+	var u usuarios.Usuario
 	// Iniciar una transaccion, solo se modifican las tablas si se modifican
 	// todas
 	ctx := context.Background()
@@ -141,7 +91,7 @@ func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 		return u, err
 	}
 	// Fin de la transaccion
-	u = Usuario{
+	u = usuarios.Usuario{
 		Id: id, Icono: 0, Aspecto: 0, Riskos: 1000,
 		Nombre: nombre, Correo: correo, Clave: clave,
 		RecibeCorreos: recibeCorreos,
@@ -149,19 +99,19 @@ func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 	return u, nil
 }
 
-func (dao *UsuarioDAO) IniciarSesionNombre(nombre, clave string) (Usuario, error) {
+func (dao *UsuarioDAO) IniciarSesionNombre(nombre, clave string) (usuarios.Usuario, error) {
 
 	var id, icono, aspecto, riskos int
 	var correo string
 	var recibeCorreos bool
-	var u Usuario
+	var u usuarios.Usuario
 
 	err := dao.bd.QueryRow(consultaUsuarioNombre, nombre, clave).Scan(&id,
 		&icono, &aspecto, &riskos, &correo, &recibeCorreos)
 	if err != nil {
 		return u, err
 	}
-	u = Usuario{
+	u = usuarios.Usuario{
 		Id: id, Icono: icono, Aspecto: aspecto, Riskos: riskos,
 		Nombre: nombre, Correo: correo, Clave: clave,
 		RecibeCorreos: recibeCorreos,
@@ -169,19 +119,19 @@ func (dao *UsuarioDAO) IniciarSesionNombre(nombre, clave string) (Usuario, error
 	return u, nil
 }
 
-func (dao *UsuarioDAO) IniciarSesionCorreo(correo, clave string) (Usuario, error) {
+func (dao *UsuarioDAO) IniciarSesionCorreo(correo, clave string) (usuarios.Usuario, error) {
 
 	var id, icono, aspecto, riskos int
 	var nombre string
 	var recibeCorreos bool
-	var u Usuario
+	var u usuarios.Usuario
 
 	err := dao.bd.QueryRow(consultaUsuarioCorreo, correo, clave).Scan(&id,
 		&icono, &aspecto, &riskos, &nombre, &recibeCorreos)
 	if err != nil {
 		return u, err
 	}
-	u = Usuario{
+	u = usuarios.Usuario{
 		Id: id, Icono: icono, Aspecto: aspecto, Riskos: riskos,
 		Nombre: nombre, Correo: correo, Clave: clave,
 		RecibeCorreos: recibeCorreos,
@@ -189,19 +139,19 @@ func (dao *UsuarioDAO) IniciarSesionCorreo(correo, clave string) (Usuario, error
 	return u, nil
 }
 
-func (dao *UsuarioDAO) ObtenerUsuario(id int, clave string) (Usuario, error) {
+func (dao *UsuarioDAO) ObtenerUsuario(id int, clave string) (usuarios.Usuario, error) {
 
 	var icono, aspecto, riskos int
 	var nombre, correo string
 	var recibeCorreos bool
-	var u Usuario
+	var u usuarios.Usuario
 
 	err := dao.bd.QueryRow(consultaUsuario, id, clave).Scan(&icono,
 		&aspecto, &riskos, &correo, &nombre, &recibeCorreos)
 	if err != nil {
 		return u, err
 	}
-	u = Usuario{
+	u = usuarios.Usuario{
 		Id: id, Icono: icono, Aspecto: aspecto, Riskos: riskos,
 		Nombre: nombre, Correo: correo, Clave: clave,
 		RecibeCorreos: recibeCorreos,
@@ -209,18 +159,18 @@ func (dao *UsuarioDAO) ObtenerUsuario(id int, clave string) (Usuario, error) {
 	return u, nil
 }
 
-func (dao *UsuarioDAO) ObtenerUsuarioId(id int) (Usuario, error) {
+func (dao *UsuarioDAO) ObtenerUsuarioId(id int) (usuarios.Usuario, error) {
 	var icono, aspecto, riskos int
 	var nombre, correo, clave string
 	var recibeCorreos bool
-	var u Usuario
+	var u usuarios.Usuario
 
 	err := dao.bd.QueryRow(consultaUsuarioId, id).Scan(&icono,
 		&aspecto, &riskos, &correo, &nombre, &clave, &recibeCorreos)
 	if err != nil {
 		return u, err
 	}
-	u = Usuario{
+	u = usuarios.Usuario{
 		Id: id, Icono: icono, Aspecto: aspecto, Riskos: riskos,
 		Nombre: nombre, Correo: correo, Clave: clave,
 		RecibeCorreos: recibeCorreos,
@@ -228,7 +178,7 @@ func (dao *UsuarioDAO) ObtenerUsuarioId(id int) (Usuario, error) {
 	return u, nil
 }
 
-func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
+func (dao *UsuarioDAO) ActualizarUsuario(u usuarios.Usuario) mensajes.JsonData {
 	var id int
 	err := dao.bd.QueryRow(comprobarIconoComprado, u.Id, u.Icono).Scan(&id)
 	if err != nil {
@@ -250,7 +200,7 @@ func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
 	return mensajes.ErrorJson("", 0)
 }
 
-func (dao *UsuarioDAO) IncrementarRiskos(u *Usuario, r int) error {
+func (dao *UsuarioDAO) IncrementarRiskos(u *usuarios.Usuario, r int) error {
 	_, err := dao.bd.Exec(incrementarRiskos, r, u.Id)
 	if err != nil {
 		return err
@@ -259,7 +209,7 @@ func (dao *UsuarioDAO) IncrementarRiskos(u *Usuario, r int) error {
 	return nil
 }
 
-func (dao *UsuarioDAO) ObtenerNotificaciones(u Usuario) mensajes.JsonData {
+func (dao *UsuarioDAO) ObtenerNotificaciones(u usuarios.Usuario) mensajes.JsonData {
 	var notificaciones []mensajes.JsonData
 	n, err := dao.leerNotificaciones(u.Id, consultaSolicitudes, "Peticion de amistad")
 	notificaciones = append(notificaciones, n...)
