@@ -8,7 +8,6 @@ import (
 	"PS_Risk_server/usuarios"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 
@@ -17,7 +16,6 @@ import (
 
 func devolverErrorWebsocket(code int, err string, ws *websocket.Conn) {
 	resultado := mensajes.ErrorJsonPartida(err, code)
-	log.Println("devolverErrorWebsocket:", resultado)
 	ws.WriteJSON(resultado)
 }
 
@@ -157,7 +155,6 @@ func enviarATodos(p *partidas.Partida, mensaje mensajes.JsonData) {
 }
 
 func devolverErrorUsuario(p *partidas.Partida, code, idUsuario int, err string) {
-	log.Println("devolverErrorUsuario:", err)
 	wsInterface, _ := p.Conexiones.Load(idUsuario)
 	if wsInterface != nil {
 		ws, ok := wsInterface.(*websocket.Conn)
@@ -189,7 +186,6 @@ func (s *Servidor) atenderSala(p *partidas.Partida) {
 			u := mt.U
 			err := s.PartidasDAO.InvitarPartida(p, u, mt.IdInvitado)
 			if err != nil {
-				log.Print(err)
 				devolverErrorUsuario(p, 1, u.Id, err.Error())
 			} else {
 				devolverErrorUsuario(p, baseDatos.NoError, u.Id, "")

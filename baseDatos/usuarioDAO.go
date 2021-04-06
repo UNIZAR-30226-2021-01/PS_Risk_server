@@ -32,8 +32,9 @@ const (
 
 	consultaSolicitudes = "SELECT id_envia AS idEnvio, nombre FROM solicitudAmistad " +
 		"LEFT JOIN usuario ON id_usuario = id_envia WHERE id_recibe = $1"
-	consultaInvitaciones = "SELECT id_envia AS idEnvio, nombre FROM invitacionPartida " +
-		"LEFT JOIN partida ON id_partida = id_envia WHERE id_recibe = $1"
+	consultaInvitaciones = "SELECT id_envia AS idEnvio, usuario.nombre FROM " +
+		"invitacionPartida JOIN partida ON id_partida = id_envia JOIN usuario " +
+		"ON id_creador = id_usuario WHERE id_recibe = $1"
 	consultaTurnos = "SELECT id_envia AS idEnvio, nombre FROM notificacionTurno " +
 		"LEFT JOIN partida ON id_partida = id_envia WHERE id_recibe = $1"
 
