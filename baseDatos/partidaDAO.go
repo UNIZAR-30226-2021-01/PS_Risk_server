@@ -218,7 +218,7 @@ func (dao *PartidaDAO) listaJugadoresJson(p *partidas.Partida,
 	jugadores := []mensajes.JsonData{}
 	daoUsuario := NuevoUsuarioDAO(dao.bd)
 	for _, idJugador := range p.Jugadores {
-		u, err := daoUsuario.ObtenerUsuarioId(idJugador)
+		u, err := daoUsuario.obtenerUsuarioId(idJugador)
 		if err != nil { // No debería ocurrir nunca, se comprueban antes de unirse
 			return jugadores, err
 		}

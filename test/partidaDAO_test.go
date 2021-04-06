@@ -69,7 +69,7 @@ func TestInvitarPartida(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error obteniendo datos de partida %q", err)
 	}
-	u1, err := ud.ObtenerUsuarioId(p.IdCreador)
+	u1, err := ud.ObtenerUsuario(p.IdCreador, claveTest)
 	if err != nil {
 		t.Fatalf("Error obteniendo datos de usuario %q", err)
 	}
@@ -100,7 +100,7 @@ func TestEntrarPartida(t *testing.T) {
 		t.Fatalf("Error iniciando sesión %q", err)
 	}
 	obtenido := pd.EntrarPartida(p, u, nil)
-	u1, err := ud.ObtenerUsuarioId(p.IdCreador)
+	u1, err := ud.ObtenerUsuario(p.IdCreador, claveTest)
 	if err != nil {
 		t.Fatalf("Error obteniendo datos de usuario %q", err)
 	}
@@ -142,7 +142,7 @@ func TestIniciarPartida(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error obteniendo datos de partida %q", err)
 	}
-	u1, err := ud.ObtenerUsuarioId(p.IdCreador)
+	u1, err := ud.ObtenerUsuario(p.IdCreador, claveTest)
 	if err != nil {
 		t.Fatalf("Error obteniendo datos de usuario %q", err)
 	}
@@ -150,7 +150,7 @@ func TestIniciarPartida(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error iniciando sesión %q", err)
 	}
-	u3, err := ud.ObtenerUsuarioId(1)
+	u3, err := ud.ObtenerUsuario(1, claveTest)
 	if err != nil {
 		t.Fatalf("Error obteniendo datos de usuario %q", err)
 	}

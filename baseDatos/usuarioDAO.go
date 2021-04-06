@@ -160,7 +160,7 @@ func (dao *UsuarioDAO) ObtenerUsuario(id int, clave string) (usuarios.Usuario, e
 	return u, nil
 }
 
-func (dao *UsuarioDAO) ObtenerUsuarioId(id int) (usuarios.Usuario, error) {
+func (dao *UsuarioDAO) obtenerUsuarioId(id int) (usuarios.Usuario, error) {
 	var icono, aspecto, riskos int
 	var nombre, correo, clave string
 	var recibeCorreos bool
