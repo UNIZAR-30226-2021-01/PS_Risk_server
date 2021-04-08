@@ -61,7 +61,7 @@ func (s *Servidor) Iniciar() error {
 	mux.HandleFunc("/crearSala", s.crearPartidaHandler)
 	mux.HandleFunc("/aceptarSala", s.aceptarSalaHandler)
 	handler := cors.Default().Handler(mux)
-	//s.upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+	s.upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	err := http.ListenAndServe(":"+s.Puerto, handler)
 	return err
 }
