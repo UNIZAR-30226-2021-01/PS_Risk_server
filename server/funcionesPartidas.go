@@ -112,6 +112,7 @@ func (s *Servidor) recibirMensajesUsuarioEnSala(u baseDatos.Usuario,
 		if err != nil {
 			if e, ok := err.(*websocket.CloseError); (ok &&
 				(e.Code == websocket.CloseNormalClosure ||
+					e.Code == websocket.CloseAbnormalClosure ||
 					e.Code == websocket.CloseNoStatusReceived)) || err == io.ErrUnexpectedEOF {
 				p.Mensajes <- mensajesInternos.SalidaUsuario{
 					IdUsuario: u.Id,
