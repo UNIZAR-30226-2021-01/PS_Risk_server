@@ -48,8 +48,6 @@ func (s *Servidor) crearPartidaHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		devolverErrorWebsocket(1, err.Error(), ws)
 		return
-	} else {
-		devolverErrorWebsocket(baseDatos.NoError, "", ws)
 	}
 	s.Partidas.Store(p.IdPartida, p)
 
@@ -60,7 +58,7 @@ func (s *Servidor) crearPartidaHandler(w http.ResponseWriter, r *http.Request) {
 
 	go s.atenderSala(p)
 
-	s.recibirMensajesUsuarioEnSala(p.IdPartida, u, ws, p)
+	s.recibirMensajesUsuarioEnSala(u, ws, p)
 }
 
 type mensajeEntrarSala struct {
@@ -98,7 +96,7 @@ func (s *Servidor) aceptarSalaHandler(w http.ResponseWriter, r *http.Request) {
 		IdUsuario: u.Id,
 		Ws:        ws,
 	}
-	s.recibirMensajesUsuarioEnSala(idPartida, u, ws, p.(*baseDatos.Partida))
+	s.recibirMensajesUsuarioEnSala(u, ws, p.(*baseDatos.Partida))
 }
 
 type mensajeSala struct {
@@ -106,7 +104,7 @@ type mensajeSala struct {
 	IdInvitado int    `json:"idInvitado,omitempty"`
 }
 
-func (s *Servidor) recibirMensajesUsuarioEnSala(idPartida int, u baseDatos.Usuario,
+func (s *Servidor) recibirMensajesUsuarioEnSala(u baseDatos.Usuario,
 	ws *websocket.Conn, p *baseDatos.Partida) {
 	var mensajeRecibido mensajeSala
 	for {
@@ -207,6 +205,7 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 			if mt.IdUsuario == p.IdCreador {
 				enviarATodos(p, mensajes.ErrorJsonPartida("El creador de "+
 					"la sala se ha desconectado", 1))
+				s.Partidas.Delete(p.IdPartida)
 				s.PartidasDAO.BorrarPartida(p)
 			} else {
 				err := s.PartidasDAO.AbandonarPartida(p, mt.IdUsuario)
@@ -223,6 +222,7 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 				"ganador":      "",
 				"riskos":       0,
 			})
+			s.Partidas.Delete(p.IdPartida)
 			s.PartidasDAO.BorrarPartida(p)
 			return
 		}
