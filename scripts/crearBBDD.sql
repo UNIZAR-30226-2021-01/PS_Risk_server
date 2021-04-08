@@ -86,12 +86,29 @@ CREATE TABLE juega (
 );
 
 INSERT INTO icono (id_icono, precio) VALUES (0, 0);
-INSERT INTO icono (precio) VALUES (200);
+INSERT INTO icono (precio) VALUES (50);
+INSERT INTO icono (precio) VALUES (50);
+INSERT INTO icono (precio) VALUES (50);
 INSERT INTO icono (precio) VALUES (100);
 INSERT INTO icono (precio) VALUES (100);
 INSERT INTO icono (precio) VALUES (100);
+INSERT INTO icono (precio) VALUES (100);
+INSERT INTO icono (precio) VALUES (100);
+INSERT INTO icono (precio) VALUES (250);
+INSERT INTO icono (precio) VALUES (250);
+INSERT INTO icono (precio) VALUES (250);
+INSERT INTO icono (precio) VALUES (500);
+
 INSERT INTO aspecto (id_aspecto, precio) VALUES (0, 0);
-INSERT INTO aspecto (precio) VALUES (300);
-INSERT INTO aspecto (precio) VALUES (100);
-INSERT INTO aspecto (precio) VALUES (100);
-INSERT INTO aspecto (precio) VALUES (100);
+INSERT INTO aspecto (precio) VALUES (75);
+INSERT INTO aspecto (precio) VALUES (75);
+INSERT INTO aspecto (precio) VALUES (75);
+INSERT INTO aspecto (precio) VALUES (150);
+INSERT INTO aspecto (precio) VALUES (150);
+INSERT INTO aspecto (precio) VALUES (150);
+INSERT INTO aspecto (precio) VALUES (150);
+INSERT INTO aspecto (precio) VALUES (150);
+INSERT INTO aspecto (precio) VALUES (375);
+INSERT INTO aspecto (precio) VALUES (375);
+INSERT INTO aspecto (precio) VALUES (375);
+INSERT INTO aspecto (precio) VALUES (750);

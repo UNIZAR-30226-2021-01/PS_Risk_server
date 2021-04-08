@@ -1,4 +1,4 @@
-package usuarios
+package baseDatos
 
 import (
 	"PS_Risk_server/mensajes"

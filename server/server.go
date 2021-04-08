@@ -3,8 +3,8 @@ package server
 import (
 	"PS_Risk_server/baseDatos"
 	"PS_Risk_server/mensajes"
-	"PS_Risk_server/partidas"
-	"PS_Risk_server/usuarios"
+	"sync"
+
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -23,7 +23,7 @@ type Servidor struct {
 	Tienda      baseDatos.Tienda
 	upgrader    websocket.Upgrader
 	PartidasDAO baseDatos.PartidaDAO
-	Partidas    map[int]*partidas.Partida
+	Partidas    sync.Map
 }
 
 func NuevoServidor(p, bbdd string) (*Servidor, error) {
@@ -44,7 +44,7 @@ func NuevoServidor(p, bbdd string) (*Servidor, error) {
 		Tienda:      tienda,
 		upgrader:    websocket.Upgrader{},
 		PartidasDAO: baseDatos.NuevaPartidaDAO(b),
-		Partidas:    make(map[int]*partidas.Partida)}, nil
+		Partidas:    sync.Map{}}, nil
 }
 
 func (s *Servidor) Iniciar() error {
@@ -61,11 +61,12 @@ func (s *Servidor) Iniciar() error {
 	mux.HandleFunc("/crearSala", s.crearPartidaHandler)
 	mux.HandleFunc("/aceptarSala", s.aceptarSalaHandler)
 	handler := cors.Default().Handler(mux)
+	s.upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	err := http.ListenAndServe(":"+s.Puerto, handler)
 	return err
 }
 
-func (s *Servidor) crearMensajeUsuario(u usuarios.Usuario) mensajes.JsonData {
+func (s *Servidor) crearMensajeUsuario(u baseDatos.Usuario) mensajes.JsonData {
 	iconos, err := s.TiendaDAO.ObtenerIconos(u)
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), 1)
@@ -109,7 +110,7 @@ func (s *Servidor) registroUsuario(w http.ResponseWriter, r *http.Request) {
 		devolverError(1, "Campos formulario incorrectos", w)
 		return
 	}
-	user, err := s.UsuarioDAO.CrearCuenta(f.Nombre, f.Correo, f.Clave, f.RecibeCorreos)
+	user, err := s.UsuarioDAO.CrearCuenta(f.Nombre, strings.ToLower(f.Correo), f.Clave, f.RecibeCorreos)
 	if err != nil {
 		devolverError(1, err.Error(), w)
 		return
@@ -125,7 +126,7 @@ type formularioInicioSesion struct {
 
 func (s *Servidor) inicioSesion(w http.ResponseWriter, r *http.Request) {
 	var (
-		user usuarios.Usuario
+		user baseDatos.Usuario
 		f    formularioInicioSesion
 	)
 	decoder := form.NewDecoder()
@@ -263,7 +264,7 @@ type formularioObtener struct {
 }
 
 func (s *Servidor) obtener(w http.ResponseWriter, r *http.Request,
-	metodo func(usuarios.Usuario) mensajes.JsonData) {
+	metodo func(baseDatos.Usuario) mensajes.JsonData) {
 	var f formularioObtener
 	decoder := form.NewDecoder()
 	err := r.ParseForm()

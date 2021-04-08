@@ -2,7 +2,6 @@ package baseDatos
 
 import (
 	"PS_Risk_server/mensajes"
-	"PS_Risk_server/usuarios"
 	"context"
 	"database/sql"
 )
@@ -60,9 +59,9 @@ func NuevoUsuarioDAO(bd *sql.DB) UsuarioDAO {
 }
 
 func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
-	recibeCorreos bool) (usuarios.Usuario, error) {
+	recibeCorreos bool) (Usuario, error) {
 
-	var u usuarios.Usuario
+	var u Usuario
 	// Iniciar una transaccion, solo se modifican las tablas si se modifican
 	// todas
 	ctx := context.Background()
@@ -92,7 +91,7 @@ func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 		return u, err
 	}
 	// Fin de la transaccion
-	u = usuarios.Usuario{
+	u = Usuario{
 		Id: id, Icono: 0, Aspecto: 0, Riskos: 1000,
 		Nombre: nombre, Correo: correo, Clave: clave,
 		RecibeCorreos: recibeCorreos,
@@ -100,19 +99,19 @@ func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 	return u, nil
 }
 
-func (dao *UsuarioDAO) IniciarSesionNombre(nombre, clave string) (usuarios.Usuario, error) {
+func (dao *UsuarioDAO) IniciarSesionNombre(nombre, clave string) (Usuario, error) {
 
 	var id, icono, aspecto, riskos int
 	var correo string
 	var recibeCorreos bool
-	var u usuarios.Usuario
+	var u Usuario
 
 	err := dao.bd.QueryRow(consultaUsuarioNombre, nombre, clave).Scan(&id,
 		&icono, &aspecto, &riskos, &correo, &recibeCorreos)
 	if err != nil {
 		return u, err
 	}
-	u = usuarios.Usuario{
+	u = Usuario{
 		Id: id, Icono: icono, Aspecto: aspecto, Riskos: riskos,
 		Nombre: nombre, Correo: correo, Clave: clave,
 		RecibeCorreos: recibeCorreos,
@@ -120,19 +119,19 @@ func (dao *UsuarioDAO) IniciarSesionNombre(nombre, clave string) (usuarios.Usuar
 	return u, nil
 }
 
-func (dao *UsuarioDAO) IniciarSesionCorreo(correo, clave string) (usuarios.Usuario, error) {
+func (dao *UsuarioDAO) IniciarSesionCorreo(correo, clave string) (Usuario, error) {
 
 	var id, icono, aspecto, riskos int
 	var nombre string
 	var recibeCorreos bool
-	var u usuarios.Usuario
+	var u Usuario
 
 	err := dao.bd.QueryRow(consultaUsuarioCorreo, correo, clave).Scan(&id,
 		&icono, &aspecto, &riskos, &nombre, &recibeCorreos)
 	if err != nil {
 		return u, err
 	}
-	u = usuarios.Usuario{
+	u = Usuario{
 		Id: id, Icono: icono, Aspecto: aspecto, Riskos: riskos,
 		Nombre: nombre, Correo: correo, Clave: clave,
 		RecibeCorreos: recibeCorreos,
@@ -140,19 +139,19 @@ func (dao *UsuarioDAO) IniciarSesionCorreo(correo, clave string) (usuarios.Usuar
 	return u, nil
 }
 
-func (dao *UsuarioDAO) ObtenerUsuario(id int, clave string) (usuarios.Usuario, error) {
+func (dao *UsuarioDAO) ObtenerUsuario(id int, clave string) (Usuario, error) {
 
 	var icono, aspecto, riskos int
 	var nombre, correo string
 	var recibeCorreos bool
-	var u usuarios.Usuario
+	var u Usuario
 
 	err := dao.bd.QueryRow(consultaUsuario, id, clave).Scan(&icono,
 		&aspecto, &riskos, &correo, &nombre, &recibeCorreos)
 	if err != nil {
 		return u, err
 	}
-	u = usuarios.Usuario{
+	u = Usuario{
 		Id: id, Icono: icono, Aspecto: aspecto, Riskos: riskos,
 		Nombre: nombre, Correo: correo, Clave: clave,
 		RecibeCorreos: recibeCorreos,
@@ -160,18 +159,18 @@ func (dao *UsuarioDAO) ObtenerUsuario(id int, clave string) (usuarios.Usuario, e
 	return u, nil
 }
 
-func (dao *UsuarioDAO) obtenerUsuarioId(id int) (usuarios.Usuario, error) {
+func (dao *UsuarioDAO) ObtenerUsuarioId(id int) (Usuario, error) {
 	var icono, aspecto, riskos int
 	var nombre, correo, clave string
 	var recibeCorreos bool
-	var u usuarios.Usuario
+	var u Usuario
 
 	err := dao.bd.QueryRow(consultaUsuarioId, id).Scan(&icono,
 		&aspecto, &riskos, &correo, &nombre, &clave, &recibeCorreos)
 	if err != nil {
 		return u, err
 	}
-	u = usuarios.Usuario{
+	u = Usuario{
 		Id: id, Icono: icono, Aspecto: aspecto, Riskos: riskos,
 		Nombre: nombre, Correo: correo, Clave: clave,
 		RecibeCorreos: recibeCorreos,
@@ -179,7 +178,7 @@ func (dao *UsuarioDAO) obtenerUsuarioId(id int) (usuarios.Usuario, error) {
 	return u, nil
 }
 
-func (dao *UsuarioDAO) ActualizarUsuario(u usuarios.Usuario) mensajes.JsonData {
+func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
 	var id int
 	err := dao.bd.QueryRow(comprobarIconoComprado, u.Id, u.Icono).Scan(&id)
 	if err != nil {
@@ -201,7 +200,7 @@ func (dao *UsuarioDAO) ActualizarUsuario(u usuarios.Usuario) mensajes.JsonData {
 	return mensajes.ErrorJson("", 0)
 }
 
-func (dao *UsuarioDAO) IncrementarRiskos(u *usuarios.Usuario, r int) error {
+func (dao *UsuarioDAO) IncrementarRiskos(u *Usuario, r int) error {
 	_, err := dao.bd.Exec(incrementarRiskos, r, u.Id)
 	if err != nil {
 		return err
@@ -210,7 +209,7 @@ func (dao *UsuarioDAO) IncrementarRiskos(u *usuarios.Usuario, r int) error {
 	return nil
 }
 
-func (dao *UsuarioDAO) ObtenerNotificaciones(u usuarios.Usuario) mensajes.JsonData {
+func (dao *UsuarioDAO) ObtenerNotificaciones(u Usuario) mensajes.JsonData {
 	var notificaciones []mensajes.JsonData
 	n, err := dao.leerNotificaciones(u.Id, consultaSolicitudes, "Peticion de amistad")
 	notificaciones = append(notificaciones, n...)
