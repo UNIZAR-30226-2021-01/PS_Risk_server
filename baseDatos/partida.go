@@ -12,11 +12,17 @@ import (
 const numTerritorios = 42
 const MaxMensajes = 100
 
+/*
+	Territorio almacena los datos de un territorio
+*/
 type Territorio struct {
 	IdJugador int `mapstructure:"idJugador" json:"idJugador"`
 	NumTropas int `mapstructure:"numTropas" json:"numTropas"`
 }
 
+/*
+	Jugador almacena datos reducidos de un usuario
+*/
 type Jugador struct {
 	Id        int    `mapstructure:"id" json:"id"`
 	Nombre    string `mapstructure:"nombre" json:"nombre"`
@@ -25,7 +31,10 @@ type Jugador struct {
 	SigueVivo bool   `mapstructure:"sigueVivo" json:"sigueVivo"`
 }
 
-func crearJugador(u Usuario) Jugador {
+/*
+	CrearJugador crea un jugador mediante los datos de un usuario
+*/
+func CrearJugador(u Usuario) Jugador {
 	return Jugador{
 		Id:        u.Id,
 		Nombre:    u.Nombre,
@@ -35,6 +44,15 @@ func crearJugador(u Usuario) Jugador {
 	}
 }
 
+/*
+	Partida almacena los datos relativos a una partida. Una partida sin iniciar es una
+	sala de espera.
+
+	Las etiquetas `mapstructure` son para codificar los datos que se envian a traves de
+	los websockets.
+
+	Las etiquetas `json` son para codificar los datos que se guardan en la base de datos.
+*/
 type Partida struct {
 	IdPartida   int                                  `mapstructure:"idPartida" json:"idPartida"`
 	IdCreador   int                                  `mapstructure:"-" json:"idCreador"`
@@ -49,7 +67,11 @@ type Partida struct {
 	Mensajes    chan mensajesInternos.MensajePartida `mapstructure:"-" json:"-"`
 }
 
+/*
+	Inicia la partida, devuelve error en caso de no poder hacerlo.
+*/
 func (p *Partida) IniciarPartida(idUsuario int) error {
+	//Comprobar si se puede iniciar
 	if p.Empezada {
 		return errors.New("la partida ya está empezada")
 	}
@@ -59,16 +81,7 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 	if len(p.Jugadores) < 3 {
 		return errors.New("número de jugadores insuficiente")
 	}
-	// Decidir orden de jugadores
-	orden := rand.Perm(len(p.Jugadores))
-	aux := make([]Jugador, len(p.Jugadores))
-	copiados := copy(aux, p.Jugadores)
-	if copiados != len(p.Jugadores) {
-		return errors.New("error al copiar los jugadores a un vector auxiliar")
-	}
-	for i := 0; i < len(p.Jugadores); i++ {
-		p.Jugadores[orden[i]] = aux[i]
-	}
+
 	// Decidir asignación de territorios
 	p.Territorios = make([]Territorio, 0, numTerritorios)
 	t := Territorio{
@@ -87,17 +100,26 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 			i++
 		}
 	}
+
+	// FALTAN PARAMETROS DE LA PARTIDA POR ASIGNAR
 	p.Empezada = true
-	// Faltan parametros de la partida empezada por asignar
 	return nil
 }
 
+/*
+	Anula el inicio de una partida
+*/
 func (p *Partida) AnularInicio() {
 	p.Empezada = false
 	p.Territorios = []Territorio{}
 }
 
+/*
+	EntrarPartida añade un usuario a la partida, devuelve error en caso de no poder
+	hacerlo.
+*/
 func (p *Partida) EntrarPartida(u Usuario, ws *websocket.Conn) error {
+	// Comprobar si se puede añadir
 	if len(p.Jugadores) >= 6 {
 		return errors.New("ya se ha alcanzado el número máximo de jugadores permitido")
 	}
@@ -107,11 +129,14 @@ func (p *Partida) EntrarPartida(u Usuario, ws *websocket.Conn) error {
 	if p.EstaEnPartida(u.Id) {
 		return errors.New("no puedes unirte a una partida en la que ya estás")
 	}
-	p.Jugadores = append(p.Jugadores, crearJugador(u))
+
+	// Añadir el jugador
+	p.Jugadores = append(p.Jugadores, CrearJugador(u))
 	p.Conexiones.Store(u.Id, ws)
 	return nil
 }
 
+// REQUIERE REVISION
 func (p *Partida) ExpulsarDePartida(idJugador int) error {
 	if !p.EstaEnPartida(idJugador) {
 		return errors.New("el jugador no está en la partida, no se puede retirar")
@@ -132,6 +157,20 @@ func (p *Partida) ExpulsarDePartida(idJugador int) error {
 	}
 	return nil
 }
+
+/*
+	EstaEnPartida devuelve si un jugador se encuentra en la partida o no
+*/
+func (p *Partida) EstaEnPartida(idUsuario int) bool {
+	for _, jugador := range p.Jugadores {
+		if jugador.Id == idUsuario {
+			return true
+		}
+	}
+	return false
+}
+
+// FUNCIONES AUXILIARES PARA EL MANEJO DE ARRAYS
 
 func contenido(lista []int, valor int) bool {
 	i := indice(lista, valor)
@@ -160,13 +199,4 @@ func borrar(lista []Jugador, valor int) []Jugador {
 	} else {
 		return append(lista[:i], lista[i+1:]...)
 	}
-}
-
-func (p *Partida) EstaEnPartida(idUsuario int) bool {
-	for _, jugador := range p.Jugadores {
-		if jugador.Id == idUsuario {
-			return true
-		}
-	}
-	return false
 }
