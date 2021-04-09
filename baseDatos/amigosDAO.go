@@ -6,16 +6,19 @@ import (
 	"database/sql"
 )
 
+/*
+	AmigosDAO permite modificar las tablas de amigos y solicitudes de amistad en
+	la base de datos
+*/
 type AmigosDAO struct {
 	bd *sql.DB
 }
 
+/*
+	NuevoAmigosDAO crea un DAO para gestionar relaciones de amistad entre usuarios.
+*/
 func NuevoAmigosDAO(bd *sql.DB) AmigosDAO {
 	return AmigosDAO{bd: bd}
-}
-
-func (dao *AmigosDAO) Cerrar() {
-	dao.bd.Close()
 }
 
 const (
@@ -31,8 +34,10 @@ const (
 	obtenerIdUsuario = "SELECT id_usuario FROM usuario WHERE nombre = $1"
 )
 
-// ObtenerAmigos devuelve la lista de amigos en formato json del usuario indicado.
-// Si ocurre algún error devuelve el error en formato json
+/*
+	ObtenerAmigos devuelve la lista de amigos en formato json del usuario indicado.
+	Si ocurre algún error devuelve el error en formato json.
+*/
 func (dao *AmigosDAO) ObtenerAmigos(u Usuario) mensajes.JsonData {
 	filas, err := dao.bd.Query(consultaAmigos, u.Id)
 	if err != nil {
@@ -50,9 +55,11 @@ func (dao *AmigosDAO) ObtenerAmigos(u Usuario) mensajes.JsonData {
 	return mensajes.JsonData{"amigos": amigos}
 }
 
-// EliminarAmigo borra de la base de datos la relación de amistad entre los
-// usuarios indicados.
-// Devuelve en formato json el error ocurrido o la ausencia de errores
+/*
+	EliminarAmigo borra de la base de datos la relación de amistad entre los
+	usuarios indicados.
+	Devuelve en formato json el error ocurrido o la ausencia de errores.
+*/
 func (dao *AmigosDAO) EliminarAmigo(u Usuario, id int) mensajes.JsonData {
 	// El primer usuario en la tabla es siempre el de menor id
 	id1 := min(u.Id, id)
@@ -70,17 +77,18 @@ func (dao *AmigosDAO) EliminarAmigo(u Usuario, id int) mensajes.JsonData {
 	return mensajes.ErrorJson("", NoError)
 }
 
-// AceptarSolicitudAmistad añade en la base de datos una relación de amistad entre
-// los usuarios indicados y elimina la solicitud de amistad.
-// Si el usuario que acepta también le había enviado una solicitud de amistad
-// al otro usuario, esta segunda solicitud también se elimina.
-// Devuelve en formato json el error ocurrido o la ausencia de errores
+/*
+	AceptarSolicitudAmistad añade en la base de datos una relación de amistad entre
+	los usuarios indicados y elimina la solicitud de amistad.
+	Si el usuario que acepta también le había enviado una solicitud de amistad
+	al otro usuario, esta segunda solicitud también se elimina.
+	Devuelve en formato json el error ocurrido o la ausencia de errores.
+*/
 func (dao *AmigosDAO) AceptarSolicitudAmistad(u Usuario, id int) mensajes.JsonData {
 	id1 := min(u.Id, id)
 	id2 := max(u.Id, id)
 
-	// Iniciar una transaccion, solo se modifican las tablas si se modifican
-	// todas
+	// Iniciar una transacción, solo se modifican las tablas si se modifican todas
 	ctx := context.Background()
 	tx, err := dao.bd.BeginTx(ctx, nil)
 	if err != nil {
@@ -115,13 +123,15 @@ func (dao *AmigosDAO) AceptarSolicitudAmistad(u Usuario, id int) mensajes.JsonDa
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorAceptarAmigo)
 	}
-	// Fin de la transaccion
+	// Fin de la transacción
 	return mensajes.ErrorJson("", NoError)
 }
 
-// RechazarSolicitudAmistad elimina la notificación de solicitud de amistad entre
-// los usuarios indicados sin añadirlos como amigos en la base de datos.
-// Devuelve en formato json el error ocurrido o la ausencia de errores
+/*
+	RechazarSolicitudAmistad elimina la notificación de solicitud de amistad entre
+	los usuarios indicados sin añadirlos como amigos en la base de datos.
+	Devuelve en formato json el error ocurrido o la ausencia de errores.
+*/
 func (dao *AmigosDAO) RechazarSolicitudAmistad(u Usuario, id int) mensajes.JsonData {
 	resultadoConsulta, err := dao.bd.Exec(eliminarSolicitudAmistad, id, u.Id)
 	if err != nil {
@@ -136,9 +146,11 @@ func (dao *AmigosDAO) RechazarSolicitudAmistad(u Usuario, id int) mensajes.JsonD
 	return mensajes.ErrorJson("", NoError)
 }
 
-// EnviarSolicitudAmistad guarda en la base de datos una solicitud de amistad
-// enviada por u al usuario de nombre amigo.
-// Devuelve en formato json el error ocurrido o la ausencia de errores
+/*
+	EnviarSolicitudAmistad guarda en la base de datos una solicitud de amistad
+	enviada por u al usuario de nombre amigo.
+	Devuelve en formato json el error ocurrido o la ausencia de errores.
+*/
 func (dao *AmigosDAO) EnviarSolicitudAmistad(u Usuario, amigo string) mensajes.JsonData {
 	var idAmigo int
 	err := dao.bd.QueryRow(obtenerIdUsuario, amigo).Scan(&idAmigo)

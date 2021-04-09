@@ -15,7 +15,6 @@ func TestEnviarSolicitudAmistad(t *testing.T) {
 			"datos.\nError:%q", err)
 	}
 	daoAmigos := baseDatos.NuevoAmigosDAO(bd)
-	defer daoAmigos.Cerrar()
 	daoUsuario := baseDatos.NuevoUsuarioDAO(bd)
 	u1, err := daoUsuario.CrearCuenta(nombreAmigo1, correoAmigo1, claveTest,
 		recibeCorreosTest)
@@ -61,7 +60,6 @@ func TestAceptarSolicitudAmistad(t *testing.T) {
 			"datos.\nError:%q", err)
 	}
 	daoAmigos := baseDatos.NuevoAmigosDAO(bd)
-	defer daoAmigos.Cerrar()
 	daoUsuario := baseDatos.NuevoUsuarioDAO(bd)
 	u1, err := daoUsuario.IniciarSesionNombre(nombreAmigo1, claveTest)
 	if err != nil {
@@ -123,7 +121,6 @@ func TestEliminarAmigo(t *testing.T) {
 			"datos.\nError:%q", err)
 	}
 	daoAmigos := baseDatos.NuevoAmigosDAO(bd)
-	defer daoAmigos.Cerrar()
 	daoUsuario := baseDatos.NuevoUsuarioDAO(bd)
 	u1, err := daoUsuario.IniciarSesionNombre(nombreAmigo1, claveTest)
 	if err != nil {
@@ -148,7 +145,6 @@ func TestRechazarSolicitudAmistad(t *testing.T) {
 			"datos.\nError:%q", err)
 	}
 	daoAmigos := baseDatos.NuevoAmigosDAO(bd)
-	defer daoAmigos.Cerrar()
 	daoUsuario := baseDatos.NuevoUsuarioDAO(bd)
 	u1, err := daoUsuario.IniciarSesionNombre(nombreAmigo1, claveTest)
 	if err != nil {

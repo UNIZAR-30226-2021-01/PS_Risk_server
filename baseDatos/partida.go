@@ -32,7 +32,7 @@ type Jugador struct {
 }
 
 /*
-	CrearJugador crea un jugador mediante los datos de un usuario
+	CrearJugador crea un jugador mediante los datos de un usuario.
 */
 func CrearJugador(u Usuario) Jugador {
 	return Jugador{
@@ -48,7 +48,7 @@ func CrearJugador(u Usuario) Jugador {
 	Partida almacena los datos relativos a una partida. Una partida sin iniciar es una
 	sala de espera.
 
-	Las etiquetas `mapstructure` son para codificar los datos que se envian a traves de
+	Las etiquetas `mapstructure` son para codificar los datos que se envian a través de
 	los websockets.
 
 	Las etiquetas `json` son para codificar los datos que se guardan en la base de datos.
@@ -101,13 +101,14 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 		}
 	}
 
-	// FALTAN PARAMETROS DE LA PARTIDA POR ASIGNAR
+	p.TurnoActual = 1
+	p.Fase = 1
 	p.Empezada = true
 	return nil
 }
 
 /*
-	Anula el inicio de una partida
+	AnularInicio anula el inicio de una partida.
 */
 func (p *Partida) AnularInicio() {
 	p.Empezada = false
@@ -115,8 +116,8 @@ func (p *Partida) AnularInicio() {
 }
 
 /*
-	EntrarPartida añade un usuario a la partida, devuelve error en caso de no poder
-	hacerlo.
+	EntrarPartida añade un usuario a la partida.
+	Devuelve error en caso de no poder hacerlo.
 */
 func (p *Partida) EntrarPartida(u Usuario, ws *websocket.Conn) error {
 	// Comprobar si se puede añadir
@@ -124,7 +125,7 @@ func (p *Partida) EntrarPartida(u Usuario, ws *websocket.Conn) error {
 		return errors.New("ya se ha alcanzado el número máximo de jugadores permitido")
 	}
 	if p.Empezada {
-		return errors.New("no se puede unir a una partida que ya ha empezado")
+		return errors.New("no puedes unirte a una partida que ya ha empezado")
 	}
 	if p.EstaEnPartida(u.Id) {
 		return errors.New("no puedes unirte a una partida en la que ya estás")
@@ -159,7 +160,7 @@ func (p *Partida) ExpulsarDePartida(idJugador int) error {
 }
 
 /*
-	EstaEnPartida devuelve si un jugador se encuentra en la partida o no
+	EstaEnPartida devuelve si un jugador se encuentra en la partida o no.
 */
 func (p *Partida) EstaEnPartida(idUsuario int) bool {
 	for _, jugador := range p.Jugadores {

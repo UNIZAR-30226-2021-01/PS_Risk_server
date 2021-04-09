@@ -29,20 +29,23 @@ const (
 		"WHERE id_partida = $1"
 )
 
+/*
+	PartidaDAO permite modificar la tabla de partidas y sus relacionadas en la base de datos
+*/
 type PartidaDAO struct {
 	bd *sql.DB
 }
 
 /*
-	Crea un DAO para partidas
+	NuevaPartidaDAO crea un DAO para partidas.
 */
 func NuevaPartidaDAO(bd *sql.DB) PartidaDAO {
 	return PartidaDAO{bd: bd}
 }
 
 /*
-	CrearPartida crea una partida y la guarda en la base de datos. Devuelve error en caso
-	de que no se haya podido crear.
+	CrearPartida crea una partida y la guarda en la base de datos.
+	Devuelve error en caso de que no se haya podido crear.
 */
 func (dao *PartidaDAO) CrearPartida(creador Usuario, tiempoTurno int, nombreSala string,
 	wsCreador *websocket.Conn) (*Partida, error) {
@@ -89,7 +92,7 @@ func (dao *PartidaDAO) IniciarPartida(p *Partida, idCreador int) mensajes.JsonDa
 		return mensajes.ErrorJsonPartida(err.Error(), ErrorIniciarPartida)
 	}
 
-	// Inicia una transaccion en la base de datos
+	// Inicia una transacción en la base de datos
 	ctx := context.Background()
 	tx, err := dao.bd.BeginTx(ctx, nil)
 	if err != nil {
@@ -111,7 +114,7 @@ func (dao *PartidaDAO) IniciarPartida(p *Partida, idCreador int) mensajes.JsonDa
 		p.AnularInicio()
 		return mensajes.ErrorJsonPartida(err.Error(), ErrorIniciarPartida)
 	}
-	// Guardar en la base de datos que jugadores juegan en la partida
+	// Guardar en la base de datos qué jugadores juegan en la partida
 	for _, j := range p.Jugadores {
 		_, err = tx.ExecContext(ctx, guardarJugadores, p.IdPartida, j)
 		if err != nil {
@@ -133,7 +136,7 @@ func (dao *PartidaDAO) IniciarPartida(p *Partida, idCreador int) mensajes.JsonDa
 }
 
 /*
-	InvitarPartida guarda en la base de datos que un juador ha sido invitado a una
+	InvitarPartida guarda en la base de datos que un jugador ha sido invitado a una
 	partida. Devuelve error en caso de que no se pueda completar la invitación.
 */
 func (dao *PartidaDAO) InvitarPartida(p *Partida, idCreador int, idInvitado int) error {
@@ -158,14 +161,14 @@ func (dao *PartidaDAO) InvitarPartida(p *Partida, idCreador int, idInvitado int)
 		return err
 	}
 
-	// Guardar en la base de datos la invitacion
+	// Guardar en la base de datos la invitación
 	_, err = dao.bd.Exec(crearInvitacion, idInvitado, p.IdPartida)
 	return err
 }
 
 /*
-	EntrarPartida comprueba en la base de datos si un usuario esta invitado a una partida y en
-	caso de que lo este lo añade a la partida. Devuelve el estado de la partida o un error, en
+	EntrarPartida comprueba en la base de datos si un usuario está invitado a una partida y en
+	caso de que lo esté lo añade a la partida. Devuelve el estado de la partida o un error, en
 	caso de que no se haya podido añadir, en formato json.
 */
 func (dao *PartidaDAO) EntrarPartida(p *Partida, u Usuario, ws *websocket.Conn) mensajes.JsonData {
@@ -174,7 +177,7 @@ func (dao *PartidaDAO) EntrarPartida(p *Partida, u Usuario, ws *websocket.Conn) 
 		res             mensajes.JsonData
 	)
 
-	// Comprobar si el usuario esta invitado
+	// Comprobar si el usuario está invitado
 	err := dao.bd.QueryRow(consultaInvitacion, u.Id, p.IdPartida).Scan(&numInvitaciones)
 	if err != nil {
 		return mensajes.ErrorJsonPartida(err.Error(), ErrorUnirsePartida)
@@ -197,14 +200,14 @@ func (dao *PartidaDAO) EntrarPartida(p *Partida, u Usuario, ws *websocket.Conn) 
 }
 
 /*
-	Elimina a un jugador de la partida, este no puede ser el creador de la misma.
+	AbandonarPartida elimina a un jugador de la partida, este no puede ser el creador de la misma.
 	Devuelve el estado de la partida o un error, en caso de que no se haya podido borrar,
 	en formato json.
 */
 func (dao *PartidaDAO) AbandonarPartida(p *Partida, IdUsuario int) mensajes.JsonData {
 	var res mensajes.JsonData
 
-	// Esta funcion no se puede utilizar para borrar al creador
+	// Esta función no se puede utilizar para borrar al creador
 	if p.IdCreador == IdUsuario {
 		return mensajes.ErrorJsonPartida("Mal uso de la funcion", ErrorUnirsePartida)
 	}
@@ -219,8 +222,8 @@ func (dao *PartidaDAO) AbandonarPartida(p *Partida, IdUsuario int) mensajes.Json
 }
 
 /*
-	BorrarPartida borra una partida de la base de datos. Devuelve un error si no se ha
-	podido borrar.
+	BorrarPartida borra una partida de la base de datos.
+	Devuelve un error si no se ha podido borrar.
 */
 func (dao *PartidaDAO) BorrarPartida(p *Partida) error {
 	_, err := dao.bd.Exec(borrarPartida, p.IdPartida)
