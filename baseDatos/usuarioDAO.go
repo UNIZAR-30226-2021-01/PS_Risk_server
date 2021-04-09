@@ -50,18 +50,32 @@ const (
 		"WHERE id_usuario = $1 AND id_aspecto = $2"
 )
 
+/*
+	UsuarioDAO permite modificar y leer las tablas de usuario y relacionadas
+*/
 type UsuarioDAO struct {
 	bd *sql.DB
 }
 
+/*
+	NuevoUsuarioDAO crea un UsuarioDAO
+*/
 func NuevoUsuarioDAO(bd *sql.DB) UsuarioDAO {
 	return UsuarioDAO{bd: bd}
 }
 
+/*
+	CrearCuenta crea una cuenta de usuario en la base de datos, devuelve error en caso de
+	no poder crearla.
+*/
 func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 	recibeCorreos bool) (Usuario, error) {
 
-	var u Usuario
+	var (
+		u  Usuario
+		id int
+	)
+
 	// Iniciar una transaccion, solo se modifican las tablas si se modifican
 	// todas
 	ctx := context.Background()
@@ -69,28 +83,33 @@ func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 	if err != nil {
 		return u, err
 	}
-	id := 0
+
+	// Crear el usuario en la base de datos
 	err = tx.QueryRowContext(ctx, crearUsuario, nombre, correo, clave,
 		recibeCorreos).Scan(&id)
 	if err != nil {
 		tx.Rollback()
 		return u, err
 	}
+	// Guardar en la base de datos los iconos por defecto como comprados
 	_, err = tx.ExecContext(ctx, darIconosPorDefecto, id)
 	if err != nil {
 		tx.Rollback()
 		return u, err
 	}
+	// Guardar en la base de datos los aspectos por defecto como comptrados
 	_, err = tx.ExecContext(ctx, darAspectosPorDefecto, id)
 	if err != nil {
 		tx.Rollback()
 		return u, err
 	}
+
+	// Fin de la transaccion
 	err = tx.Commit()
 	if err != nil {
 		return u, err
 	}
-	// Fin de la transaccion
+
 	u = Usuario{
 		Id: id, Icono: 0, Aspecto: 0, Riskos: 1000,
 		Nombre: nombre, Correo: correo, Clave: clave,
@@ -99,6 +118,10 @@ func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 	return u, nil
 }
 
+/*
+	IniciarSesionNombre devuelve los datos de un usuario que use el nombre y clave
+	pasados como parametros. Si no existe devuelve error.
+*/
 func (dao *UsuarioDAO) IniciarSesionNombre(nombre, clave string) (Usuario, error) {
 
 	var id, icono, aspecto, riskos int
@@ -106,6 +129,7 @@ func (dao *UsuarioDAO) IniciarSesionNombre(nombre, clave string) (Usuario, error
 	var recibeCorreos bool
 	var u Usuario
 
+	// Obtener los datos de usuario de la base de datos
 	err := dao.bd.QueryRow(consultaUsuarioNombre, nombre, clave).Scan(&id,
 		&icono, &aspecto, &riskos, &correo, &recibeCorreos)
 	if err != nil {
@@ -119,6 +143,10 @@ func (dao *UsuarioDAO) IniciarSesionNombre(nombre, clave string) (Usuario, error
 	return u, nil
 }
 
+/*
+	IniciarSesionNombre devuelve los datos de un usuario que use el correo y clave
+	pasados como parametros. Si no existe devuelve error.
+*/
 func (dao *UsuarioDAO) IniciarSesionCorreo(correo, clave string) (Usuario, error) {
 
 	var id, icono, aspecto, riskos int
@@ -126,6 +154,7 @@ func (dao *UsuarioDAO) IniciarSesionCorreo(correo, clave string) (Usuario, error
 	var recibeCorreos bool
 	var u Usuario
 
+	// Obtener los datos de usuario de la base de datos
 	err := dao.bd.QueryRow(consultaUsuarioCorreo, correo, clave).Scan(&id,
 		&icono, &aspecto, &riskos, &nombre, &recibeCorreos)
 	if err != nil {
@@ -139,6 +168,10 @@ func (dao *UsuarioDAO) IniciarSesionCorreo(correo, clave string) (Usuario, error
 	return u, nil
 }
 
+/*
+	ObtenerUsuario devuelve los datos de un usuario que tenga el id y la clave
+	pasados como parametros en la base de datos. Si no existe devuelve error.
+*/
 func (dao *UsuarioDAO) ObtenerUsuario(id int, clave string) (Usuario, error) {
 
 	var icono, aspecto, riskos int
@@ -146,6 +179,7 @@ func (dao *UsuarioDAO) ObtenerUsuario(id int, clave string) (Usuario, error) {
 	var recibeCorreos bool
 	var u Usuario
 
+	// Obtener los datos de usuario de la base de datos
 	err := dao.bd.QueryRow(consultaUsuario, id, clave).Scan(&icono,
 		&aspecto, &riskos, &correo, &nombre, &recibeCorreos)
 	if err != nil {
@@ -159,6 +193,10 @@ func (dao *UsuarioDAO) ObtenerUsuario(id int, clave string) (Usuario, error) {
 	return u, nil
 }
 
+/*
+	ObtenerUsuarioId devuelve los datos de un usuario de la base de datos.
+	Si no existe devuelve error.
+*/
 func (dao *UsuarioDAO) ObtenerUsuarioId(id int) (Usuario, error) {
 	var icono, aspecto, riskos int
 	var nombre, correo, clave string
@@ -178,16 +216,26 @@ func (dao *UsuarioDAO) ObtenerUsuarioId(id int) (Usuario, error) {
 	return u, nil
 }
 
+/*
+	ActualizarUsuario modifica en la base de datos un usuario.
+	Devuelve error no vacío en formato json en caso de no poder hacerlo.
+*/
 func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
 	var id int
+
+	// Comprobar que el icono lo tenga comprado
 	err := dao.bd.QueryRow(comprobarIconoComprado, u.Id, u.Icono).Scan(&id)
 	if err != nil {
 		return mensajes.ErrorJson("Icono no comprado", ErrorModificarUsuario)
 	}
+
+	// Comprobar que el aspecto lo tenga comprado
 	err = dao.bd.QueryRow(comprobarAspectoComprado, u.Id, u.Aspecto).Scan(&id)
 	if err != nil {
 		return mensajes.ErrorJson("Aspecto no comprado", ErrorModificarUsuario)
 	}
+
+	// Actualizar el usuario en la base de datos
 	res, err := dao.bd.Exec(actualizarUsuario, u.Aspecto, u.Icono, u.Nombre,
 		u.Correo, u.Clave, u.RecibeCorreos, u.Id)
 	if err != nil {
@@ -200,6 +248,9 @@ func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
 	return mensajes.ErrorJson("", 0)
 }
 
+/*
+	IncrementarRiskos de un usuario en r. Devuelve error en caso de no poder hacerlo.
+*/
 func (dao *UsuarioDAO) IncrementarRiskos(u *Usuario, r int) error {
 	_, err := dao.bd.Exec(incrementarRiskos, r, u.Id)
 	if err != nil {
@@ -209,34 +260,52 @@ func (dao *UsuarioDAO) IncrementarRiskos(u *Usuario, r int) error {
 	return nil
 }
 
+/*
+	ObtenerNotificaciones devuelve las notificaciones en formato json de un usuario.
+	Si no puede obtener las notificaciones devuelve error en formato json.
+*/
 func (dao *UsuarioDAO) ObtenerNotificaciones(u Usuario) mensajes.JsonData {
 	var notificaciones []mensajes.JsonData
+
+	// Obtener las solicitudes de amistad
 	n, err := dao.leerNotificaciones(u.Id, consultaSolicitudes, "Peticion de amistad")
 	notificaciones = append(notificaciones, n...)
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorNotificaciones)
 	}
+
+	// Obtener las invitaciones a partidas
 	n, err = dao.leerNotificaciones(u.Id, consultaInvitaciones, "Invitacion")
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorNotificaciones)
 	}
 	notificaciones = append(notificaciones, n...)
+
+	// Obtener las notificaciones de turnos
 	n, err = dao.leerNotificaciones(u.Id, consultaTurnos, "Notificacion de turno")
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorNotificaciones)
 	}
 	notificaciones = append(notificaciones, n...)
+
+	// Devolver resultado
 	return mensajes.JsonData{"notificaciones": notificaciones}
 }
 
+/*
+	leerNotificaciones devuelve un array de un tipo de notificaciones de la base de datos
+	en formato json. Devuelve un error en caso de no poder obtenerlas.
+*/
 func (dao *UsuarioDAO) leerNotificaciones(id int, consulta,
 	tipo string) ([]mensajes.JsonData, error) {
 
+	var notificaciones []mensajes.JsonData
+
+	// Obtener las notificaciones
 	filas, err := dao.bd.Query(consulta, id)
 	if err != nil {
 		return nil, err
 	}
-	var notificaciones []mensajes.JsonData
 	for filas.Next() {
 		var idEnvia int
 		var nombre string

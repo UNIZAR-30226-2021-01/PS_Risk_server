@@ -6,12 +6,20 @@ import (
 	"strconv"
 )
 
+/*
+	Usuario contiene los datos de una cuenta de un usuario.
+*/
 type Usuario struct {
 	Id, Icono, Aspecto, Riskos int
 	Nombre, Correo, Clave      string
 	RecibeCorreos              bool
 }
 
+/*
+	ToJSON devuelve el usuario en formato JSON.
+
+	CAMBIAR PARA USAR EL MAP ENCODER
+*/
 func (u *Usuario) ToJSON() mensajes.JsonData {
 	return mensajes.JsonData{
 		"id":            u.Id,
@@ -24,6 +32,11 @@ func (u *Usuario) ToJSON() mensajes.JsonData {
 		"riskos":        u.Riskos,
 	}
 }
+
+/*
+	Modificar modifica el valor de un campo de la estructura de datos utilizando
+	el nombre del campo y el valor codificado como un string.
+*/
 func (u *Usuario) Modificar(c string, v string) error {
 	var err error
 	switch c {

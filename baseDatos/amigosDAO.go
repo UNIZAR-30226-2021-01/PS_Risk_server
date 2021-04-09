@@ -25,7 +25,9 @@ const (
 	consultaAmigos = "SELECT id_usuario AS id, nombre, icono, aspecto FROM usuario INNER JOIN " +
 		"(SELECT id_usuario2 AS idAmigo FROM esamigo WHERE id_usuario1 = $1 UNION " +
 		"SELECT id_usuario1 AS idAmigo FROM esamigo WHERE id_usuario2 = $1) AS amigos ON id_usuario = idAmigo"
-	eliminarAmistad          = "DELETE FROM esAmigo WHERE id_usuario1 = $1 AND id_usuario2 = $2"
+	eliminarAmistad      = "DELETE FROM esAmigo WHERE id_usuario1 = $1 AND id_usuario2 = $2"
+	eliminarInvitaciones = "DELETE FROM invitacionPartida i USING partida p " +
+		"WHERE i.id_envia = p.id_partida AND p.id_creador = $1 AND i.id_recibe = $2"
 	eliminarSolicitudAmistad = "DELETE FROM solicitudAmistad WHERE id_envia = $1 AND id_recibe = $2"
 	crearAmistad             = "INSERT INTO esAmigo (id_usuario1, id_usuario2) VALUES ($1, $2)"
 	solicitarAmistad         = "INSERT INTO solicitudAmistad (id_envia, id_recibe) VALUES ($1, $2)"
@@ -64,15 +66,45 @@ func (dao *AmigosDAO) EliminarAmigo(u Usuario, id int) mensajes.JsonData {
 	// El primer usuario en la tabla es siempre el de menor id
 	id1 := min(u.Id, id)
 	id2 := max(u.Id, id)
-	resultadoConsulta, err := dao.bd.Exec(eliminarAmistad, id1, id2)
+
+	// Iniciar transaccion
+	ctx := context.Background()
+	tx, err := dao.bd.BeginTx(ctx, nil)
 	if err != nil {
+		return mensajes.ErrorJson(err.Error(), ErrorIniciarTransaccion)
+	}
+
+	// Eliminar de la base de datos que son amigos
+	resultadoConsulta, err := tx.ExecContext(ctx, eliminarAmistad, id1, id2)
+	if err != nil {
+		tx.Rollback()
 		return mensajes.ErrorJson(err.Error(), ErrorEliminarAmigo)
 	}
+	// Si no eran amigos se devuelve un error pero no pasa nada
 	filasEliminadas, err := resultadoConsulta.RowsAffected()
 	if err != nil {
+		tx.Rollback()
 		return mensajes.ErrorJson(err.Error(), ErrorEliminarAmigo)
 	} else if filasEliminadas == 0 {
+		tx.Rollback()
 		return mensajes.ErrorJson("Los usuarios no eran amigos", ErrorEliminarAmigo)
+	}
+	// Eliminar todas las invitaciones que tuvieran mutuamente
+	_, err = tx.ExecContext(ctx, eliminarInvitaciones, id1, id2)
+	if err != nil {
+		tx.Rollback()
+		return mensajes.ErrorJson(err.Error(), ErrorEliminarAmigo)
+	}
+	_, err = tx.ExecContext(ctx, eliminarInvitaciones, id2, id1)
+	if err != nil {
+		tx.Rollback()
+		return mensajes.ErrorJson(err.Error(), ErrorEliminarAmigo)
+	}
+
+	// Finalizar la transaccion
+	err = tx.Commit()
+	if err != nil {
+		return mensajes.ErrorJson(err.Error(), ErrorAceptarAmigo)
 	}
 	return mensajes.ErrorJson("", NoError)
 }
@@ -94,11 +126,14 @@ func (dao *AmigosDAO) AceptarSolicitudAmistad(u Usuario, id int) mensajes.JsonDa
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorIniciarTransaccion)
 	}
+
+	// Eliminar la solicitud ya que se ha aceptado
 	resultadoConsulta, err := tx.ExecContext(ctx, eliminarSolicitudAmistad, id, u.Id)
 	if err != nil {
 		tx.Rollback()
 		return mensajes.ErrorJson(err.Error(), ErrorAceptarAmigo)
 	}
+	// Si no existia la solicitud no se pueden hacer amigos
 	filasEliminadas, err := resultadoConsulta.RowsAffected()
 	if err != nil {
 		tx.Rollback()
@@ -114,16 +149,18 @@ func (dao *AmigosDAO) AceptarSolicitudAmistad(u Usuario, id int) mensajes.JsonDa
 		tx.Rollback()
 		return mensajes.ErrorJson(err.Error(), ErrorAceptarAmigo)
 	}
+	// Guardar en la base de datos que son amigos
 	_, err = tx.ExecContext(ctx, crearAmistad, id1, id2)
 	if err != nil {
 		tx.Rollback()
 		return mensajes.ErrorJson(err.Error(), ErrorAceptarAmigo)
 	}
+
+	// Fin de la transacción
 	err = tx.Commit()
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorAceptarAmigo)
 	}
-	// Fin de la transacción
 	return mensajes.ErrorJson("", NoError)
 }
 
@@ -133,10 +170,12 @@ func (dao *AmigosDAO) AceptarSolicitudAmistad(u Usuario, id int) mensajes.JsonDa
 	Devuelve en formato json el error ocurrido o la ausencia de errores.
 */
 func (dao *AmigosDAO) RechazarSolicitudAmistad(u Usuario, id int) mensajes.JsonData {
+	// Eliminar de la base de datos la solicitud
 	resultadoConsulta, err := dao.bd.Exec(eliminarSolicitudAmistad, id, u.Id)
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorRechazarAmigo)
 	}
+	// Si no habia solicitud se devuelve un error pero no pasa nada
 	filasEliminadas, err := resultadoConsulta.RowsAffected()
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorRechazarAmigo)
@@ -153,12 +192,17 @@ func (dao *AmigosDAO) RechazarSolicitudAmistad(u Usuario, id int) mensajes.JsonD
 */
 func (dao *AmigosDAO) EnviarSolicitudAmistad(u Usuario, amigo string) mensajes.JsonData {
 	var idAmigo int
+
+	// Comprobar si el usuario al que se le quiere enviar la solicitud existe
 	err := dao.bd.QueryRow(obtenerIdUsuario, amigo).Scan(&idAmigo)
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorNombreUsuario)
 	}
+
 	id1 := min(u.Id, idAmigo)
 	id2 := max(u.Id, idAmigo)
+
+	// Comprobar si los usuario no son amigos ya
 	err = dao.bd.QueryRow(consultaAmistad, id1, id2).Scan(&id1)
 	if err == nil {
 		return mensajes.ErrorJson("Los usuarios ya son amigos", ErrorAmistadDuplicada)
@@ -166,6 +210,8 @@ func (dao *AmigosDAO) EnviarSolicitudAmistad(u Usuario, amigo string) mensajes.J
 	if err != sql.ErrNoRows {
 		return mensajes.ErrorJson(err.Error(), ErrorEnviarSolicitudAmistad)
 	}
+
+	// Guardar en la base de datos que se ha enviado la solicitud
 	_, err = dao.bd.Exec(solicitarAmistad, u.Id, idAmigo)
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), ErrorEnviarSolicitudAmistad)

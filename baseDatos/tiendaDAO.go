@@ -17,42 +17,34 @@ const (
 		"VALUES ($1, $2)"
 )
 
-type Tienda struct {
-	Iconos, Aspectos []mensajes.JsonData
-}
-
-func (t *Tienda) ObtenerPrecioIcono(id int) (int, bool) {
-	for _, icono := range t.Iconos {
-		if icono["id"].(int) == id {
-			return icono["precio"].(int), true
-		}
-	}
-	return 0, false
-}
-
-func (t *Tienda) ObtenerPrecioAspecto(id int) (int, bool) {
-	for _, aspecto := range t.Aspectos {
-		if aspecto["id"].(int) == id {
-			return aspecto["precio"].(int), true
-		}
-	}
-	return 0, false
-}
-
+/*
+	TiendaDAO permite modificar y leer las tablas de iconosComptrados, aspectosComprados,
+	usuario, iconos y aspectos.
+*/
 type TiendaDAO struct {
 	bd *sql.DB
 }
 
+/*
+	NuevaTiendaDAO crea un TiendaDAO
+*/
 func NuevaTiendaDAO(bd *sql.DB) (dao TiendaDAO) {
 	return TiendaDAO{bd: bd}
 }
 
+/*
+	ObtenerTienda devuelve los datos de la tienda de la base de datos.
+*/
 func (dao *TiendaDAO) ObtenerTienda() (Tienda, error) {
 	var t Tienda
+
+	// Leer los aspectos de la base de datos
 	aspectos, err := dao.leerCosmetico(consultaAspectos)
 	if err != nil {
 		return t, err
 	}
+
+	// Leer los iconos de la base de datos
 	iconos, err := dao.leerCosmetico(consultaIconos)
 	if err != nil {
 		return t, err
@@ -61,26 +53,48 @@ func (dao *TiendaDAO) ObtenerTienda() (Tienda, error) {
 	return t, nil
 }
 
+/*
+	ObtenerAspectos devuelve los aspectos comprados en formato json de un usuario.
+	Devuelve error en caso de no poder obtenerlos.
+*/
 func (dao *TiendaDAO) ObtenerAspectos(u Usuario) ([]mensajes.JsonData, error) {
 	return dao.leerCosmetico(consultaAspectosUsuario + strconv.Itoa(u.Id))
 }
 
+/*
+	ObtenerIconos devuelve los iconos comprados en formato json de un usuario.
+	Devuelve error en caso de no poder obtenerlos.
+*/
 func (dao *TiendaDAO) ObtenerIconos(u Usuario) ([]mensajes.JsonData, error) {
 	return dao.leerCosmetico(consultaIconosUsuario + strconv.Itoa(u.Id))
 }
 
+/*
+	ComprarIcono compra un icono para un usuario. Devuelve error en formato json si no se
+	ha podido completar la compra.
+*/
 func (dao *TiendaDAO) ComprarIcono(u *Usuario, id, precio int) mensajes.JsonData {
 	return dao.comprar(u, id, precio, comprarIcono)
 }
 
+/*
+	ComprarIcono compra un aspecto para un usuario. Devuelve error en formato json si no
+	se ha podido completar la compra.
+*/
 func (dao *TiendaDAO) ComprarAspecto(u *Usuario, id, precio int) mensajes.JsonData {
 	return dao.comprar(u, id, precio, comprarAspecto)
 }
 
+/*
+	comprar compra un cosmetico para un usuario. Devuelve error en formato json si no se
+	ha podido completar la compra.
+*/
 func (dao *TiendaDAO) comprar(u *Usuario, id, precio int, sql string) mensajes.JsonData {
+	// Comprobar si el usuario tiene dinero suficiente
 	if u.Riskos-precio < 0 {
 		return mensajes.ErrorJson("Riskos insuficientes", 1)
 	}
+
 	// Iniciar una transaccion, solo se modifican las tablas si se modifican
 	// todas
 	ctx := context.Background()
@@ -88,25 +102,36 @@ func (dao *TiendaDAO) comprar(u *Usuario, id, precio int, sql string) mensajes.J
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), 1)
 	}
+
+	// Registra el cosmetico en la base de datos
 	_, err = tx.ExecContext(ctx, sql, u.Id, id)
 	if err != nil {
 		tx.Rollback()
 		return mensajes.ErrorJson(err.Error(), 1)
 	}
+
+	// Reduce el dinero del usuario en la base de datos
 	_, err = tx.ExecContext(ctx, reducirRiskos, precio, u.Id)
 	if err != nil {
 		tx.Rollback()
 		return mensajes.ErrorJson(err.Error(), 1)
 	}
+
+	// Fin de la transaccion
 	err = tx.Commit()
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), 1)
 	}
-	// Fin de la transaccion
+
+	// Decrementar precio
 	u.Riskos -= precio
 	return mensajes.ErrorJson("", 0)
 }
 
+/*
+	leerCosmetico devuelve los elementos de una consulta que devuelva iconos u aspectos
+	en formato json. Si no se pueden leer devuelve error.
+*/
 func (dao *TiendaDAO) leerCosmetico(consulta string) ([]mensajes.JsonData, error) {
 	filas, err := dao.bd.Query(consulta)
 	if err != nil {

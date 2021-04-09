@@ -71,7 +71,7 @@ type Partida struct {
 	Inicia la partida, devuelve error en caso de no poder hacerlo.
 */
 func (p *Partida) IniciarPartida(idUsuario int) error {
-	//Comprobar si se puede iniciar
+	// Comprobar si se puede iniciar
 	if p.Empezada {
 		return errors.New("la partida ya está empezada")
 	}
