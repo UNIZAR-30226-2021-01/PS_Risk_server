@@ -5,7 +5,6 @@ import (
 	"PS_Risk_server/mensajes"
 	"crypto/sha256"
 	"encoding/json"
-	"log"
 )
 
 const (
@@ -31,48 +30,6 @@ func NewSHA256(data []byte) []byte {
 func coincideErrorNulo(respuestaObtenida mensajes.JsonData) (bool, mensajes.JsonData) {
 	esperado := mensajes.ErrorJson("", baseDatos.NoError)
 	return comprobarJson(respuestaObtenida, esperado), esperado
-}
-
-func comprobarDatosPartida(a, b mensajes.JsonData, importaOrdenJugadores bool) bool {
-	if importaOrdenJugadores {
-		return comprobarJson(a, b)
-	}
-	ja, ok := a["jugadores"]
-	if !ok {
-		log.Println("no hay jugadores en a")
-		return false
-	}
-	ta, ok := a["listaTerritorios"]
-	if !ok {
-		log.Println("no hay territorios en a")
-		return false
-	}
-	jb, ok := b["jugadores"]
-	if !ok {
-		log.Println("no hay jugadores en b")
-		return false
-	}
-	tb, ok := b["listaTerritorios"]
-	if !ok {
-		log.Println("no hay territorios en b")
-		return false
-	}
-	if len(ja.([]mensajes.JsonData)) != len(jb.([]mensajes.JsonData)) ||
-		len(ta.([]mensajes.JsonData)) != len(tb.([]mensajes.JsonData)) {
-		log.Println("la longitud de los vectores no coincide:")
-		log.Println("\tja:", len(ja.([]mensajes.JsonData)))
-		log.Println("\tjb:", len(jb.([]mensajes.JsonData)))
-		log.Println("\tta:", len(ta.([]mensajes.JsonData)))
-		log.Println("\ttb:", len(tb.([]mensajes.JsonData)))
-		return false
-	}
-	c := a
-	delete(c, "jugadores")
-	delete(c, "listaTerritorios")
-	d := b
-	delete(d, "jugadores")
-	delete(d, "listaTerritorios")
-	return comprobarJson(c, d)
 }
 
 func comprobarJson(a, b mensajes.JsonData) bool {
