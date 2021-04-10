@@ -171,7 +171,7 @@ func (dao *UsuarioDAO) IniciarSesionCorreo(correo, clave string) (Usuario, error
 
 /*
 	ObtenerUsuario devuelve los datos de un usuario que tenga el id y la clave
-	pasados como parametros en la base de datos. Si no existe devuelve error.
+	pasados como parámetros en la base de datos. Si no existe devuelve error.
 */
 func (dao *UsuarioDAO) ObtenerUsuario(id int, clave string) (Usuario, error) {
 
