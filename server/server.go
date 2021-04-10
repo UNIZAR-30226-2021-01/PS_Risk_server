@@ -16,7 +16,7 @@ import (
 )
 
 /*
-	Servidor almacena los DAO, la tienda, las partidas y las salas activas
+	Servidor almacena los DAO, la tienda, las partidas y las salas activas.
 */
 type Servidor struct {
 	Puerto      string
@@ -30,7 +30,7 @@ type Servidor struct {
 }
 
 /*
-	NuevoServidor crea un servidor, establece una conexion con la base de datos
+	NuevoServidor crea un servidor, establece una conexión con la base de datos
 	postgreSQL, crea los DAO que va a utilizar y carga la tienda de la base de
 	datos.
 */
@@ -56,8 +56,8 @@ func NuevoServidor(p, bbdd string) (*Servidor, error) {
 }
 
 /*
-	Iniciar hace que el servidor empiece a atender las diferentes peticiones de los
-	clientes.
+	Iniciar hace que el servidor empiece a atender las diferentes peticiones
+	de los clientes.
 */
 func (s *Servidor) Iniciar() error {
 	mux := http.NewServeMux()
@@ -79,8 +79,9 @@ func (s *Servidor) Iniciar() error {
 }
 
 /*
-	crearMensajeUsuario crea un mensaje en formato json con los datos de inicio de sesion
-	de un usuario. Crea un error en caso de no poder obtener los datos.
+	crearMensajeUsuario crea un mensaje en formato json con los datos de inicio
+	de sesión de un usuario.
+	Crea un error en caso de no poder obtener los datos.
 */
 func (s *Servidor) crearMensajeUsuario(u baseDatos.Usuario) mensajes.JsonData {
 	// Obtener iconos de usuario
@@ -105,7 +106,7 @@ func (s *Servidor) crearMensajeUsuario(u baseDatos.Usuario) mensajes.JsonData {
 }
 
 /*
-	devolverError envia un error en formato json.
+	devolverError envía un error en formato json.
 */
 func devolverError(code int, err string, w http.ResponseWriter) {
 	resultado := mensajes.ErrorJson(err, code)
@@ -121,7 +122,7 @@ type formularioRegistro struct {
 }
 
 /*
-	registroUsuario maneja las peticiones para registrar usuarios
+	registroUsuario maneja las peticiones para registrar usuarios.
 */
 func (s *Servidor) registroUsuario(w http.ResponseWriter, r *http.Request) {
 	var f formularioRegistro
@@ -157,7 +158,7 @@ type formularioInicioSesion struct {
 }
 
 /*
-	inicioSesion maneja las peticiones para iniciar sesion
+	inicioSesion maneja las peticiones para iniciar sesión.
 */
 func (s *Servidor) inicioSesion(w http.ResponseWriter, r *http.Request) {
 	var (
@@ -178,7 +179,7 @@ func (s *Servidor) inicioSesion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Solicitar los datos de inicio de sesion de un usuario a la base de datos
+	// Solicitar los datos de inicio de sesión de un usuario a la base de datos
 	if strings.Contains(f.Usuario, "@") {
 		user, err = s.UsuarioDAO.IniciarSesionCorreo(f.Usuario, f.Clave)
 	} else {
@@ -202,7 +203,7 @@ type formularioPersonalizarUsuario struct {
 }
 
 /*
-	personalizarUsuarioHandler maneja las peticiones para cambiar los datos del usuario
+	personalizarUsuarioHandler maneja las peticiones para cambiar los datos del usuario.
 */
 func (s *Servidor) personalizarUsuarioHandler(w http.ResponseWriter, r *http.Request) {
 	var f formularioPersonalizarUsuario
@@ -227,7 +228,7 @@ func (s *Servidor) personalizarUsuarioHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Modificar los datos y devolver el resultado de la modificacion
+	// Modificar los datos y devolver el resultado de la modificación
 	err = user.Modificar(f.Tipo, f.Dato)
 	if err != nil {
 		devolverError(1, err.Error(), w)
@@ -267,7 +268,7 @@ func (s *Servidor) gestionAmistadHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Obtener los datos del usuario que solicita una accion
+	// Obtener los datos del usuario que solicita una acción
 	user, err := s.UsuarioDAO.ObtenerUsuario(f.ID, f.Clave)
 	if err != nil {
 		devolverError(1, "No se ha podido obtener el usuario", w)
@@ -369,23 +370,23 @@ func (s *Servidor) obtener(w http.ResponseWriter, r *http.Request,
 }
 
 /*
-	obtenerUsuarioHandler maneja las peticiones para obtener los datos de inicio de
-	sesión de un usuario utilizando su id clave.
+	obtenerUsuarioHandler maneja las peticiones para obtener los datos de inicio
+	de sesión de un usuario utilizando su id y clave.
 */
 func (s *Servidor) obtenerUsuarioHandler(w http.ResponseWriter, r *http.Request) {
 	s.obtener(w, r, s.crearMensajeUsuario)
 }
 
 /*
-	notificacionesHandler maneja las peticiones para obtener las notificaciones de un
-	usuario.
+	notificacionesHandler maneja las peticiones para obtener las notificaciones
+	de un usuario.
 */
 func (s *Servidor) notificacionesHandler(w http.ResponseWriter, r *http.Request) {
 	s.obtener(w, r, s.UsuarioDAO.ObtenerNotificaciones)
 }
 
 /*
-	amigosHandler maneja las peticiones para obtener los amigosd de un usuario.
+	amigosHandler maneja las peticiones para obtener los amigos de un usuario.
 */
 func (s *Servidor) amigosHandler(w http.ResponseWriter, r *http.Request) {
 	s.obtener(w, r, s.AmigosDAO.ObtenerAmigos)

@@ -25,7 +25,7 @@ type mensajeCreacion struct {
 func (s *Servidor) crearPartidaHandler(w http.ResponseWriter, r *http.Request) {
 	var mensajeInicial mensajeCreacion
 
-	// Crear conexion websocket
+	// Crear conexión websocket
 	ws, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		fmt.Printf("Upgrader err: %v\n", err)
@@ -40,7 +40,7 @@ func (s *Servidor) crearPartidaHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Comprobar si el usuario esta registrado
+	// Comprobar si el usuario está registrado
 	u, err := s.UsuarioDAO.ObtenerUsuario(mensajeInicial.IdUsuario, mensajeInicial.Clave)
 	if err != nil {
 		devolverErrorWebsocket(1, err.Error(), ws)
@@ -58,7 +58,7 @@ func (s *Servidor) crearPartidaHandler(w http.ResponseWriter, r *http.Request) {
 	// Guarda la referencia a la partida en el servidor
 	s.Partidas.Store(p.IdPartida, p)
 
-	// Envia al usuario los datos de la partida en formato json
+	// Envía al usuario los datos de la partida en formato json
 	aux := mensajes.JsonData{}
 	mapstructure.Decode(p, &aux)
 	aux["_tipoMensaje"] = "d"
@@ -82,7 +82,7 @@ type mensajeEntrarSala struct {
 func (s *Servidor) aceptarSalaHandler(w http.ResponseWriter, r *http.Request) {
 	var mensajeInicial mensajeEntrarSala
 
-	// Crear conexion websocket
+	// Crear conexión websocket
 	ws, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		fmt.Printf("Upgrader err: %v\n", err)
@@ -97,7 +97,7 @@ func (s *Servidor) aceptarSalaHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Comprobar si el usuario esta registrado
+	// Comprobar si el usuario está registrado
 	u, err := s.UsuarioDAO.ObtenerUsuario(mensajeInicial.IdUsuario,
 		mensajeInicial.Clave)
 	if err != nil {
@@ -126,9 +126,9 @@ type mensajeSala struct {
 }
 
 /*
-	recibirMensajesUsuarioEnSala recibe los mensajes que un usuario que esta en
-	una sala envia a traves de su websocket. Comprueba si los datos enviados son
-	correctos y notifica a la partida de eventos.
+	recibirMensajesUsuarioEnSala recibe los mensajes que un usuario que está en
+	una sala envía a través de su websocket. Comprueba si los datos enviados son
+	correctos y notifica de eventos a la partida.
 */
 func (s *Servidor) recibirMensajesUsuarioEnSala(u baseDatos.Usuario,
 	ws *websocket.Conn, p *baseDatos.Partida) {
@@ -142,14 +142,14 @@ func (s *Servidor) recibirMensajesUsuarioEnSala(u baseDatos.Usuario,
 
 		// Si da error leer el mensaje se desconecta al usuario
 		if err != nil {
-			// Notificar a la sala de la desconexion del usuario
+			// Notificar a la sala de la desconexión del usuario
 			p.Mensajes <- mensajesInternos.SalidaUsuario{
 				IdUsuario: u.Id,
 			}
 			return
 		}
 
-		// Comprobar si es una invitacion a otro usuario o iniciar la partida y notificarla
+		// Comprobar si es una invitación a otro usuario o iniciar la partida y notificarla
 		if strings.EqualFold(mensajeRecibido.Tipo, "Iniciar") {
 			p.Mensajes <- mensajesInternos.InicioPartida{
 				IdUsuario: u.Id,
@@ -170,7 +170,7 @@ func (s *Servidor) recibirMensajesUsuarioEnSala(u baseDatos.Usuario,
 
 /*
 	atenderSala recibe las diferentes notificaciones de una sala y ejecuta las
-	acciones que se requieran para cada notificacion
+	acciones que se requieran para cada notificación.
 */
 func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 	// Bucle infinito para leer notificaciones
@@ -212,7 +212,7 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 			} else {
 				// Enviar a todos los jugadores de la sala los datos de inicio
 				enviarATodos(p, mensajeEnviar)
-				return // Cambiar funcion de gestion de sala por partida
+				return // Cambiar función de gestión de sala por gestión de partida
 			}
 		case mensajesInternos.SalidaUsuario:
 			if mt.IdUsuario == p.IdCreador {
@@ -240,8 +240,8 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 // REQUIEREN  REVISION
 
 /*
-	enviarPorWebsocket envia a un usuario dentro de una sala un mensaje a traves de su
-	websocket
+	enviarPorWebsocket envía a un usuario dentro de una sala un mensaje a través
+	de su websocket
 */
 func enviarPorWebsocket(p *baseDatos.Partida, mensaje mensajes.JsonData, idUsuario int) {
 	wsInterface, _ := p.Conexiones.Load(idUsuario)
@@ -254,7 +254,7 @@ func enviarPorWebsocket(p *baseDatos.Partida, mensaje mensajes.JsonData, idUsuar
 }
 
 /*
-	enviarATodos envia a todos los usuarios de una sala un mensaje a traves de sus
+	enviarATodos envía a todos los usuarios de una sala un mensaje a través de sus
 	websockets
 */
 func enviarATodos(p *baseDatos.Partida, mensaje mensajes.JsonData) {
@@ -264,7 +264,7 @@ func enviarATodos(p *baseDatos.Partida, mensaje mensajes.JsonData) {
 }
 
 /*
-	devolverErrorUsuario envia un error a un usuario de una sala a traves de su websocket
+	devolverErrorUsuario envía un error a un usuario de una sala a través de su websocket
 */
 func devolverErrorUsuario(p *baseDatos.Partida, code, idUsuario int, err string) {
 	wsInterface, _ := p.Conexiones.Load(idUsuario)
@@ -277,7 +277,7 @@ func devolverErrorUsuario(p *baseDatos.Partida, code, idUsuario int, err string)
 }
 
 /*
-	devolverErrorWebsocket envia un error a traves de un websocket
+	devolverErrorWebsocket envía un error a través de un websocket
 */
 func devolverErrorWebsocket(code int, err string, ws *websocket.Conn) {
 	resultado := mensajes.ErrorJsonPartida(err, code)

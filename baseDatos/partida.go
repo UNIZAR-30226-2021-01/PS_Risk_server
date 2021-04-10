@@ -10,10 +10,10 @@ import (
 )
 
 const numTerritorios = 42
-const MaxMensajes = 100
+const maxMensajes = 100
 
 /*
-	Territorio almacena los datos de un territorio
+	Territorio almacena los datos de un territorio.
 */
 type Territorio struct {
 	IdJugador int `mapstructure:"idJugador" json:"idJugador"`
@@ -21,7 +21,7 @@ type Territorio struct {
 }
 
 /*
-	Jugador almacena datos reducidos de un usuario
+	Jugador almacena datos reducidos de un usuario.
 */
 type Jugador struct {
 	Id        int    `mapstructure:"id" json:"id"`

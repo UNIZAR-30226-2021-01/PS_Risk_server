@@ -2,7 +2,11 @@ package mensajes
 
 type JsonData map[string]interface{}
 
-func UsuarioJson(id, icono, aspecto, riskos int, nombre, correo, clave string, recibeCorreos bool) JsonData {
+/*
+	UsuarioJson devuelve un usuario en formato json con los datos proporcionados.
+*/
+func UsuarioJson(id, icono, aspecto, riskos int, nombre, correo, clave string,
+	recibeCorreos bool) JsonData {
 	return JsonData{
 		"id":            id,
 		"nombre":        nombre,
@@ -15,6 +19,10 @@ func UsuarioJson(id, icono, aspecto, riskos int, nombre, correo, clave string, r
 	}
 }
 
+/*
+	CosmeticoJson devuelve un cosmetico (icono o aspecto) en formato json con
+	los datos proporcionados.
+*/
 func CosmeticoJson(id, precio int) JsonData {
 	return JsonData{
 		"id":     id,
@@ -22,6 +30,9 @@ func CosmeticoJson(id, precio int) JsonData {
 	}
 }
 
+/*
+	ErrorJson devuelve un error en formato json con la información proporcionada.
+*/
 func ErrorJson(e string, c int) JsonData {
 	return JsonData{
 		"err":  e,
@@ -29,6 +40,10 @@ func ErrorJson(e string, c int) JsonData {
 	}
 }
 
+/*
+	ErrorJsonPartida devuelve un error en formato json con la información
+	proporcionada y un campo "_tipoMensaje".
+*/
 func ErrorJsonPartida(e string, c int) JsonData {
 	return JsonData{
 		"_tipoMensaje": "e",
@@ -37,6 +52,10 @@ func ErrorJsonPartida(e string, c int) JsonData {
 	}
 }
 
+/*
+	AmigoJson devuelve en formato json los datos de un usuario que se muestran
+	a sus amigos.
+*/
 func AmigoJson(id, icono, aspecto int, nombre string) JsonData {
 	return JsonData{
 		"id":      id,
@@ -46,6 +65,10 @@ func AmigoJson(id, icono, aspecto int, nombre string) JsonData {
 	}
 }
 
+/*
+	NotificacionJson devuelve una notificación en formato json con la
+	información proporcionada.
+*/
 func NotificacionJson(idE int, tipo, info string) JsonData {
 	return JsonData{
 		"infoExtra": info,

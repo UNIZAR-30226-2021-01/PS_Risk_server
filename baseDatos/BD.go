@@ -35,6 +35,10 @@ const (
 	ErrorFaltaPermisoUnirse     = iota
 )
 
+/*
+	CrearBD abre una conexión a la base de datos bbdd, borra el contenido actual
+	y crea de nuevo las tablas.
+*/
 func CrearBD(bbdd string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", bbdd)
 	if err != nil {
@@ -45,6 +49,11 @@ func CrearBD(bbdd string) (*sql.DB, error) {
 	return db, err
 }
 
+/*
+	CrearBD abre una conexión a la base de datos bbdd, borra el contenido actual
+	y crea de nuevo las tablas, indicando la ruta a los scripts relativa a los
+	ficheros de test.
+*/
 func CrearBDLocal(bbdd string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", bbdd)
 	if err != nil {
@@ -55,7 +64,7 @@ func CrearBDLocal(bbdd string) (*sql.DB, error) {
 	return db, err
 }
 
-// execScript ejecuta el script en la base de datos db
+// execScript ejecuta el script indicado en la base de datos db
 func execScript(db *sql.DB, script string) {
 	file, err := ioutil.ReadFile(script)
 	if err != nil {

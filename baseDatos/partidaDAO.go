@@ -30,7 +30,7 @@ const (
 )
 
 /*
-	PartidaDAO permite modificar la tabla de partidas y sus relacionadas en la base de datos
+	PartidaDAO permite modificar la tabla de partidas y sus relacionadas en la base de datos.
 */
 type PartidaDAO struct {
 	bd *sql.DB
@@ -70,7 +70,7 @@ func (dao *PartidaDAO) CrearPartida(creador Usuario, tiempoTurno int, nombreSala
 		Territorios: []Territorio{},
 		Jugadores:   []Jugador{},
 		Conexiones:  sync.Map{},
-		Mensajes:    make(chan mensajesInternos.MensajePartida, MaxMensajes),
+		Mensajes:    make(chan mensajesInternos.MensajePartida, maxMensajes),
 	}
 	p.Jugadores = append(p.Jugadores, CrearJugador(creador))
 	p.Conexiones.Store(creador.Id, wsCreador)

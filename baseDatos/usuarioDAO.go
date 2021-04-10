@@ -51,22 +51,23 @@ const (
 )
 
 /*
-	UsuarioDAO permite modificar y leer las tablas de usuario y relacionadas
+	UsuarioDAO permite modificar y leer las tablas de usuario y relacionadas.
 */
 type UsuarioDAO struct {
 	bd *sql.DB
 }
 
 /*
-	NuevoUsuarioDAO crea un UsuarioDAO
+	NuevoUsuarioDAO crea un UsuarioDAO.
 */
 func NuevoUsuarioDAO(bd *sql.DB) UsuarioDAO {
 	return UsuarioDAO{bd: bd}
 }
 
 /*
-	CrearCuenta crea una cuenta de usuario en la base de datos, devuelve error en caso de
-	no poder crearla.
+	CrearCuenta crea una cuenta de usuario en la base de datos y devuelve el
+	usuario creado.
+	Devuelve error en caso de no poder crearla.
 */
 func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 	recibeCorreos bool) (Usuario, error) {
@@ -76,7 +77,7 @@ func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 		id int
 	)
 
-	// Iniciar una transaccion, solo se modifican las tablas si se modifican
+	// Iniciar una transacción, solo se modifican las tablas si se modifican
 	// todas
 	ctx := context.Background()
 	tx, err := dao.bd.BeginTx(ctx, nil)
@@ -97,14 +98,14 @@ func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 		tx.Rollback()
 		return u, err
 	}
-	// Guardar en la base de datos los aspectos por defecto como comptrados
+	// Guardar en la base de datos los aspectos por defecto como comprados
 	_, err = tx.ExecContext(ctx, darAspectosPorDefecto, id)
 	if err != nil {
 		tx.Rollback()
 		return u, err
 	}
 
-	// Fin de la transaccion
+	// Fin de la transacción
 	err = tx.Commit()
 	if err != nil {
 		return u, err
@@ -120,7 +121,7 @@ func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 
 /*
 	IniciarSesionNombre devuelve los datos de un usuario que use el nombre y clave
-	pasados como parametros. Si no existe devuelve error.
+	pasados como parámetros. Si no existe devuelve error.
 */
 func (dao *UsuarioDAO) IniciarSesionNombre(nombre, clave string) (Usuario, error) {
 
@@ -145,7 +146,7 @@ func (dao *UsuarioDAO) IniciarSesionNombre(nombre, clave string) (Usuario, error
 
 /*
 	IniciarSesionNombre devuelve los datos de un usuario que use el correo y clave
-	pasados como parametros. Si no existe devuelve error.
+	pasados como parámetros. Si no existe devuelve error.
 */
 func (dao *UsuarioDAO) IniciarSesionCorreo(correo, clave string) (Usuario, error) {
 
@@ -218,7 +219,8 @@ func (dao *UsuarioDAO) ObtenerUsuarioId(id int) (Usuario, error) {
 
 /*
 	ActualizarUsuario modifica en la base de datos un usuario.
-	Devuelve error no vacío en formato json en caso de no poder hacerlo.
+	Si se modifica correctamente, devuelve error con código NoError en formato
+	json. En caso contrario devuelve el error ocurrido en el mismo formato.
 */
 func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
 	var id int
@@ -249,7 +251,8 @@ func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
 }
 
 /*
-	IncrementarRiskos de un usuario en r. Devuelve error en caso de no poder hacerlo.
+	IncrementarRiskos de un usuario en r.
+	Devuelve error en caso de no poder hacerlo.
 */
 func (dao *UsuarioDAO) IncrementarRiskos(u *Usuario, r int) error {
 	_, err := dao.bd.Exec(incrementarRiskos, r, u.Id)

@@ -18,7 +18,7 @@ const (
 )
 
 /*
-	TiendaDAO permite modificar y leer las tablas de iconosComptrados, aspectosComprados,
+	TiendaDAO permite modificar y leer las tablas de iconosComprados, aspectosComprados,
 	usuario, iconos y aspectos.
 */
 type TiendaDAO struct {
@@ -26,7 +26,7 @@ type TiendaDAO struct {
 }
 
 /*
-	NuevaTiendaDAO crea un TiendaDAO
+	NuevaTiendaDAO crea un TiendaDAO.
 */
 func NuevaTiendaDAO(bd *sql.DB) (dao TiendaDAO) {
 	return TiendaDAO{bd: bd}
@@ -70,24 +70,27 @@ func (dao *TiendaDAO) ObtenerIconos(u Usuario) ([]mensajes.JsonData, error) {
 }
 
 /*
-	ComprarIcono compra un icono para un usuario. Devuelve error en formato json si no se
-	ha podido completar la compra.
+	ComprarIcono compra un icono para un usuario.
+	Si no se ha podido completar la compra, devuelve el error ocurrido en formato
+	json, en caso contrario devuelve error con código NoError en el mismo formato.
 */
 func (dao *TiendaDAO) ComprarIcono(u *Usuario, id, precio int) mensajes.JsonData {
 	return dao.comprar(u, id, precio, comprarIcono)
 }
 
 /*
-	ComprarIcono compra un aspecto para un usuario. Devuelve error en formato json si no
-	se ha podido completar la compra.
+	ComprarIcono compra un aspecto para un usuario.
+	Si no se ha podido completar la compra, devuelve el error ocurrido en formato
+	json, en caso contrario devuelve error con código NoError en el mismo formato.
 */
 func (dao *TiendaDAO) ComprarAspecto(u *Usuario, id, precio int) mensajes.JsonData {
 	return dao.comprar(u, id, precio, comprarAspecto)
 }
 
 /*
-	comprar compra un cosmetico para un usuario. Devuelve error en formato json si no se
-	ha podido completar la compra.
+	comprar compra un cosmetico para un usuario.
+	Si no se ha podido completar la compra, devuelve el error ocurrido en formato
+	json, en caso contrario devuelve error con código NoError en el mismo formato.
 */
 func (dao *TiendaDAO) comprar(u *Usuario, id, precio int, sql string) mensajes.JsonData {
 	// Comprobar si el usuario tiene dinero suficiente
@@ -95,7 +98,7 @@ func (dao *TiendaDAO) comprar(u *Usuario, id, precio int, sql string) mensajes.J
 		return mensajes.ErrorJson("Riskos insuficientes", 1)
 	}
 
-	// Iniciar una transaccion, solo se modifican las tablas si se modifican
+	// Iniciar una transacción, solo se modifican las tablas si se modifican
 	// todas
 	ctx := context.Background()
 	tx, err := dao.bd.BeginTx(ctx, nil)
@@ -117,20 +120,20 @@ func (dao *TiendaDAO) comprar(u *Usuario, id, precio int, sql string) mensajes.J
 		return mensajes.ErrorJson(err.Error(), 1)
 	}
 
-	// Fin de la transaccion
+	// Fin de la transacción
 	err = tx.Commit()
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), 1)
 	}
 
-	// Decrementar precio
+	// Reducir el dinero del usuario en la variable
 	u.Riskos -= precio
 	return mensajes.ErrorJson("", 0)
 }
 
 /*
-	leerCosmetico devuelve los elementos de una consulta que devuelva iconos u aspectos
-	en formato json. Si no se pueden leer devuelve error.
+	leerCosmetico devuelve en formato json los elementos de una consulta que
+	devuelva iconos o aspectos. Si no se pueden leer devuelve error.
 */
 func (dao *TiendaDAO) leerCosmetico(consulta string) ([]mensajes.JsonData, error) {
 	filas, err := dao.bd.Query(consulta)

@@ -3,7 +3,7 @@ package baseDatos
 import "PS_Risk_server/mensajes"
 
 /*
-	Tienda contiene iconos y aspectos en formato json
+	Tienda contiene iconos y aspectos en formato json.
 */
 type Tienda struct {
 	Iconos, Aspectos []mensajes.JsonData

@@ -8,7 +8,7 @@ import (
 
 /*
 	AmigosDAO permite modificar las tablas de amigos y solicitudes de amistad en
-	la base de datos
+	la base de datos.
 */
 type AmigosDAO struct {
 	bd *sql.DB
@@ -101,10 +101,10 @@ func (dao *AmigosDAO) EliminarAmigo(u Usuario, id int) mensajes.JsonData {
 		return mensajes.ErrorJson(err.Error(), ErrorEliminarAmigo)
 	}
 
-	// Finalizar la transaccion
+	// Finalizar la transacción
 	err = tx.Commit()
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorAceptarAmigo)
+		return mensajes.ErrorJson(err.Error(), ErrorEliminarAmigo)
 	}
 	return mensajes.ErrorJson("", NoError)
 }
@@ -133,7 +133,7 @@ func (dao *AmigosDAO) AceptarSolicitudAmistad(u Usuario, id int) mensajes.JsonDa
 		tx.Rollback()
 		return mensajes.ErrorJson(err.Error(), ErrorAceptarAmigo)
 	}
-	// Si no existia la solicitud no se pueden hacer amigos
+	// Si no existía la solicitud no se pueden hacer amigos
 	filasEliminadas, err := resultadoConsulta.RowsAffected()
 	if err != nil {
 		tx.Rollback()
@@ -202,7 +202,7 @@ func (dao *AmigosDAO) EnviarSolicitudAmistad(u Usuario, amigo string) mensajes.J
 	id1 := min(u.Id, idAmigo)
 	id2 := max(u.Id, idAmigo)
 
-	// Comprobar si los usuario no son amigos ya
+	// Comprobar si los usuarios no son amigos ya
 	err = dao.bd.QueryRow(consultaAmistad, id1, id2).Scan(&id1)
 	if err == nil {
 		return mensajes.ErrorJson("Los usuarios ya son amigos", ErrorAmistadDuplicada)
