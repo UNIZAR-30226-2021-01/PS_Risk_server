@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	baseDeDatos       = "user=postgres password=aseDaTos549 dbname=postgres sslmode=disable"
+	baseDeDatos       = "..."
 	nombreTest        = "usuario0"
 	correoTest        = "correo0@mail.com"
 	nombreAmigo1      = "nombre1"
