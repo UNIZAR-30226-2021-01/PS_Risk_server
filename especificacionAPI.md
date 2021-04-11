@@ -1,7 +1,7 @@
 # API SERVIDOR RISK
-Esta API utiliza peticiones HTTP POST con los parámetros en formato URL-Encoded y las respuestas en formato JSON. Las peticiones se realizan a la URL base https://risk-servidor.herokuapp.com/
+Esta API utiliza peticiones HTTP POST con los parámetros en formato URL-Encoded y las respuestas en formato JSON. Las peticiones se realizan a la URL base https://risk-servidor.herokuapp.com/.
 
-* [Errores](#errores)
+* [Errores y confirmaciones](#errores-y-confirmaciones)
 * [Sistema de usuarios](#sistema-de-usuarios)
     * [JSON de datos completos de usuario](#json-de-datos-completos-de-usuario)
     * [/registrar](#-registrar)
@@ -16,7 +16,7 @@ Esta API utiliza peticiones HTTP POST con los parámetros en formato URL-Encoded
 * [Tienda](#tienda)
     * [/comprar](#-comprar)
 
-## Errores
+## Errores y confirmaciones
 Si ocurre algun error en la petición se devuelve un error en formato JSON.
 
     {
@@ -25,10 +25,9 @@ Si ocurre algun error en la petición se devuelve un error en formato JSON.
     }
 
 **code:** Indica el tipo de error y la accion a tomar por el cliente. Puede tomar los siguientes valores:
-- 0: No ha ocurrido ningun error y la operación solicitada se ha llevado a cabo, no se requiere ninguna acción.
+- 0: No ha ocurrido ningun error y la operación solicitada se ha llevado a cabo, no se requiere ninguna acción. Se utiliza como confirmación de algunas peticiones.
 - 1: Ha ocurrido un error y la operación solicitada no se ha llevado a cabo, no se requiere ninguna acción.
 - 2: Ha ocurrido un error verificando al usuario y la operación solicitada no se ha llevado a cabo, se requiere cerrar la sesión del usuario.
-- 3: Ha ocurrido un error en una la sala de espera, se requiere expulsar al jugador de la sala.
 
 **err:** Explica que error ha ocurrido.
 
@@ -87,7 +86,7 @@ Peticiones relacionadas con la creación de cuentas, inicio de sesión y persona
         |---------------|--------|---------------------------------------------------|
         | nombre        | string | Nombre para el usuario.                           |
         | correo        | string | Correo para el usuario.                           |
-        | clave         | string | Hash SHA256 de la clave del usuario               |
+        | clave         | string | Hash SHA256 de la clave del usuario.              |
         | recibeCorreos | bool   | Indica si el usuario quiere recibir correos o no. |
 
     - **Resultado:**
@@ -251,53 +250,5 @@ https:// /partidas
     JSON { "code":int ,"err":string }
         O 
     JSON { [ { "id":int, "nombre":string, "nombreTurnoActual":string } ] }
-
-wss::// /crearSala
-    JSON { "idUsuario":int, "clave":string, "tiempoTurno":int, "nombreSala":string }
-
-wss::// /aceptarSala
-    JSON { "idUsuario":int, "clave":string, "idSala":int }
-
-wss::// /unirsePartida
-    JSON { "idUsuario":int, "clave":string, "idSala":int }
-
-MENSAJES DURANTE SALA
-    -> { "idInvitado":int, "tipo":"Invitar" } 
-    -> { "tipo":"Iniciar" }
-
-    <- { "_tipoMensaje":"e", "code":int , "err":string }
-    <- { "_tipoMensaje":"d", "tiempoTurno":int, "nombreSala":string, "idSala":int
-         "jugadores": [ { "id":int, "nombre":string, "icono":int, "aspecto":int } ] }
-
-MENSAJE CUANDO COMIENZA PARTIDA
-    <- partidaCompleta {
-        "_tipoMensaje": "p",
-        "tiempoTurno": int,
-        "nombreSala": string,
-        "turnoActual": int,
-        "fase": int,
-        "jugadores": [ { "id":int, "nombre":string, "icono":int, "aspecto":int, "sigueVivo":bool } ] ,
-        "listaTerritorios": [ { "numJugador":int, "tropas":int } ]
-    }
-
-MENSAJES DURANTE LA PARTIDA
-    <- partidaCompleta
-
-    <-> AccionPartida {
-    	"_tipoMensaje": "a",
-        "origen":int,
-        "objetivo":int,
-        "numTropasOrigen":int,
-        "numTropasObjetivo":int,
-        "tipo":string -> [Reclutar, Mover, Atacar]
-    }
-
-    <- { "_tipoMensaje":"e", "code":int , "err":string }
-
-    <- FinPartida {
-    	"_tipoMensaje":"f"
-        "ganador":string,
-        "riskos":int
-    }
 
 -->
