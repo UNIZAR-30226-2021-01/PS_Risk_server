@@ -61,8 +61,8 @@ func NuevoServidor(p, bbdd string) (*Servidor, error) {
 */
 func (s *Servidor) Iniciar() error {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/registrar", s.registroUsuario)
-	mux.HandleFunc("/iniciarSesion", s.inicioSesion)
+	mux.HandleFunc("/registrar", s.registroUsuarioHandler)
+	mux.HandleFunc("/iniciarSesion", s.inicioSesionHandler)
 	mux.HandleFunc("/recargarUsuario", s.obtenerUsuarioHandler)
 	mux.HandleFunc("/personalizarUsuario", s.personalizarUsuarioHandler)
 	mux.HandleFunc("/gestionAmistad", s.gestionAmistadHandler)
@@ -124,7 +124,7 @@ type formularioRegistro struct {
 /*
 	registroUsuario maneja las peticiones para registrar usuarios.
 */
-func (s *Servidor) registroUsuario(w http.ResponseWriter, r *http.Request) {
+func (s *Servidor) registroUsuarioHandler(w http.ResponseWriter, r *http.Request) {
 	var f formularioRegistro
 
 	// Comprobar que los datos recibidos son correctos
@@ -141,7 +141,8 @@ func (s *Servidor) registroUsuario(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Crear la cuenta en la base de datos
-	user, err := s.UsuarioDAO.CrearCuenta(f.Nombre, strings.ToLower(f.Correo), f.Clave, f.RecibeCorreos)
+	user, err := s.UsuarioDAO.CrearCuenta(f.Nombre, strings.ToLower(f.Correo),
+		f.Clave, f.RecibeCorreos)
 	if err != nil {
 		devolverError(1, err.Error(), w)
 		return
@@ -160,7 +161,7 @@ type formularioInicioSesion struct {
 /*
 	inicioSesion maneja las peticiones para iniciar sesión.
 */
-func (s *Servidor) inicioSesion(w http.ResponseWriter, r *http.Request) {
+func (s *Servidor) inicioSesionHandler(w http.ResponseWriter, r *http.Request) {
 	var (
 		user baseDatos.Usuario
 		f    formularioInicioSesion
