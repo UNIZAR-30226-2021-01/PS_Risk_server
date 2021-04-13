@@ -27,6 +27,7 @@ const (
 	guardarJugadores = "INSERT INTO juega (id_partida, id_usuario) VALUES ($1, $2)"
 	obtenerPartida   = "SELECT id_creador, json_estado FROM partida " +
 		"WHERE id_partida = $1"
+	consultaPartidas = "SELECT id_partida FROM juega WHERE id_usuario = $1"
 )
 
 /*
@@ -228,4 +229,27 @@ func (dao *PartidaDAO) AbandonarPartida(p *Partida, IdUsuario int) mensajes.Json
 func (dao *PartidaDAO) BorrarPartida(p *Partida) error {
 	_, err := dao.bd.Exec(borrarPartida, p.IdPartida)
 	return err
+}
+
+/*
+	ObtenerPartidas obtienes los identificadores de las partidas que juega un usuario.
+	Devuelve un error si se han podido obtener.
+*/
+func (dao *PartidaDAO) ObtenerPartidas(u Usuario) ([]int, error) {
+	var resultado []int
+
+	// Consulta para obtener los identificadores de las partidas
+	filas, err := dao.bd.Query(consultaPartidas, u.Id)
+	if err != nil {
+		return nil, err
+	}
+	for filas.Next() {
+		var idPartida int
+		if err := filas.Scan(&idPartida); err != nil {
+			return nil, err
+		}
+		resultado = append(resultado, idPartida)
+	}
+
+	return resultado, nil
 }

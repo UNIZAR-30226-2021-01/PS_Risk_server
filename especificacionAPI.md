@@ -206,7 +206,7 @@ Peticiones relacionadas con enviar solicitudes de amistad, aceptarlas, rechazarl
         JSON de error.
 
 - ## /gestionAmistad
-    Se envian los datos de 2 usuarios y el tipo de gestiónn que se quiere hacer entre los 2. Se devuelve un error. Este será error nulo en caso de que todo haya funcionado correctamente.
+    Se envian los datos de 2 usuarios y el tipo de gestión que se quiere hacer entre los 2. Se devuelve un error. Este será error nulo en caso de que todo haya funcionado correctamente.
 
     - **Parámetros:**
         | Nombre    | Tipo   | Descripción                                 |
@@ -242,13 +242,38 @@ Peticiones relacionadas con la compra de elementos estéticos del juego.
     - **Resultado:**
 
         JSON de error.
-        
-<!--
 
-https:// /partidas
-    POST: {idUsuario}
-    JSON { "code":int ,"err":string }
-        O 
-    JSON { [ { "id":int, "nombre":string, "nombreTurnoActual":string } ] }
+## Partidas
+Peticiones relacionadas con las partidas.
 
--->
+- ## /partidas
+    Se envian los datos de un usuario. Se devuelve la lista de partidas en las que el usuario esta jugando o un error.
+
+    - **Parámetros:**
+        | Nombre    | Tipo   | Descripción                         |
+        |-----------|--------|-------------------------------------|
+        | idUsuario | int    | Identificador numérico del usuario. |
+        | clave     | string | Hash SHA256 de la clave del usuario.|
+
+    - **Resultado**
+
+        JSON con la lista de partidas o JSON de error.
+
+            {
+                "partidas": [ { 
+                        "id":int, 
+                        "nombre":string, 
+                        "nombreTurno":string,
+                        "turnoActual":int,
+                        "tiempoTurno":int, 
+                        "ultimoTurno": ISO8601, 
+                    } ],   
+            }
+    
+        **partidas:**
+        - **id:** identificador numérico de la partida.
+        - **nombre:** nombre de la partida.
+        - **nombreTurno:** nombre del jugador que tiene el turno ahora.
+        - **turnoActual:** turno actual de la partida.
+        - **tiempoTurno:** duración de los turnos en minutos.
+        - **ultimoTurno:** fecha el ultimo movimiento.

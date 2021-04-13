@@ -72,6 +72,7 @@ func (s *Servidor) Iniciar() error {
 	mux.HandleFunc("/comprar", s.comprarHandler)
 	mux.HandleFunc("/crearSala", s.crearPartidaHandler)
 	mux.HandleFunc("/aceptarSala", s.aceptarSalaHandler)
+	mux.HandleFunc("/partidas", s.partidasHandler)
 	handler := cors.Default().Handler(mux)
 	s.upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	err := http.ListenAndServe(":"+s.Puerto, handler)
@@ -391,6 +392,64 @@ func (s *Servidor) notificacionesHandler(w http.ResponseWriter, r *http.Request)
 */
 func (s *Servidor) amigosHandler(w http.ResponseWriter, r *http.Request) {
 	s.obtener(w, r, s.AmigosDAO.ObtenerAmigos)
+}
+
+/*
+	obtenerPartidasHandler maneja las peticiones para obtener las partidas de un usuario.
+*/
+func (s *Servidor) partidasHandler(w http.ResponseWriter, r *http.Request) {
+	var (
+		f         formularioObtener
+		jsonArray []mensajes.JsonData
+	)
+
+	// Comprobar que los datos recibidos son correctos
+	decoder := form.NewDecoder()
+	err := r.ParseForm()
+	if err != nil {
+		devolverError(1, err.Error(), w)
+		return
+	}
+	err = decoder.Decode(&f, r.PostForm)
+	if err != nil {
+		devolverError(1, "Campos formulario incorrectos", w)
+		return
+	}
+
+	// Obtener los datos básicos del usuario
+	user, err := s.UsuarioDAO.ObtenerUsuario(f.ID, f.Clave)
+	if err != nil {
+		devolverError(1, "No se ha podido obtener el usuario", w)
+		return
+	}
+
+	// Obtener los identificadores de partidas
+	ids, err := s.PartidasDAO.ObtenerPartidas(user)
+	if err != nil {
+		devolverError(1, "No se han podido obtener las partidas", w)
+		return
+	}
+
+	// Obtener los datos de las partidas
+	for _, id := range ids {
+		partida, ok := s.Partidas.Load(id)
+		if ok {
+			p := partida.(*baseDatos.Partida)
+			turno := p.TurnoActual
+			jsonArray = append(jsonArray, mensajes.JsonData{
+				"id":          p.IdPartida,
+				"nombre":      p.Nombre,
+				"nombreTurno": p.Jugadores[turno].Nombre,
+				"turnoActual": turno,
+				"tiempoTurno": p.TiempoTurno,
+				"ultimoTurno": p.UltimoTurno,
+			})
+		}
+	}
+
+	// Devolver las partidas
+	respuesta, _ := json.MarshalIndent(mensajes.JsonData{"partidas": jsonArray}, "", " ")
+	fmt.Fprint(w, string(respuesta))
 }
 
 type formularioComprar struct {

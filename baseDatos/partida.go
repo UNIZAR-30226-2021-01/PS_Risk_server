@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -65,6 +66,7 @@ type Partida struct {
 	Jugadores   []Jugador                            `mapstructure:"jugadores" json:"jugadores"`
 	Conexiones  sync.Map                             `mapstructure:"-" json:"-"`
 	Mensajes    chan mensajesInternos.MensajePartida `mapstructure:"-" json:"-"`
+	UltimoTurno time.Time                            `mapstructure:"-" json:"-"`
 }
 
 /*
@@ -104,6 +106,7 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 	p.TurnoActual = 1
 	p.Fase = 1
 	p.Empezada = true
+	p.UltimoTurno = time.Now().UTC()
 	return nil
 }
 
