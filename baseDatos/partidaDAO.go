@@ -21,6 +21,8 @@ const (
 		"id_partida = $2"
 	crearInvitacion = "INSERT INTO invitacionPartida (id_recibe, id_envia) " +
 		"VALUES ($1, $2)"
+	borrarInvitacion = "DELETE FROM invitacionPartida WHERE id_recibe = $1 " +
+		"AND id_envia = $2"
 	consultaInvitacion = "SELECT COUNT(*) FROM invitacionPartida WHERE " +
 		"id_recibe = $1 AND id_envia = $2"
 	borrarPartida    = "DELETE FROM partida WHERE id_partida = $1"
@@ -116,7 +118,7 @@ func (dao *PartidaDAO) IniciarPartida(p *Partida, idCreador int) mensajes.JsonDa
 	}
 	// Guardar en la base de datos qué jugadores juegan en la partida
 	for _, j := range p.Jugadores {
-		_, err = tx.ExecContext(ctx, guardarJugadores, p.IdPartida, j)
+		_, err = tx.ExecContext(ctx, guardarJugadores, p.IdPartida, j.Id)
 		if err != nil {
 			tx.Rollback()
 			p.AnularInicio()
@@ -167,18 +169,20 @@ func (dao *PartidaDAO) InvitarPartida(p *Partida, idCreador int, idInvitado int)
 }
 
 /*
-	EntrarPartida comprueba en la base de datos si un usuario está invitado a una partida y en
-	caso de que lo esté lo añade a la partida. Devuelve el estado de la partida o un error, en
-	caso de que no se haya podido añadir, en formato json.
+	EntrarPartida añade un usuario a una partida y borra la invitación.
+	Devuelve el estado de la partida o un error, en caso de que no se haya
+	podido añadir o no existiera la invitación, en formato json.
 */
 func (dao *PartidaDAO) EntrarPartida(p *Partida, u Usuario, ws *websocket.Conn) mensajes.JsonData {
-	var (
-		numInvitaciones int
-		res             mensajes.JsonData
-	)
+	var res mensajes.JsonData
 
-	// Comprobar si el usuario está invitado
-	err := dao.bd.QueryRow(consultaInvitacion, u.Id, p.IdPartida).Scan(&numInvitaciones)
+	// Consumir la invitación
+	resultado, err := dao.bd.Exec(borrarInvitacion, u.Id, p.IdPartida)
+	if err != nil {
+		return mensajes.ErrorJsonPartida(err.Error(), mensajes.ErrorPeticion)
+	}
+	// Comprobar que había invitación
+	numInvitaciones, err := resultado.RowsAffected()
 	if err != nil {
 		return mensajes.ErrorJsonPartida(err.Error(), mensajes.ErrorPeticion)
 	}
@@ -197,6 +201,27 @@ func (dao *PartidaDAO) EntrarPartida(p *Partida, u Usuario, ws *websocket.Conn) 
 	mapstructure.Decode(p, &res)
 	res["_tipoMensaje"] = "d"
 	return res
+}
+
+/*
+	RechazarPartida borra una invitación a una partida para un usuario sin
+	añadirlo a ella.
+	Devuelve error si no se ha podido eliminar la invitación.
+*/
+func (dao *PartidaDAO) RechazarPartida(idPartida int, u Usuario) error {
+	resultado, err := dao.bd.Exec(borrarInvitacion, u.Id, idPartida)
+	if err != nil {
+		return err
+	}
+	borradas, err := resultado.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if borradas == 0 {
+		return errors.New("no se puede rechazar una partida a la que no te " +
+			"han invitado")
+	}
+	return nil
 }
 
 /*

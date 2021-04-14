@@ -3,11 +3,13 @@ package server
 import (
 	"PS_Risk_server/baseDatos"
 	"PS_Risk_server/mensajes"
+	"strconv"
 	"sync"
 
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/go-playground/form/v4"
@@ -73,6 +75,7 @@ func (s *Servidor) Iniciar() error {
 	mux.HandleFunc("/crearSala", s.crearPartidaHandler)
 	mux.HandleFunc("/aceptarSala", s.aceptarSalaHandler)
 	mux.HandleFunc("/partidas", s.partidasHandler)
+	mux.HandleFunc("/rechazarPartida", s.rechazarPartidaHandler)
 	handler := cors.Default().Handler(mux)
 	s.upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	err := http.ListenAndServe(":"+s.Puerto, handler)
@@ -395,7 +398,8 @@ func (s *Servidor) amigosHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 /*
-	obtenerPartidasHandler maneja las peticiones para obtener las partidas de un usuario.
+	obtenerPartidasHandler maneja las peticiones para obtener las partidas en
+	las que juega un usuario.
 */
 func (s *Servidor) partidasHandler(w http.ResponseWriter, r *http.Request) {
 	var (
@@ -512,4 +516,50 @@ func (s *Servidor) comprarHandler(w http.ResponseWriter, r *http.Request) {
 	// Devolver resultado de la compra
 	respuesta, _ := json.MarshalIndent(resultado, "", " ")
 	fmt.Fprint(w, string(respuesta))
+}
+
+type formularioRechazarPartida struct {
+	IdUsuario int    `form:"idUsuario"`
+	IdSala    int    `form:"idSala"`
+	Clave     string `form:"clave"`
+}
+
+func (s *Servidor) rechazarPartidaHandler(w http.ResponseWriter, r *http.Request) {
+	var f formularioRechazarPartida
+
+	// Comprobar que los datos recibidos son correctos
+	decoder := form.NewDecoder()
+	err := r.ParseForm()
+	if err != nil {
+		devolverError(mensajes.ErrorPeticion, err.Error(), w)
+		return
+	}
+	err = decoder.Decode(&f, r.PostForm)
+	if err != nil {
+		devolverError(mensajes.ErrorPeticion, "Campos formulario incorrectos", w)
+		return
+	}
+
+	// Obtener los datos del usuario que hace la petición
+	u, err := s.UsuarioDAO.ObtenerUsuario(f.IdUsuario, f.Clave)
+	if err != nil {
+		devolverError(mensajes.ErrorUsuario, "No se ha podido obtener el usuario", w)
+		return
+	}
+
+	// Rechazar la invitación
+	err = s.PartidasDAO.RechazarPartida(f.IdSala, u)
+	if err != nil {
+		devolverError(mensajes.ErrorPeticion, "No se ha podido rechazar la "+
+			"invitación", w)
+		return
+	}
+
+	// Devolver la nueva lista de notificaciones
+	parametrosNotificaciones := url.Values{
+		"idUsuario": {strconv.Itoa(u.Id)},
+		"clave":     {u.Clave},
+	}
+	r.Form = parametrosNotificaciones
+	s.obtener(w, r, s.UsuarioDAO.ObtenerNotificaciones)
 }

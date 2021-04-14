@@ -15,6 +15,9 @@ Esta API utiliza peticiones HTTP POST con los parámetros en formato URL-Encoded
     * [/gestionAmistad](#-gestionamistad)
 * [Tienda](#tienda)
     * [/comprar](#-comprar)
+* [Partidas](#partidas)
+    * [/partidas](#-partidas)
+    * [/rechazarPartida](#-rechazarPartida)
 
 ## Errores y confirmaciones
 Si ocurre algun error en la petición se devuelve un error en formato JSON.
@@ -142,7 +145,7 @@ Peticiones relacionadas con la creación de cuentas, inicio de sesión y persona
         JSON de error.
 
 - ## /notificaciones
-    Se envia el identificador numérico de un usuario junto con su clave y se devuelve su lista de notificaciones o un error.
+    Se envía el identificador numérico de un usuario junto con su clave y se devuelve su lista de notificaciones o un error.
 
     - **Parámetros:**
         | Nombre    | Tipo   | Descripción                         |
@@ -192,7 +195,7 @@ Peticiones relacionadas con enviar solicitudes de amistad, aceptarlas, rechazarl
         - **aspecto:** aspecto que utiliza el amigo.
 
 - ## /enviarSolicitudAmistad
-    Se envian los datos del usuario que emisor y el nombre del receptor y se devuelve un error. Este será error nulo en caso de que todo haya funcionado correctamente.
+    Se envían los datos del usuario emisor y el nombre del receptor y se devuelve un error. Este será error nulo en caso de que todo haya funcionado correctamente.
     
     - **Parámetros:**
         | Nombre      | Tipo   | Descripción                                                 |
@@ -206,7 +209,7 @@ Peticiones relacionadas con enviar solicitudes de amistad, aceptarlas, rechazarl
         JSON de error.
 
 - ## /gestionAmistad
-    Se envian los datos de 2 usuarios y el tipo de gestión que se quiere hacer entre los 2. Se devuelve un error. Este será error nulo en caso de que todo haya funcionado correctamente.
+    Se envían los datos de 2 usuarios y el tipo de gestión que se quiere hacer entre los 2. Se devuelve un error. Este será error nulo en caso de que todo haya funcionado correctamente.
 
     - **Parámetros:**
         | Nombre    | Tipo   | Descripción                                 |
@@ -247,7 +250,7 @@ Peticiones relacionadas con la compra de elementos estéticos del juego.
 Peticiones relacionadas con las partidas.
 
 - ## /partidas
-    Se envian los datos de un usuario. Se devuelve la lista de partidas en las que el usuario esta jugando o un error.
+    Se envían los datos de un usuario. Se devuelve la lista de partidas en las que el usuario está jugando o un error.
 
     - **Parámetros:**
         | Nombre    | Tipo   | Descripción                         |
@@ -276,4 +279,18 @@ Peticiones relacionadas con las partidas.
         - **nombreTurno:** nombre del jugador que tiene el turno ahora.
         - **turnoActual:** turno actual de la partida.
         - **tiempoTurno:** duración de los turnos en minutos.
-        - **ultimoTurno:** fecha el ultimo movimiento.
+        - **ultimoTurno:** fecha del ultimo movimiento.
+
+    ## /rechazarPartida
+    Se envía el identificador numérico de un usuario junto con su clave y el identificador numérico de una partida. Se devuelve la lista de notificaciones del usuario después de eliminar la invitación a la partida indicada o un error.
+
+    - **Parámetros:**
+        | Nombre    | Tipo   | Descripción                          |
+        |-----------|--------|--------------------------------------|
+        | idUsuario | int    | Identificador numérico del usuario.  |
+        | clave     | string | Hash SHA256 de la clave del usuario. |
+        | idSala    | int    | Identificador numérico de la partida.|
+
+    - **Resultado:**
+
+        JSON con la lista de notificaciones o JSON de error.
