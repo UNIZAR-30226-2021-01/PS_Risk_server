@@ -231,8 +231,8 @@ func (dao *PartidaDAO) BorrarPartida(p *Partida) error {
 }
 
 /*
-	ObtenerPartidas obtienes los identificadores de las partidas que juega un usuario.
-	Devuelve un error si se han podido obtener.
+	ObtenerPartidas obtiene los identificadores de las partidas que juega un usuario.
+	Devuelve un error si no se han podido obtener.
 */
 func (dao *PartidaDAO) ObtenerPartidas(u Usuario) ([]int, error) {
 	var resultado []int
@@ -248,6 +248,9 @@ func (dao *PartidaDAO) ObtenerPartidas(u Usuario) ([]int, error) {
 			return nil, err
 		}
 		resultado = append(resultado, idPartida)
+	}
+	if filas.Err() != nil {
+		return nil, filas.Err()
 	}
 
 	return resultado, nil
