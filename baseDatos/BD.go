@@ -9,32 +9,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// Códigos de error posibles
-const (
-	NoError                     = 0
-	ErrorIniciarTransaccion     = iota
-	ErrorCrearCuenta            = iota
-	ErrorLeerAspectosTienda     = iota
-	ErrorLeerIconosTienda       = iota
-	ErrorTipoIncorrecto         = iota
-	ErrorBusquedaUsuario        = iota
-	ErrorModificarUsuario       = iota
-	ErrorIniciarSesion          = iota
-	ErrorCampoIncorrecto        = iota
-	ErrorUsuarioIncorrecto      = iota
-	ErrorEliminarAmigo          = iota
-	ErrorAceptarAmigo           = iota
-	ErrorRechazarAmigo          = iota
-	ErrorNotificaciones         = iota
-	ErrorLeerAmigos             = iota
-	ErrorNombreUsuario          = iota
-	ErrorEnviarSolicitudAmistad = iota
-	ErrorAmistadDuplicada       = iota
-	ErrorIniciarPartida         = iota
-	ErrorUnirsePartida          = iota
-	ErrorFaltaPermisoUnirse     = iota
-)
-
 /*
 	CrearBD abre una conexión a la base de datos bbdd, borra el contenido actual
 	y crea de nuevo las tablas.

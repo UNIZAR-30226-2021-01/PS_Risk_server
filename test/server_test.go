@@ -1,7 +1,6 @@
 package test
 
 import (
-	"PS_Risk_server/baseDatos"
 	"PS_Risk_server/mensajes"
 	"crypto/sha256"
 	"encoding/json"
@@ -28,7 +27,7 @@ func NewSHA256(data []byte) []byte {
 }
 
 func coincideErrorNulo(respuestaObtenida mensajes.JsonData) (bool, mensajes.JsonData) {
-	esperado := mensajes.ErrorJson("", baseDatos.NoError)
+	esperado := mensajes.ErrorJson("", mensajes.NoError)
 	return comprobarJson(respuestaObtenida, esperado), esperado
 }
 

@@ -228,26 +228,26 @@ func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
 	// Comprobar que el icono lo tenga comprado
 	err := dao.bd.QueryRow(comprobarIconoComprado, u.Id, u.Icono).Scan(&id)
 	if err != nil {
-		return mensajes.ErrorJson("Icono no comprado", ErrorModificarUsuario)
+		return mensajes.ErrorJson("Icono no comprado", mensajes.ErrorPeticion)
 	}
 
 	// Comprobar que el aspecto lo tenga comprado
 	err = dao.bd.QueryRow(comprobarAspectoComprado, u.Id, u.Aspecto).Scan(&id)
 	if err != nil {
-		return mensajes.ErrorJson("Aspecto no comprado", ErrorModificarUsuario)
+		return mensajes.ErrorJson("Aspecto no comprado", mensajes.ErrorPeticion)
 	}
 
 	// Actualizar el usuario en la base de datos
 	res, err := dao.bd.Exec(actualizarUsuario, u.Aspecto, u.Icono, u.Nombre,
 		u.Correo, u.Clave, u.RecibeCorreos, u.Id)
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorModificarUsuario)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 	n, _ := res.RowsAffected()
 	if n != 1 {
-		return mensajes.ErrorJson("Error modificando usuario", ErrorModificarUsuario)
+		return mensajes.ErrorJson("Error modificando usuario", mensajes.ErrorPeticion)
 	}
-	return mensajes.ErrorJson("", 0)
+	return mensajes.ErrorJson("", mensajes.NoError)
 }
 
 /*
@@ -274,20 +274,20 @@ func (dao *UsuarioDAO) ObtenerNotificaciones(u Usuario) mensajes.JsonData {
 	n, err := dao.leerNotificaciones(u.Id, consultaSolicitudes, "Peticion de amistad")
 	notificaciones = append(notificaciones, n...)
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorNotificaciones)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 
 	// Obtener las invitaciones a partidas
 	n, err = dao.leerNotificaciones(u.Id, consultaInvitaciones, "Invitacion")
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorNotificaciones)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 	notificaciones = append(notificaciones, n...)
 
 	// Obtener las notificaciones de turnos
 	n, err = dao.leerNotificaciones(u.Id, consultaTurnos, "Notificacion de turno")
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorNotificaciones)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 	notificaciones = append(notificaciones, n...)
 

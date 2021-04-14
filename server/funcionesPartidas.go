@@ -36,14 +36,14 @@ func (s *Servidor) crearPartidaHandler(w http.ResponseWriter, r *http.Request) {
 	// Leer los datos de partida y usuario enviados
 	err = ws.ReadJSON(&mensajeInicial)
 	if err != nil {
-		devolverErrorWebsocket(1, err.Error(), ws)
+		devolverErrorWebsocket(mensajes.ErrorPeticion, err.Error(), ws)
 		return
 	}
 
 	// Comprobar si el usuario está registrado
 	u, err := s.UsuarioDAO.ObtenerUsuario(mensajeInicial.IdUsuario, mensajeInicial.Clave)
 	if err != nil {
-		devolverErrorWebsocket(1, err.Error(), ws)
+		devolverErrorWebsocket(mensajes.ErrorUsuario, err.Error(), ws)
 		return
 	}
 
@@ -51,7 +51,7 @@ func (s *Servidor) crearPartidaHandler(w http.ResponseWriter, r *http.Request) {
 	p, err := s.PartidasDAO.CrearPartida(u, mensajeInicial.TiempoTurno,
 		mensajeInicial.NombreSala, ws)
 	if err != nil {
-		devolverErrorWebsocket(1, err.Error(), ws)
+		devolverErrorWebsocket(mensajes.ErrorPeticion, err.Error(), ws)
 		return
 	}
 
@@ -93,7 +93,7 @@ func (s *Servidor) aceptarSalaHandler(w http.ResponseWriter, r *http.Request) {
 	// Leer los datos de partida y usuario enviados
 	err = ws.ReadJSON(&mensajeInicial)
 	if err != nil {
-		devolverErrorWebsocket(1, err.Error(), ws)
+		devolverErrorWebsocket(mensajes.ErrorPeticion, err.Error(), ws)
 		return
 	}
 
@@ -101,14 +101,14 @@ func (s *Servidor) aceptarSalaHandler(w http.ResponseWriter, r *http.Request) {
 	u, err := s.UsuarioDAO.ObtenerUsuario(mensajeInicial.IdUsuario,
 		mensajeInicial.Clave)
 	if err != nil {
-		devolverErrorWebsocket(1, err.Error(), ws)
+		devolverErrorWebsocket(mensajes.ErrorUsuario, err.Error(), ws)
 		return
 	}
 
 	// Carga la referencia a la partida guardada en el servidor
 	p, ok := s.Partidas.Load(mensajeInicial.IdSala)
 	if !ok {
-		devolverErrorWebsocket(1, "Partida no encontrada", ws)
+		devolverErrorWebsocket(mensajes.ErrorPeticion, "Partida no encontrada", ws)
 		return
 	}
 
@@ -182,7 +182,7 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 			// Cargar los datos del usuario de la base de datos
 			u, err := s.UsuarioDAO.ObtenerUsuarioId(mt.IdUsuario)
 			if err != nil {
-				devolverErrorWebsocket(1, err.Error(), mt.Ws)
+				devolverErrorWebsocket(mensajes.ErrorPeticion, err.Error(), mt.Ws)
 			} else {
 				// Añadir el usuario a la partida
 				mensajeEnviar := s.PartidasDAO.EntrarPartida(p, u, mt.Ws)
@@ -199,9 +199,7 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 			// Invitar usuario a la partida
 			err := s.PartidasDAO.InvitarPartida(p, mt.IdCreador, mt.IdInvitado)
 			if err != nil {
-				devolverErrorUsuario(p, 1, mt.IdCreador, err.Error())
-			} else {
-				devolverErrorUsuario(p, baseDatos.NoError, mt.IdCreador, "")
+				devolverErrorUsuario(p, mensajes.ErrorUsuario, mt.IdCreador, err.Error())
 			}
 		case mensajesInternos.InicioPartida:
 			// Iniciar la partida
@@ -218,7 +216,7 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 			if mt.IdUsuario == p.IdCreador {
 				// Enviar a todos que el creador ha abandonado
 				enviarATodos(p, mensajes.ErrorJsonPartida("El creador de "+
-					"la sala se ha desconectado", 1))
+					"la sala se ha desconectado", mensajes.CierreSala))
 				// Borrar la partida de la estructura del servidor
 				s.Partidas.Delete(p.IdPartida)
 				// Borrar la partida de la base de datos
@@ -232,7 +230,7 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 				}
 			}
 		case mensajesInternos.MensajeInvalido:
-			devolverErrorUsuario(p, 1, mt.IdUsuario, mt.Err)
+			devolverErrorUsuario(p, mensajes.ErrorPeticion, mt.IdUsuario, mt.Err)
 		}
 	}
 }

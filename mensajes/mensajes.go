@@ -1,5 +1,13 @@
 package mensajes
 
+// Códigos de error posibles
+const (
+	NoError       = 0
+	ErrorPeticion = iota
+	ErrorUsuario  = iota
+	CierreSala    = iota
+)
+
 type JsonData map[string]interface{}
 
 /*

@@ -72,11 +72,11 @@ func TestAceptarSolicitudAmistad(t *testing.T) {
 	// Comprobar que se borran las dos solicitudes al aceptar una
 	// Es posible que ya existan y den error
 	envioSolicitud := daoAmigos.EnviarSolicitudAmistad(u1, nombreAmigo2)
-	if envioSolicitud["code"] == baseDatos.ErrorAmistadDuplicada {
+	if envioSolicitud["code"] == mensajes.ErrorPeticion {
 		t.Fatal(envioSolicitud["err"])
 	}
 	envioSolicitud = daoAmigos.EnviarSolicitudAmistad(u2, nombreAmigo1)
-	if envioSolicitud["code"] == baseDatos.ErrorAmistadDuplicada {
+	if envioSolicitud["code"] == mensajes.ErrorPeticion {
 		t.Fatal(envioSolicitud["err"])
 	}
 	obtenido := daoAmigos.AceptarSolicitudAmistad(u2, u1.Id)
@@ -155,7 +155,7 @@ func TestRechazarSolicitudAmistad(t *testing.T) {
 		t.Fatalf("Error iniciando sesión: %q\n", err)
 	}
 	envioSolicitud := daoAmigos.EnviarSolicitudAmistad(u2, nombreAmigo1)
-	if envioSolicitud["code"] == baseDatos.ErrorAmistadDuplicada {
+	if envioSolicitud["code"] == mensajes.ErrorPeticion {
 		t.Fatal(envioSolicitud["err"])
 	}
 	obtenido := daoAmigos.RechazarSolicitudAmistad(u1, u2.Id)

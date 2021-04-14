@@ -43,14 +43,14 @@ const (
 func (dao *AmigosDAO) ObtenerAmigos(u Usuario) mensajes.JsonData {
 	filas, err := dao.bd.Query(consultaAmigos, u.Id)
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorLeerAmigos)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 	var amigos []mensajes.JsonData
 	for filas.Next() {
 		var id, icono, aspecto int
 		var nombre string
 		if err := filas.Scan(&id, &nombre, &icono, &aspecto); err != nil {
-			return mensajes.ErrorJson(err.Error(), ErrorLeerAmigos)
+			return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 		}
 		amigos = append(amigos, mensajes.AmigoJson(id, icono, aspecto, nombre))
 	}
@@ -71,42 +71,42 @@ func (dao *AmigosDAO) EliminarAmigo(u Usuario, id int) mensajes.JsonData {
 	ctx := context.Background()
 	tx, err := dao.bd.BeginTx(ctx, nil)
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorIniciarTransaccion)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 
 	// Eliminar de la base de datos que son amigos
 	resultadoConsulta, err := tx.ExecContext(ctx, eliminarAmistad, id1, id2)
 	if err != nil {
 		tx.Rollback()
-		return mensajes.ErrorJson(err.Error(), ErrorEliminarAmigo)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 	// Si no eran amigos se devuelve un error pero no pasa nada
 	filasEliminadas, err := resultadoConsulta.RowsAffected()
 	if err != nil {
 		tx.Rollback()
-		return mensajes.ErrorJson(err.Error(), ErrorEliminarAmigo)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	} else if filasEliminadas == 0 {
 		tx.Rollback()
-		return mensajes.ErrorJson("Los usuarios no eran amigos", ErrorEliminarAmigo)
+		return mensajes.ErrorJson("Los usuarios no eran amigos", mensajes.ErrorPeticion)
 	}
 	// Eliminar todas las invitaciones que tuvieran mutuamente
 	_, err = tx.ExecContext(ctx, eliminarInvitaciones, id1, id2)
 	if err != nil {
 		tx.Rollback()
-		return mensajes.ErrorJson(err.Error(), ErrorEliminarAmigo)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 	_, err = tx.ExecContext(ctx, eliminarInvitaciones, id2, id1)
 	if err != nil {
 		tx.Rollback()
-		return mensajes.ErrorJson(err.Error(), ErrorEliminarAmigo)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 
 	// Finalizar la transacción
 	err = tx.Commit()
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorEliminarAmigo)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
-	return mensajes.ErrorJson("", NoError)
+	return mensajes.ErrorJson("", mensajes.NoError)
 }
 
 /*
@@ -124,44 +124,44 @@ func (dao *AmigosDAO) AceptarSolicitudAmistad(u Usuario, id int) mensajes.JsonDa
 	ctx := context.Background()
 	tx, err := dao.bd.BeginTx(ctx, nil)
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorIniciarTransaccion)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 
 	// Eliminar la solicitud ya que se ha aceptado
 	resultadoConsulta, err := tx.ExecContext(ctx, eliminarSolicitudAmistad, id, u.Id)
 	if err != nil {
 		tx.Rollback()
-		return mensajes.ErrorJson(err.Error(), ErrorAceptarAmigo)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 	// Si no existía la solicitud no se pueden hacer amigos
 	filasEliminadas, err := resultadoConsulta.RowsAffected()
 	if err != nil {
 		tx.Rollback()
-		return mensajes.ErrorJson(err.Error(), ErrorAceptarAmigo)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	} else if filasEliminadas == 0 {
 		tx.Rollback()
-		return mensajes.ErrorJson("No existe la solicitud de amistad", ErrorAceptarAmigo)
+		return mensajes.ErrorJson("No existe la solicitud de amistad", mensajes.ErrorPeticion)
 	}
 	// Si el usuario que acepta ha enviado solicitud de amistad al otro, eliminarla.
 	// No tiene por qué existir, si no está no se debe abortar el proceso.
 	_, err = tx.ExecContext(ctx, eliminarSolicitudAmistad, u.Id, id)
 	if err != nil {
 		tx.Rollback()
-		return mensajes.ErrorJson(err.Error(), ErrorAceptarAmigo)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 	// Guardar en la base de datos que son amigos
 	_, err = tx.ExecContext(ctx, crearAmistad, id1, id2)
 	if err != nil {
 		tx.Rollback()
-		return mensajes.ErrorJson(err.Error(), ErrorAceptarAmigo)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 
 	// Fin de la transacción
 	err = tx.Commit()
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorAceptarAmigo)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
-	return mensajes.ErrorJson("", NoError)
+	return mensajes.ErrorJson("", mensajes.NoError)
 }
 
 /*
@@ -173,16 +173,16 @@ func (dao *AmigosDAO) RechazarSolicitudAmistad(u Usuario, id int) mensajes.JsonD
 	// Eliminar de la base de datos la solicitud
 	resultadoConsulta, err := dao.bd.Exec(eliminarSolicitudAmistad, id, u.Id)
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorRechazarAmigo)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 	// Si no habia solicitud se devuelve un error pero no pasa nada
 	filasEliminadas, err := resultadoConsulta.RowsAffected()
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorRechazarAmigo)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	} else if filasEliminadas == 0 {
-		return mensajes.ErrorJson("No existe la solicitud de amistad", ErrorRechazarAmigo)
+		return mensajes.ErrorJson("No existe la solicitud de amistad", mensajes.ErrorPeticion)
 	}
-	return mensajes.ErrorJson("", NoError)
+	return mensajes.ErrorJson("", mensajes.NoError)
 }
 
 /*
@@ -196,7 +196,7 @@ func (dao *AmigosDAO) EnviarSolicitudAmistad(u Usuario, amigo string) mensajes.J
 	// Comprobar si el usuario al que se le quiere enviar la solicitud existe
 	err := dao.bd.QueryRow(obtenerIdUsuario, amigo).Scan(&idAmigo)
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorNombreUsuario)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 
 	id1 := min(u.Id, idAmigo)
@@ -205,16 +205,16 @@ func (dao *AmigosDAO) EnviarSolicitudAmistad(u Usuario, amigo string) mensajes.J
 	// Comprobar si los usuarios no son amigos ya
 	err = dao.bd.QueryRow(consultaAmistad, id1, id2).Scan(&id1)
 	if err == nil {
-		return mensajes.ErrorJson("Los usuarios ya son amigos", ErrorAmistadDuplicada)
+		return mensajes.ErrorJson("Los usuarios ya son amigos", mensajes.ErrorPeticion)
 	}
 	if err != sql.ErrNoRows {
-		return mensajes.ErrorJson(err.Error(), ErrorEnviarSolicitudAmistad)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 
 	// Guardar en la base de datos que se ha enviado la solicitud
 	_, err = dao.bd.Exec(solicitarAmistad, u.Id, idAmigo)
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), ErrorEnviarSolicitudAmistad)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
-	return mensajes.ErrorJson("", NoError)
+	return mensajes.ErrorJson("", mensajes.NoError)
 }

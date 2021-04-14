@@ -84,13 +84,12 @@ func (dao *PartidaDAO) CrearPartida(creador Usuario, tiempoTurno int, nombreSala
 	en caso de que no se haya podido iniciar, en formato json.
 */
 func (dao *PartidaDAO) IniciarPartida(p *Partida, idCreador int) mensajes.JsonData {
-
 	var res mensajes.JsonData
 
 	// Iniciar la partida
 	err := p.IniciarPartida(idCreador)
 	if err != nil {
-		return mensajes.ErrorJsonPartida(err.Error(), ErrorIniciarPartida)
+		return mensajes.ErrorJsonPartida(err.Error(), mensajes.ErrorPeticion)
 	}
 
 	// Inicia una transacción en la base de datos
@@ -98,14 +97,14 @@ func (dao *PartidaDAO) IniciarPartida(p *Partida, idCreador int) mensajes.JsonDa
 	tx, err := dao.bd.BeginTx(ctx, nil)
 	if err != nil {
 		p.AnularInicio()
-		return mensajes.ErrorJsonPartida(err.Error(), ErrorIniciarPartida)
+		return mensajes.ErrorJsonPartida(err.Error(), mensajes.ErrorPeticion)
 	}
 	// Borrar todas las invitaciones a la partida
 	_, err = tx.ExecContext(ctx, borrarInvitaciones, p.IdPartida)
 	if err != nil {
 		tx.Rollback()
 		p.AnularInicio()
-		return mensajes.ErrorJsonPartida(err.Error(), ErrorIniciarPartida)
+		return mensajes.ErrorJsonPartida(err.Error(), mensajes.ErrorPeticion)
 	}
 	// Actualiza el estado de la partida en la base de datos
 	estadoJson, _ := json.Marshal(p)
@@ -113,7 +112,7 @@ func (dao *PartidaDAO) IniciarPartida(p *Partida, idCreador int) mensajes.JsonDa
 	if err != nil {
 		tx.Rollback()
 		p.AnularInicio()
-		return mensajes.ErrorJsonPartida(err.Error(), ErrorIniciarPartida)
+		return mensajes.ErrorJsonPartida(err.Error(), mensajes.ErrorPeticion)
 	}
 	// Guardar en la base de datos qué jugadores juegan en la partida
 	for _, j := range p.Jugadores {
@@ -121,7 +120,7 @@ func (dao *PartidaDAO) IniciarPartida(p *Partida, idCreador int) mensajes.JsonDa
 		if err != nil {
 			tx.Rollback()
 			p.AnularInicio()
-			return mensajes.ErrorJsonPartida(err.Error(), ErrorIniciarPartida)
+			return mensajes.ErrorJsonPartida(err.Error(), mensajes.ErrorPeticion)
 		}
 	}
 	// Codificar los datos de la partida en formato json
@@ -130,7 +129,7 @@ func (dao *PartidaDAO) IniciarPartida(p *Partida, idCreador int) mensajes.JsonDa
 	err = tx.Commit()
 	if err != nil {
 		p.AnularInicio()
-		return mensajes.ErrorJsonPartida(err.Error(), ErrorIniciarPartida)
+		return mensajes.ErrorJsonPartida(err.Error(), mensajes.ErrorPeticion)
 	}
 	res["_tipoMensaje"] = "p"
 	return res
@@ -181,17 +180,17 @@ func (dao *PartidaDAO) EntrarPartida(p *Partida, u Usuario, ws *websocket.Conn) 
 	// Comprobar si el usuario está invitado
 	err := dao.bd.QueryRow(consultaInvitacion, u.Id, p.IdPartida).Scan(&numInvitaciones)
 	if err != nil {
-		return mensajes.ErrorJsonPartida(err.Error(), ErrorUnirsePartida)
+		return mensajes.ErrorJsonPartida(err.Error(), mensajes.ErrorPeticion)
 	}
 	if numInvitaciones == 0 {
 		return mensajes.ErrorJsonPartida("No puedes unirte a una partida sin ser invitado",
-			ErrorFaltaPermisoUnirse)
+			mensajes.ErrorPeticion)
 	}
 
 	// Actualizar la partida con el nuevo usuario
 	err = p.EntrarPartida(u, ws)
 	if err != nil {
-		return mensajes.ErrorJsonPartida(err.Error(), ErrorUnirsePartida)
+		return mensajes.ErrorJsonPartida(err.Error(), mensajes.ErrorPeticion)
 	}
 
 	// Codificar los datos de la partida en formato json
@@ -210,7 +209,7 @@ func (dao *PartidaDAO) AbandonarPartida(p *Partida, IdUsuario int) mensajes.Json
 
 	// Esta función no se puede utilizar para borrar al creador
 	if p.IdCreador == IdUsuario {
-		return mensajes.ErrorJsonPartida("Mal uso de la funcion", ErrorUnirsePartida)
+		return mensajes.ErrorJsonPartida("Mal uso de la funcion", mensajes.ErrorPeticion)
 	}
 
 	// Eliminar al jugador de la partida

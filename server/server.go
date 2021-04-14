@@ -88,13 +88,13 @@ func (s *Servidor) crearMensajeUsuario(u baseDatos.Usuario) mensajes.JsonData {
 	// Obtener iconos de usuario
 	iconos, err := s.TiendaDAO.ObtenerIconos(u)
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), 1)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 
 	// Obtener aspectos de usuario
 	aspectos, err := s.TiendaDAO.ObtenerAspectos(u)
 	if err != nil {
-		return mensajes.ErrorJson(err.Error(), 1)
+		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 
 	return mensajes.JsonData{
@@ -132,12 +132,12 @@ func (s *Servidor) registroUsuarioHandler(w http.ResponseWriter, r *http.Request
 	decoder := form.NewDecoder()
 	err := r.ParseForm()
 	if err != nil {
-		devolverError(1, err.Error(), w)
+		devolverError(mensajes.ErrorPeticion, err.Error(), w)
 		return
 	}
 	err = decoder.Decode(&f, r.PostForm)
 	if err != nil {
-		devolverError(1, "Campos formulario incorrectos", w)
+		devolverError(mensajes.ErrorPeticion, "Campos formulario incorrectos", w)
 		return
 	}
 
@@ -145,7 +145,7 @@ func (s *Servidor) registroUsuarioHandler(w http.ResponseWriter, r *http.Request
 	user, err := s.UsuarioDAO.CrearCuenta(f.Nombre, strings.ToLower(f.Correo),
 		f.Clave, f.RecibeCorreos)
 	if err != nil {
-		devolverError(1, err.Error(), w)
+		devolverError(mensajes.ErrorPeticion, err.Error(), w)
 		return
 	}
 
@@ -172,12 +172,12 @@ func (s *Servidor) inicioSesionHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := form.NewDecoder()
 	err := r.ParseForm()
 	if err != nil {
-		devolverError(1, err.Error(), w)
+		devolverError(mensajes.ErrorPeticion, err.Error(), w)
 		return
 	}
 	err = decoder.Decode(&f, r.PostForm)
 	if err != nil {
-		devolverError(1, "Campos formulario incorrectos", w)
+		devolverError(mensajes.ErrorPeticion, "Campos formulario incorrectos", w)
 		return
 	}
 
@@ -188,7 +188,7 @@ func (s *Servidor) inicioSesionHandler(w http.ResponseWriter, r *http.Request) {
 		user, err = s.UsuarioDAO.IniciarSesionNombre(f.Usuario, f.Clave)
 	}
 	if err != nil {
-		devolverError(1, "No se ha podido iniciar sesion", w)
+		devolverError(mensajes.ErrorPeticion, "No se ha podido iniciar sesion", w)
 		return
 	}
 
@@ -214,26 +214,26 @@ func (s *Servidor) personalizarUsuarioHandler(w http.ResponseWriter, r *http.Req
 	decoder := form.NewDecoder()
 	err := r.ParseForm()
 	if err != nil {
-		devolverError(1, err.Error(), w)
+		devolverError(mensajes.ErrorPeticion, err.Error(), w)
 		return
 	}
 	err = decoder.Decode(&f, r.PostForm)
 	if err != nil {
-		devolverError(1, "Campos formulario incorrectos", w)
+		devolverError(mensajes.ErrorPeticion, "Campos formulario incorrectos", w)
 		return
 	}
 
 	// Obtener datos actuales del usuario de la base de datos
 	user, err := s.UsuarioDAO.ObtenerUsuario(f.ID, f.Clave)
 	if err != nil {
-		devolverError(1, "No se ha podido obtener el usuario", w)
+		devolverError(mensajes.ErrorUsuario, "No se ha podido obtener el usuario", w)
 		return
 	}
 
 	// Modificar los datos y devolver el resultado de la modificación
 	err = user.Modificar(f.Tipo, f.Dato)
 	if err != nil {
-		devolverError(1, err.Error(), w)
+		devolverError(mensajes.ErrorPeticion, err.Error(), w)
 		return
 	}
 	respuesta, _ := json.MarshalIndent(s.UsuarioDAO.ActualizarUsuario(user), "", " ")
@@ -261,19 +261,19 @@ func (s *Servidor) gestionAmistadHandler(w http.ResponseWriter, r *http.Request)
 	decoder := form.NewDecoder()
 	err := r.ParseForm()
 	if err != nil {
-		devolverError(1, err.Error(), w)
+		devolverError(mensajes.ErrorPeticion, err.Error(), w)
 		return
 	}
 	err = decoder.Decode(&f, r.PostForm)
 	if err != nil {
-		devolverError(1, "Campos formulario incorrectos", w)
+		devolverError(mensajes.ErrorPeticion, "Campos formulario incorrectos", w)
 		return
 	}
 
 	// Obtener los datos del usuario que solicita una acción
 	user, err := s.UsuarioDAO.ObtenerUsuario(f.ID, f.Clave)
 	if err != nil {
-		devolverError(1, "No se ha podido obtener el usuario", w)
+		devolverError(mensajes.ErrorUsuario, "No se ha podido obtener el usuario", w)
 		return
 	}
 
@@ -287,7 +287,7 @@ func (s *Servidor) gestionAmistadHandler(w http.ResponseWriter, r *http.Request)
 		resultado = s.AmigosDAO.RechazarSolicitudAmistad(user, f.IDamigo)
 	default:
 		resultado = mensajes.ErrorJson("La decision no es valida",
-			baseDatos.ErrorTipoIncorrecto)
+			mensajes.ErrorPeticion)
 	}
 
 	// Devolver resultado
@@ -311,19 +311,19 @@ func (s *Servidor) solicitudAmistadHandler(w http.ResponseWriter, r *http.Reques
 	decoder := form.NewDecoder()
 	err := r.ParseForm()
 	if err != nil {
-		devolverError(1, err.Error(), w)
+		devolverError(mensajes.ErrorPeticion, err.Error(), w)
 		return
 	}
 	err = decoder.Decode(&f, r.PostForm)
 	if err != nil {
-		devolverError(1, "Campos formulario incorrectos", w)
+		devolverError(mensajes.ErrorPeticion, "Campos formulario incorrectos", w)
 		return
 	}
 
 	// Obtener los datos del usuario que va a enviar la solicitud
 	user, err := s.UsuarioDAO.ObtenerUsuario(f.ID, f.Clave)
 	if err != nil {
-		devolverError(1, "No se ha podido obtener el usuario", w)
+		devolverError(mensajes.ErrorUsuario, "No se ha podido obtener el usuario", w)
 		return
 	}
 
@@ -355,14 +355,14 @@ func (s *Servidor) obtener(w http.ResponseWriter, r *http.Request,
 	}
 	err = decoder.Decode(&f, r.PostForm)
 	if err != nil {
-		devolverError(1, "Campos formulario incorrectos", w)
+		devolverError(mensajes.ErrorPeticion, "Campos formulario incorrectos", w)
 		return
 	}
 
 	// Obtener los datos básicos del usuario
 	user, err := s.UsuarioDAO.ObtenerUsuario(f.ID, f.Clave)
 	if err != nil {
-		devolverError(1, "No se ha podido obtener el usuario", w)
+		devolverError(mensajes.ErrorUsuario, "No se ha podido obtener el usuario", w)
 		return
 	}
 
@@ -407,26 +407,26 @@ func (s *Servidor) partidasHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := form.NewDecoder()
 	err := r.ParseForm()
 	if err != nil {
-		devolverError(1, err.Error(), w)
+		devolverError(mensajes.ErrorPeticion, err.Error(), w)
 		return
 	}
 	err = decoder.Decode(&f, r.PostForm)
 	if err != nil {
-		devolverError(1, "Campos formulario incorrectos", w)
+		devolverError(mensajes.ErrorPeticion, "Campos formulario incorrectos", w)
 		return
 	}
 
 	// Obtener los datos básicos del usuario
 	user, err := s.UsuarioDAO.ObtenerUsuario(f.ID, f.Clave)
 	if err != nil {
-		devolverError(1, "No se ha podido obtener el usuario", w)
+		devolverError(mensajes.ErrorUsuario, "No se ha podido obtener el usuario", w)
 		return
 	}
 
 	// Obtener los identificadores de partidas
 	ids, err := s.PartidasDAO.ObtenerPartidas(user)
 	if err != nil {
-		devolverError(1, "No se han podido obtener las partidas", w)
+		devolverError(mensajes.ErrorPeticion, "No se han podido obtener las partidas", w)
 		return
 	}
 
@@ -472,19 +472,19 @@ func (s *Servidor) comprarHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := form.NewDecoder()
 	err := r.ParseForm()
 	if err != nil {
-		devolverError(1, err.Error(), w)
+		devolverError(mensajes.ErrorPeticion, err.Error(), w)
 		return
 	}
 	err = decoder.Decode(&f, r.PostForm)
 	if err != nil {
-		devolverError(1, "Campos formulario incorrectos", w)
+		devolverError(mensajes.ErrorPeticion, "Campos formulario incorrectos", w)
 		return
 	}
 
 	// Obtener los datos del usuario que va a comprar
 	user, err := s.UsuarioDAO.ObtenerUsuario(f.ID, f.Clave)
 	if err != nil {
-		devolverError(1, "No se ha podido obtener el usuario", w)
+		devolverError(mensajes.ErrorUsuario, "No se ha podido obtener el usuario", w)
 		return
 	}
 
@@ -493,19 +493,19 @@ func (s *Servidor) comprarHandler(w http.ResponseWriter, r *http.Request) {
 	case "Aspecto":
 		p, enc := s.Tienda.ObtenerPrecioAspecto(f.Cosmetico)
 		if !enc {
-			devolverError(1, "Aspecto no encontrado", w)
+			devolverError(mensajes.ErrorPeticion, "Aspecto no encontrado", w)
 			return
 		}
 		resultado = s.TiendaDAO.ComprarAspecto(&user, f.Cosmetico, p)
 	case "Icono":
 		p, enc := s.Tienda.ObtenerPrecioIcono(f.Cosmetico)
 		if !enc {
-			devolverError(1, "Icono no encontrado", w)
+			devolverError(mensajes.ErrorPeticion, "Icono no encontrado", w)
 			return
 		}
 		resultado = s.TiendaDAO.ComprarIcono(&user, f.Cosmetico, p)
 	default:
-		devolverError(1, "El tipo no existe", w)
+		devolverError(mensajes.ErrorPeticion, "El tipo no existe", w)
 		return
 	}
 

@@ -269,7 +269,7 @@ Peticiones relacionadas con las partidas.
                         "ultimoTurno": ISO8601, 
                     } ],   
             }
-    
+
         **partidas:**
         - **id:** identificador numérico de la partida.
         - **nombre:** nombre de la partida.
