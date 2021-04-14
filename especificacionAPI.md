@@ -4,41 +4,41 @@ Esta API utiliza peticiones HTTP POST con los parámetros en formato URL-Encoded
 * [Errores y confirmaciones](#errores-y-confirmaciones)
 * [Sistema de usuarios](#sistema-de-usuarios)
     * [JSON de datos completos de usuario](#json-de-datos-completos-de-usuario)
-    * [/registrar](#-registrar)
-    * [/iniciarSesion](#-iniciarsesion)
-    * [/recargarUsuario](#-recargarusuario)
-    * [/personalizarUsuario](#-personalizarUsuario)
-    * [/notificaciones](#-notificaciones)
+    * [/registrar](#registrar)
+    * [/iniciarSesion](#iniciarsesion)
+    * [/recargarUsuario](#recargarusuario)
+    * [/personalizarUsuario](#personalizarUsuario)
+    * [/notificaciones](#notificaciones)
 * [Sistema de Amigos](#sistema-de-amigos)
-    * [/amigos](#-amigos)
-    * [/enviarSolicitudAmistad](#-enviarsolicitudamistad)
-    * [/gestionAmistad](#-gestionamistad)
+    * [/amigos](#amigos)
+    * [/enviarSolicitudAmistad](#enviarsolicitudamistad)
+    * [/gestionAmistad](#gestionamistad)
 * [Tienda](#tienda)
-    * [/comprar](#-comprar)
+    * [/comprar](#comprar)
 * [Partidas](#partidas)
-    * [/partidas](#-partidas)
-    * [/rechazarPartida](#-rechazarPartida)
+    * [/partidas](#partidas-1)
+    * [/rechazarPartida](#rechazarpartida)
 
 ## Errores y confirmaciones
-Si ocurre algun error en la petición se devuelve un error en formato JSON.
+Si ocurre algún error en la petición se devuelve un error en formato JSON.
 
     {
         "code": int,
         "err": string,
     }
 
-**code:** Indica el tipo de error y la accion a tomar por el cliente. Puede tomar los siguientes valores:
-- 0: No ha ocurrido ningun error y la operación solicitada se ha llevado a cabo, no se requiere ninguna acción. Se utiliza como confirmación de algunas peticiones.
+**code:** Indica el tipo de error y la acción a tomar por el cliente. Puede tomar los siguientes valores:
+- 0: No ha ocurrido ningún error y la operación solicitada se ha llevado a cabo, no se requiere ninguna acción. Se utiliza como confirmación de algunas peticiones.
 - 1: Ha ocurrido un error y la operación solicitada no se ha llevado a cabo, no se requiere ninguna acción.
 - 2: Ha ocurrido un error verificando al usuario y la operación solicitada no se ha llevado a cabo, se requiere cerrar la sesión del usuario.
 
-**err:** Explica que error ha ocurrido.
+**err:** Explica qué error ha ocurrido.
 
 ## Sistema de usuarios
 Peticiones relacionadas con la creación de cuentas, inicio de sesión y personalización de cuentas.
 
 - ## JSON de datos completos de usuario
-    Cuando se tengan que enviar los datos completos sobre un usuario se utilizará este JSON. Tambien se incluye la tienda en este 
+    Cuando se tengan que enviar los datos completos sobre un usuario se utilizará este JSON. También se incluye la tienda en él. 
 
         {
             "usuario": {
@@ -82,7 +82,7 @@ Peticiones relacionadas con la creación de cuentas, inicio de sesión y persona
     - **precio:** precio del aspecto.
 
 - ## /registrar
-    Se envian los datos necesarios para poder crear una nueva cuenta de usuario. Si la cuentra se crea correctamente se devuelven los datos completos de usuario. Si no se puede crear la cuenta se devuelve un error.
+    Se envían los datos necesarios para poder crear una nueva cuenta de usuario. Si la cuenta se crea correctamente se devuelven los datos completos de usuario. Si no se puede crear la cuenta se devuelve un error.
 
     - **Parámetros:**
         | Nombre        | Tipo   | Descripción                                       |
@@ -97,7 +97,7 @@ Peticiones relacionadas con la creación de cuentas, inicio de sesión y persona
         JSON de datos completos de usuario o JSON de error. 
 
 - ## /iniciarSesion
-    Se envian los datos de inicio de sesión de un usuario y se devuelven los datos completos de usuario. Si los datos de inicio de sesión no coinciden con los de nigun usuario se devuelve un error.
+    Se envian los datos de inicio de sesión de un usuario y se devuelven los datos completos de usuario. Si los datos de inicio de sesión no coinciden con los de ningún usuario se devuelve un error.
 
     - **Parámetros:**
         | Nombre  | Tipo   | Descripción                         |
@@ -110,7 +110,7 @@ Peticiones relacionadas con la creación de cuentas, inicio de sesión y persona
         JSON de datos completos de usuario o JSON de error.
 
 - ## /recargarUsuario
-    Se envia el identificador numérico de un usuario junto con su clave y se devuelven los datos de un usuario que se encuentren en la base de datos o un error. El identificador numérico no cambia una vez se ha creado la cuenta por lo que esta función permite obtener cambios en el usuario que se han realizado desde otras sesiones.
+    Se envía el identificador numérico de un usuario junto con su clave y se devuelven los datos de un usuario que se encuentren en la base de datos o un error. El identificador numérico no cambia una vez se ha creado la cuenta por lo que esta función permite obtener cambios en el usuario que se han realizado desde otras sesiones.
 
     - **Parámetros:**
         | Nombre    | Tipo   | Descripción                         |
@@ -123,7 +123,7 @@ Peticiones relacionadas con la creación de cuentas, inicio de sesión y persona
         JSON de datos completos de usuario o JSON de error.
 
 - ## /personalizarUsuario
-    Se envia el identificador numérico del usuario y su clave junto con el parámetro a modificar de su cuenta y su nuevo valor. Se devuelve un error. Este será error nulo en caso de que todo haya funcionado correctamente.
+    Se envía el identificador numérico del usuario y su clave junto con el parámetro a modificar de su cuenta y su nuevo valor. Se devuelve un error. Este será error nulo en caso de que todo haya funcionado correctamente.
 
     - **Parámetros:**
         | Nombre    | Tipo   | Descripción                         |
@@ -162,7 +162,7 @@ Peticiones relacionadas con la creación de cuentas, inicio de sesión y persona
             }
 
         **notificaciones**
-        - **infoExtra:** Contiene el nombre del usuario o la sala que ha enviado la notificación
+        - **infoExtra:** Contiene el nombre del usuario o la sala que ha enviado la notificación.
         - **tipo:** Indica si la notificación es una invitación a una sala, una solicitud de amistad o una notificación de turno. Puede tomar los siguientes valores:
             - Peticion de amistad
             - Invitacion
@@ -172,7 +172,7 @@ Peticiones relacionadas con la creación de cuentas, inicio de sesión y persona
 Peticiones relacionadas con enviar solicitudes de amistad, aceptarlas, rechazarlas y obtener la lista de amigos.
 
 - ## /amigos
-    Se envia el identificador numérico de un usuario junto con su clave y se devuelve su lista de amigos o un error.
+    Se envía el identificador numérico de un usuario junto con su clave y se devuelve su lista de amigos o un error.
 
     - **Parámetros:**
         | Nombre    | Tipo   | Descripción                         |
@@ -232,7 +232,7 @@ Peticiones relacionadas con enviar solicitudes de amistad, aceptarlas, rechazarl
 Peticiones relacionadas con la compra de elementos estéticos del juego.
 
 - ## /comprar
-    Se envian los datos de un usuario y del elemento que desea comprar. Se devuelve un error. Este será error nulo en caso de que todo haya funcionado correctamente.
+    Se envían los datos de un usuario y del elemento que desea comprar. Se devuelve un error. Este será error nulo en caso de que todo haya funcionado correctamente.
 
     - **Parámetros:**
         | Nombre    | Tipo   | Descripción                                               |
@@ -279,7 +279,7 @@ Peticiones relacionadas con las partidas.
         - **nombreTurno:** nombre del jugador que tiene el turno ahora.
         - **turnoActual:** turno actual de la partida.
         - **tiempoTurno:** duración de los turnos en minutos.
-        - **ultimoTurno:** fecha del ultimo movimiento.
+        - **ultimoTurno:** fecha del último movimiento.
 
     ## /rechazarPartida
     Se envía el identificador numérico de un usuario junto con su clave y el identificador numérico de una partida. Se devuelve la lista de notificaciones del usuario después de eliminar la invitación a la partida indicada o un error.
