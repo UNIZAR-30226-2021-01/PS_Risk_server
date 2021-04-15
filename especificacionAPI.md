@@ -293,4 +293,4 @@ Peticiones relacionadas con las partidas.
 
     - **Resultado:**
 
-        JSON con la lista de notificaciones o JSON de error.
+        JSON de error.

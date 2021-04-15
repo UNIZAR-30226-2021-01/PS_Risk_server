@@ -3,13 +3,11 @@ package server
 import (
 	"PS_Risk_server/baseDatos"
 	"PS_Risk_server/mensajes"
-	"strconv"
 	"sync"
 
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/go-playground/form/v4"
@@ -353,7 +351,7 @@ func (s *Servidor) obtener(w http.ResponseWriter, r *http.Request,
 	decoder := form.NewDecoder()
 	err := r.ParseForm()
 	if err != nil {
-		devolverError(1, err.Error(), w)
+		devolverError(mensajes.ErrorPeticion, err.Error(), w)
 		return
 	}
 	err = decoder.Decode(&f, r.PostForm)
@@ -555,11 +553,6 @@ func (s *Servidor) rechazarPartidaHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Devolver la nueva lista de notificaciones
-	parametrosNotificaciones := url.Values{
-		"idUsuario": {strconv.Itoa(u.Id)},
-		"clave":     {u.Clave},
-	}
-	r.Form = parametrosNotificaciones
-	s.obtener(w, r, s.UsuarioDAO.ObtenerNotificaciones)
+	// Devolver resultado
+	devolverError(mensajes.NoError, "", w)
 }
