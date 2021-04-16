@@ -264,11 +264,11 @@ Peticiones relacionadas con las partidas.
 
             {
                 "partidas": [ { 
-                        "id":int, 
-                        "nombre":string, 
-                        "nombreTurno":string,
-                        "turnoActual":int,
-                        "tiempoTurno":int, 
+                        "id": int, 
+                        "nombre": string, 
+                        "nombreTurno": string,
+                        "turnoActual": int,
+                        "tiempoTurno": int, 
                         "ultimoTurno": ISO8601, 
                     } ],   
             }
@@ -279,9 +279,9 @@ Peticiones relacionadas con las partidas.
         - **nombreTurno:** nombre del jugador que tiene el turno ahora.
         - **turnoActual:** turno actual de la partida.
         - **tiempoTurno:** duración de los turnos en minutos.
-        - **ultimoTurno:** fecha del último movimiento.
+        - **ultimoTurno:** fecha del último inicio de turno.
 
-    ## /rechazarPartida
+- ## /rechazarPartida
     Se envía el identificador numérico de un usuario junto con su clave y el identificador numérico de una partida. Se devuelve la lista de notificaciones del usuario después de eliminar la invitación a la partida indicada o un error.
 
     - **Parámetros:**
