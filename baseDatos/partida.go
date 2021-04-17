@@ -29,12 +29,13 @@ type Territorio struct {
 	Jugador almacena datos reducidos de un usuario.
 */
 type Jugador struct {
-	Id        int    `mapstructure:"id" json:"id"`
-	Nombre    string `mapstructure:"nombre" json:"nombre"`
-	Icono     int    `mapstructure:"icono" json:"icono"`
-	Aspecto   int    `mapstructure:"aspecto" json:"aspecto"`
-	SigueVivo bool   `mapstructure:"sigueVivo" json:"sigueVivo"`
-	Refuerzos int    `mapstructure:"refuerzos" json:"refuerzos"`
+	Id             int    `mapstructure:"id" json:"id"`
+	Nombre         string `mapstructure:"nombre" json:"nombre"`
+	Icono          int    `mapstructure:"icono" json:"icono"`
+	Aspecto        int    `mapstructure:"aspecto" json:"aspecto"`
+	SigueVivo      bool   `mapstructure:"sigueVivo" json:"sigueVivo"`
+	Refuerzos      int    `mapstructure:"refuerzos" json:"refuerzos"`
+	NumTerritorios int    `mapstructure:"-" json:"numTerritorios"`
 }
 
 /*
@@ -42,12 +43,13 @@ type Jugador struct {
 */
 func CrearJugador(u Usuario) Jugador {
 	return Jugador{
-		Id:        u.Id,
-		Nombre:    u.Nombre,
-		Icono:     u.Icono,
-		Aspecto:   u.Aspecto,
-		SigueVivo: true,
-		Refuerzos: 0,
+		Id:             u.Id,
+		Nombre:         u.Nombre,
+		Icono:          u.Icono,
+		Aspecto:        u.Aspecto,
+		SigueVivo:      true,
+		Refuerzos:      0,
+		NumTerritorios: 0,
 	}
 }
 
@@ -91,15 +93,8 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 	}
 
 	// Decidir asignación de territorios
-	p.Territorios = make([]Territorio, 0, numTerritorios)
-	t := Territorio{
-		IdJugador: 0,
-		NumTropas: 0,
-	}
-	for i := 0; i < numTerritorios; i++ {
-		t.IdTerritorio = i
-		p.Territorios = append(p.Territorios, t)
-	}
+	p.asignarTerritorios()
+
 	asignados := make([]int, len(p.Jugadores))
 	for i := 0; i < len(p.Jugadores); {
 		idTerritorio := rand.Intn(numTerritorios)
@@ -182,19 +177,55 @@ func (p *Partida) EstaEnPartida(idUsuario int) bool {
 }
 
 /*
-	AsignarTerritorios reparte todos los territorios del mapa entre los jugadores.
+	asignarTerritorios reparte todos los territorios del mapa entre los jugadores
+	y distribuye las tropas.
 */
-func (p *Partida) AsignarTerritorios() {
+func (p *Partida) asignarTerritorios() {
 	numJugadores := len(p.Jugadores)
-	numAsignados := 0
-	// Dar territorios aleatoriamente
-	for i := 0; i < numTerritorios/numJugadores; i++ {
-		jugadores := rand.Perm(numJugadores)
-		for k := 0; k < numJugadores && numAsignados < numTerritorios; k++ {
-			p.Territorios[numAsignados].IdJugador = jugadores[k]
-			numAsignados++
+	tropasTerritorio := tropasPorTerritorio(numJugadores)
+	p.Territorios = make([]Territorio, numTerritorios)
+	// Dar territorios aleatoriamente y colocar tropas en ellos
+	ordenAsignacion := rand.Perm(numTerritorios)
+	for i := 0; i < numTerritorios; i++ {
+		idTerritorio := ordenAsignacion[i]
+		p.Territorios[idTerritorio].IdTerritorio = idTerritorio
+		p.Territorios[idTerritorio].IdJugador = i % numJugadores
+		p.Territorios[idTerritorio].NumTropas = tropasTerritorio[i%numJugadores][i/numJugadores]
+	}
+	for i := range p.Jugadores {
+		p.Jugadores[i].NumTerritorios = len(tropasTerritorio[i])
+	}
+}
+
+/*
+	tropasPorTerritorio devuelve un slice de numJugadores slices.
+	El slice i-ésimo contiene cuántas tropas colocar en cada territorio del
+	jugador i.
+*/
+func tropasPorTerritorio(numJugadores int) [][]int {
+	var numTropasIniciales int
+	switch numJugadores {
+	case 3:
+		numTropasIniciales = 35
+	case 4:
+		numTropasIniciales = 30
+	case 5:
+		numTropasIniciales = 25
+	case 6:
+		numTropasIniciales = 20
+	}
+	tropasTerritorio := make([][]int, numJugadores)
+	for i := 0; i < numJugadores; i++ {
+		if i < numTerritorios%numJugadores {
+			tropasTerritorio[i] = make([]int, numTerritorios/numJugadores+1)
+		} else {
+			tropasTerritorio[i] = make([]int, numTerritorios/numJugadores)
+		}
+		for j := range tropasTerritorio[i] {
+			tropasTerritorio[i][j] = numTropasIniciales / len(tropasTerritorio)
 		}
 	}
+	return tropasTerritorio
 }
 
 /*
@@ -284,7 +315,9 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 		p.Territorios[idDestino].IdJugador = idJugador
 		p.Territorios[idDestino].NumTropas += atacantes
 		p.Territorios[idOrigen].NumTropas -= atacantes
-		if !p.tieneTerritorios(idDefensor) {
+		p.Jugadores[idJugador].NumTerritorios++
+		p.Jugadores[idDefensor].NumTerritorios--
+		if p.Jugadores[idDefensor].NumTerritorios == 0 {
 			p.Jugadores[idDefensor].SigueVivo = false
 		}
 	}
@@ -330,17 +363,4 @@ func borrar(lista []Jugador, valor int) []Jugador {
 	} else {
 		return append(lista[:i], lista[i+1:]...)
 	}
-}
-
-/*
-	tieneTerritorios devuelve true si un jugador posee al menos un territorio
-	del mapa, y devuelve falso si no posee ninguno.
-*/
-func (p *Partida) tieneTerritorios(idJugador int) bool {
-	for i := 0; i < numTerritorios; i++ {
-		if p.Territorios[i].IdJugador == idJugador {
-			return true
-		}
-	}
-	return false
 }
