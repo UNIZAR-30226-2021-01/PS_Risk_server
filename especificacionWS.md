@@ -128,6 +128,7 @@ Durante el transcurso de la conexión tanto el servidor como los clientes se pue
                 "tiempoTurno": int,
                 "nombreSala": string,
                 "turnoActual": int,
+                "turnoJugador": int,
                 "fase": int,
                 "ultimoTurno": ISO8601,
                 "jugadores": [ { "id":int, "nombre":string, "icono":int, "aspecto":int, "sigueVivo":bool, "refuerzos":int, } ],
