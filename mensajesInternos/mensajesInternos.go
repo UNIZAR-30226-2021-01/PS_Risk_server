@@ -43,14 +43,28 @@ type InvitacionPartida struct {
 	IdCreador, IdInvitado int
 }
 
-/*
-	AccionPartida indica que un usuario quiere realizar una acción en la partida,
-	cuál es su id y los necesarios para llevarla a cabo.
-*/
-type AccionPartida struct {
-	IdUsuario                                            int
-	Origen, Objetivo, NumTropasOrigen, NumTropasObjetivo int
-	Tipo                                                 string
+type MensajeFase struct {
+	IdUsuario int
+}
+
+type MensajeRefuerzos struct {
+	IdUsuario    int
+	IdTerritorio int
+	Tropas       int
+}
+
+type MensajeAtaque struct {
+	IdUsuario           int
+	IdTerritorioOrigen  int
+	IdTerritorioDestino int
+	Tropas              int
+}
+
+type MensajeMover struct {
+	IdUsuario           int
+	IdTerritorioOrigen  int
+	IdTerritorioDestino int
+	Tropas              int
 }
 
 /*

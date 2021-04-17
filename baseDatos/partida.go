@@ -92,23 +92,7 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 
 	// Decidir asignación de territorios
 	p.Territorios = make([]Territorio, 0, numTerritorios)
-	t := Territorio{
-		IdJugador: 0,
-		NumTropas: 0,
-	}
-	for i := 0; i < numTerritorios; i++ {
-		t.IdTerritorio = i
-		p.Territorios = append(p.Territorios, t)
-	}
-	asignados := make([]int, len(p.Jugadores))
-	for i := 0; i < len(p.Jugadores); {
-		idTerritorio := rand.Intn(numTerritorios)
-		if !contenido(asignados, idTerritorio) {
-			asignados[i] = idTerritorio
-			p.Territorios[idTerritorio].IdJugador = p.Jugadores[i].Id
-			i++
-		}
-	}
+	p.AsignarTerritorios()
 
 	p.TurnoActual = 1
 	p.Fase = 1
@@ -295,6 +279,10 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 		"dadosOrigen":       dadosAtaque,
 		"dadosDestrino":     dadosDefensa,
 	}
+}
+
+func (p *Partida) AsignarRefuerzos() {
+
 }
 
 // FUNCIONES AUXILIARES PARA EL MANEJO DE ARRAYS

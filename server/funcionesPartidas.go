@@ -121,8 +121,12 @@ func (s *Servidor) aceptarSalaHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type mensajeSala struct {
-	Tipo       string `json:"tipo"`
-	IdInvitado int    `json:"idInvitado,omitempty"`
+	Tipo                string `json:"tipo"`
+	IdInvitado          int    `json:"idInvitado,omitempty"`
+	IdTerritorio        int    `json:"id,omitempty"`
+	IdTerritorioOrigen  int    `json:"origen,omitempty"`
+	IdTerritorioDestino int    `json:"destino,omitempty"`
+	Tropas              int    `json:"tropas,omitempty"`
 }
 
 /*
@@ -149,7 +153,7 @@ func (s *Servidor) recibirMensajesUsuarioEnSala(u baseDatos.Usuario,
 			return
 		}
 
-		// Comprobar si es una invitación a otro usuario o iniciar la partida y notificarla
+		// Enviar el mensaje a la función que gestiona la partida
 		if strings.EqualFold(mensajeRecibido.Tipo, "Iniciar") {
 			p.Mensajes <- mensajesInternos.InicioPartida{
 				IdUsuario: u.Id,
@@ -159,10 +163,34 @@ func (s *Servidor) recibirMensajesUsuarioEnSala(u baseDatos.Usuario,
 				IdCreador:  u.Id,
 				IdInvitado: mensajeRecibido.IdInvitado,
 			}
+		} else if strings.EqualFold(mensajeRecibido.Tipo, "Fase") {
+			p.Mensajes <- mensajesInternos.MensajeFase{
+				IdUsuario: u.Id,
+			}
+		} else if strings.EqualFold(mensajeRecibido.Tipo, "Refuerzos") {
+			p.Mensajes <- mensajesInternos.MensajeRefuerzos{
+				IdUsuario:    u.Id,
+				IdTerritorio: mensajeRecibido.IdTerritorio,
+				Tropas:       mensajeRecibido.Tropas,
+			}
+		} else if strings.EqualFold(mensajeRecibido.Tipo, "Ataque") {
+			p.Mensajes <- mensajesInternos.MensajeAtaque{
+				IdUsuario:           u.Id,
+				IdTerritorioOrigen:  mensajeRecibido.IdTerritorioOrigen,
+				IdTerritorioDestino: mensajeRecibido.IdTerritorioDestino,
+				Tropas:              mensajeRecibido.Tropas,
+			}
+		} else if strings.EqualFold(mensajeRecibido.Tipo, "Movimiento") {
+			p.Mensajes <- mensajesInternos.MensajeMover{
+				IdUsuario:           u.Id,
+				IdTerritorioOrigen:  mensajeRecibido.IdTerritorioOrigen,
+				IdTerritorioDestino: mensajeRecibido.IdTerritorioDestino,
+				Tropas:              mensajeRecibido.Tropas,
+			}
 		} else {
 			p.Mensajes <- mensajesInternos.MensajeInvalido{
 				IdUsuario: u.Id,
-				Err:       "El tipo de acción debe ser Invitar o Iniciar",
+				Err:       "Mensaje erroneo",
 			}
 		}
 	}
@@ -231,6 +259,20 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 			}
 		case mensajesInternos.MensajeInvalido:
 			devolverErrorUsuario(p, mensajes.ErrorPeticion, mt.IdUsuario, mt.Err)
+		}
+	}
+}
+
+func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
+	for {
+		mensajeRecibido := <-p.Mensajes
+
+		switch mt := mensajeRecibido.(type) {
+		case mensajesInternos.MensajeFase:
+		case mensajesInternos.MensajeRefuerzos:
+		case mensajesInternos.MensajeAtaque:
+		case mensajesInternos.MensajeMover:
+		case mensajesInternos.MensajeInvalido:
 		}
 	}
 }
