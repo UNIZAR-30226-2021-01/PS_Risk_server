@@ -280,9 +280,13 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 	}
 	if p.Territorios[idDestino].NumTropas == 0 {
 		// Gana atacante -> Mover tropas atacantes supervivientes
+		idDefensor := p.Territorios[idDestino].IdJugador
 		p.Territorios[idDestino].IdJugador = idJugador
 		p.Territorios[idDestino].NumTropas += atacantes
 		p.Territorios[idOrigen].NumTropas -= atacantes
+		if !p.tieneTerritorios(idDefensor) {
+			p.Jugadores[idDefensor].SigueVivo = false
+		}
 	}
 	territorioOrigen := Territorio{}
 	territorioDestino := Territorio{}
@@ -326,4 +330,17 @@ func borrar(lista []Jugador, valor int) []Jugador {
 	} else {
 		return append(lista[:i], lista[i+1:]...)
 	}
+}
+
+/*
+	tieneTerritorios devuelve true si un jugador posee al menos un territorio
+	del mapa, y devuelve falso si no posee ninguno.
+*/
+func (p *Partida) tieneTerritorios(idJugador int) bool {
+	for i := 0; i < numTerritorios; i++ {
+		if p.Territorios[i].IdJugador == idJugador {
+			return true
+		}
+	}
+	return false
 }
