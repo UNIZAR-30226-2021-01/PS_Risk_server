@@ -81,7 +81,7 @@ Durante el transcurso de la conexión tanto el servidor como los clientes se pue
                 "tiempoTurno": int, 
                 "nombreSala": string, 
                 "idSala": int
-                "jugadores": [ { "id":int, "nombre":string, "icono":int, "aspecto": int } ] 
+                "jugadores": [ { "id":int, "nombre":string, "icono":int, "aspecto": int, "sigueVivo":bool, "refuerzos":int, } ] 
             }
 
         **_tipoMensaje:** se utiliza para ayudar a la decodificación por parte de los clientes. Para este mensaje su valor es "d".
