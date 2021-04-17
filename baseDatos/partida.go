@@ -1,13 +1,16 @@
 package baseDatos
 
 import (
+	"PS_Risk_server/mensajes"
 	"PS_Risk_server/mensajesInternos"
 	"errors"
 	"math/rand"
+	"sort"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/mitchellh/mapstructure"
 )
 
 const numTerritorios = 42
@@ -17,8 +20,9 @@ const maxMensajes = 100
 	Territorio almacena los datos de un territorio.
 */
 type Territorio struct {
-	IdJugador int `mapstructure:"idJugador" json:"idJugador"`
-	NumTropas int `mapstructure:"numTropas" json:"numTropas"`
+	IdTerritorio int `mapstructure:"id" json:"id"`
+	IdJugador    int `mapstructure:"jugador" json:"jugador"`
+	NumTropas    int `mapstructure:"tropas" json:"tropas"`
 }
 
 /*
@@ -30,6 +34,7 @@ type Jugador struct {
 	Icono     int    `mapstructure:"icono" json:"icono"`
 	Aspecto   int    `mapstructure:"aspecto" json:"aspecto"`
 	SigueVivo bool   `mapstructure:"sigueVivo" json:"sigueVivo"`
+	Refuerzos int    `mapstructure:"refuerzos" json:"refuerzos"`
 }
 
 /*
@@ -42,6 +47,7 @@ func CrearJugador(u Usuario) Jugador {
 		Icono:     u.Icono,
 		Aspecto:   u.Aspecto,
 		SigueVivo: true,
+		Refuerzos: 0,
 	}
 }
 
@@ -91,6 +97,7 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 		NumTropas: 0,
 	}
 	for i := 0; i < numTerritorios; i++ {
+		t.IdTerritorio = i
 		p.Territorios = append(p.Territorios, t)
 	}
 	asignados := make([]int, len(p.Jugadores))
@@ -172,6 +179,122 @@ func (p *Partida) EstaEnPartida(idUsuario int) bool {
 		}
 	}
 	return false
+}
+
+/*
+	AsignarTerritorios reparte todos los territorios del mapa entre los jugadores.
+*/
+func (p *Partida) AsignarTerritorios() {
+	numJugadores := len(p.Jugadores)
+	numAsignados := 0
+	// Dar territorios aleatoriamente
+	for i := 0; i < numTerritorios/numJugadores; i++ {
+		jugadores := rand.Perm(numJugadores)
+		for k := 0; k < numJugadores && numAsignados < numTerritorios; k++ {
+			p.Territorios[numAsignados].IdJugador = jugadores[k]
+			numAsignados++
+		}
+	}
+}
+
+/*
+	Refuerzo coloca tropas de un jugador en un territorio y devuelve un JSON
+	con el estado en el que ha quedado el territorio y un campo "_tipoMensaje".
+	Si ocurre algún error lo devuelve en formato JSON.
+*/
+func (p *Partida) Refuerzo(idDestino, idJugador, refuerzos int) mensajes.JsonData {
+	// Comprobar que el territorio pertenece al jugador
+	if p.Territorios[idDestino].IdJugador != idJugador {
+		return mensajes.ErrorJsonPartida("El territorio no pertenece a este jugador", 1)
+	}
+	// Comprobar que tiene suficientes refuerzos
+	if p.Jugadores[idJugador].Refuerzos < refuerzos {
+		return mensajes.ErrorJsonPartida("Se están intentando asignar más tropas"+
+			" que las disponibles", 1)
+	}
+	if refuerzos < 0 {
+		return mensajes.ErrorJsonPartida("No se puede asignar un número negativo"+
+			"de tropas a un territorio", 1)
+	}
+	// Algoritmo de refuerzo
+	p.Territorios[idDestino].NumTropas += refuerzos
+	p.Jugadores[idJugador].Refuerzos -= refuerzos
+	territorio := mensajes.JsonData{}
+	mapstructure.Decode(p.Territorios[idDestino], &territorio)
+	return mensajes.JsonData{
+		"_tipoMensaje": "r",
+		"territorio":   territorio,
+	}
+}
+
+/*
+	Ataque realiza un ataque entre los territorios indicados y devuelve un JSON
+	con el estado de los territorios involucrados después del ataque y los
+	valores obtenidos en los dados.
+	Si ocurre algún error lo devuelve en formato JSON.
+*/
+func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes.JsonData {
+	// Comprobar que el territorio del que parte el ataque pertenece al jugador
+	if p.Territorios[idOrigen].IdJugador != idJugador {
+		return mensajes.ErrorJsonPartida("No se puede atacar desde un territorio"+
+			" que no te pertenece", 1)
+	}
+	// Comprobar que el territorio al que ataca no pertenece al jugador
+	if p.Territorios[idDestino].IdJugador == idJugador {
+		return mensajes.ErrorJsonPartida("No se puede atacar a un territorio"+
+			"que ya te pertenece", 1)
+	}
+	// Comprobar que los territorios son adyacentes
+	// TODO
+	// Comprobar que se tienen suficientes tropas (y el origen no queda vacío)
+	if p.Territorios[idOrigen].NumTropas <= atacantes {
+		return mensajes.ErrorJsonPartida("No tienes tropas suficientes, siempre"+
+			" debe quedar al menos una tropa en el territorio de origen", 1)
+	}
+
+	// Algoritmo ataque
+	dadosAtaque := []int{}
+	dadosDefensa := []int{}
+	// Lanzar los dados del atacante
+	for i := 0; i < 3 && i < atacantes; i++ {
+		dadosAtaque[i] = rand.Intn(6) + 1
+	}
+	// Lanzar los dados del defensor
+	defensores := min(3, p.Territorios[idDestino].NumTropas)
+	for i := 0; i < defensores; i++ {
+		dadosDefensa[i] = rand.Intn(6) + 1
+	}
+	// Ordenar los dados de mayor a menor
+	sort.Sort(sort.Reverse(sort.IntSlice(dadosAtaque)))
+	sort.Sort(sort.Reverse(sort.IntSlice(dadosDefensa)))
+	// Resolver ataque
+	for i := 0; i < min(len(dadosAtaque), len(dadosDefensa)); i++ {
+		if dadosAtaque[i] > dadosDefensa[i] {
+			// Gana atacante
+			p.Territorios[idDestino].NumTropas--
+		} else {
+			// Gana defensor
+			atacantes--
+			p.Territorios[idOrigen].NumTropas--
+		}
+	}
+	if p.Territorios[idDestino].NumTropas == 0 {
+		// Gana atacante -> Mover tropas atacantes supervivientes
+		p.Territorios[idDestino].IdJugador = idJugador
+		p.Territorios[idDestino].NumTropas += atacantes
+		p.Territorios[idOrigen].NumTropas -= atacantes
+	}
+	territorioOrigen := Territorio{}
+	territorioDestino := Territorio{}
+	mapstructure.Decode(p.Territorios[idOrigen], &territorioOrigen)
+	mapstructure.Decode(p.Territorios[idDestino], &territorioDestino)
+	return mensajes.JsonData{
+		"_tipoMensaje":      "a",
+		"territorioOrigen":  territorioOrigen,
+		"territorioDestino": territorioDestino,
+		"dadosOrigen":       dadosAtaque,
+		"dadosDestrino":     dadosDefensa,
+	}
 }
 
 // FUNCIONES AUXILIARES PARA EL MANEJO DE ARRAYS
