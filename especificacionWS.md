@@ -1,18 +1,6 @@
 # COMUNICACIÓN CON WEBSOCKETS
 Cuando un cliente se conecte a una sala se establecerá una conexión mediante WebSockets. Tanto los parámetros como resultados se envían en formato JSON. Las conexiones son a la URL base https://risk-servidor.herokuapp.com/.
 
-* [Establecer una conexión](#establecer-una-conexi-n)
-    * [/crearSala](#-crearsala)
-    * [/aceptarSala](#-aceptarsala)
-* [Mensajes](#mensajes)
-    * [Errores](#errores)
-    * [Salas de espera](#salas-de-espera)
-        * [Información de sala](#informaci-n-de-sala)
-        * [Invitar un participante a la sala](#invitar-un-participante-a-la-sala)
-        * [Iniciar partida](#iniciar-partida)
-    * [Partida](#partida)
-        * [Información de partida](#informaci-n-de-partida)
-
 ## Establecer una conexión
 Cuando un cliente quiera establecer una conexión WebSocket con una sala debe hacerlo en las siguientes URL.
 
@@ -48,6 +36,21 @@ Cuando un cliente quiera establecer una conexión WebSocket con una sala debe ha
     **clave:** hash SHA256 de la clave del usuario.
 
     **idSala:** identificador numérico de la sala a la que se quiere unir.
+
+- ## /entrarPartida
+    Cuando un cliente solicite unirse a una partida empezada debe establecer una conexión a esta URL y enviar el siguiente mensaje.
+
+        { 
+            "idUsuario": int, 
+            "clave": string, 
+            "idSala": int,
+        }
+    
+    **idUsuario:** identificador numérico del usuario que quiere entrar a la sala.
+    
+    **clave:** hash SHA256 de la clave del usuario.
+
+    **idSala:** identificador numérico de la partida a la que se quiere unir.
 
 ## Mensajes
 Durante el transcurso de la conexión tanto el servidor como los clientes se pueden enviar mensajes en formato JSON. Los mensajes estan detallados a continuación.
@@ -120,8 +123,21 @@ Durante el transcurso de la conexión tanto el servidor como los clientes se pue
         **tipo:** se utiliza para ayudar a la decodificación por parte del servidor. Para este mensaje su valor es "Iniciar"
 
 - ## Partida
+    - ## Territorios 
+        Cuando el servidor quiera mandar la información sobre algun territorio la codificara de la siguiente manera
+
+            {
+                "id":int, 
+                "jugador":int, 
+                "tropas":int,
+            }
+
+        - **id:** identificador numérico del territorio.
+        - **jugador:** identificador numérico dentro de la partida del jugador propietario del territorio.
+        - **tropas:** número de tropas en el territorio.
+
     - ## Información de partida
-        El servidor envía este mensaje a todos los jugadores conectados cuando la partida se inicia y cuando se pasa de turno durante una partida.
+        El servidor envía este mensaje a todos los jugadores conectados cuando la partida se inicia y cuando se pasa de turno durante una partida. Cuando un jugador se conecta a una partida tambien recibe este mensaje.
 
             {
                 "_tipoMensaje": "p",
@@ -156,7 +172,121 @@ Durante el transcurso de la conexión tanto el servidor como los clientes se pue
         - **refuerzos:** número de tropas de refuerzos de las que dispone el jugador.
 
         **territorios:** lista de territorios de la partida. 
-        - **id:** identificador numérico del servidor.
-        - **jugador:** identificador numérico del jugador propietario del territorio.
-        - **tropas:** número de tropas en el territorio.
 
+    - ## Cambio de fase
+        Cuando un cliente quiera pasar de fase debe enviar el siguiente mensaje.
+
+            {
+                "tipo":"Fase",
+            }
+        
+        **tipo:** se utiliza para ayudar a la decodificación por parte del servidor. Para este mensaje su valor es "Fase".
+        
+    - ## Confirmación de cambio de fase
+         El servidor envía este mensaje a todos los jugadores conectados cuando se cambia de fase en la partida.
+
+            {
+                "_tipoMensaje": "f"
+            }
+
+        **_tipoMensaje:** se utiliza para ayudar a la decodificación por parte de los clientes. Para este mensaje su valor es "f".
+
+    - ## Refuerzos
+        Cuando un cliente quiera reforzar un territorio debe enviar el siguiente mensaje.
+
+            {
+                "tipo":"Refuerzos",
+                "id":int,
+                "tropas":int,
+            }
+
+        **tipo:** se utiliza para ayudar a la decodificación por parte del servidor. Para este mensaje su valor es "Refuerzos".
+
+        **id:** id del territorio a reforzar.
+
+        **tropas:** número de refuerzos.
+
+    - ## Confirmación de refuerzos
+        El servidor envía este mensaje a todos los jugadores conectados cuando se ha reforzado un territorio.
+
+            {
+                "_tipoMensaje":"r",
+                "territorio": { "id":int, "jugador":int, "tropas":int }
+            }
+
+        **_tipoMensaje:** se utiliza para ayudar a la decodificación por parte de los clientes. Para este mensaje su valor es "r".
+
+        **territorio:** información del territorio reforzado.
+
+    - ## Atacar
+        Cuando un cliente quiera reforzar un territorio debe enviar el siguiente mensaje.
+
+            {
+                "tipo":"Ataque",
+                "origen":int,
+                "destino":int,
+                "tropas":int,
+            }
+        
+        **tipo:** se utiliza para ayudar a la decodificación por parte del servidor. Para este mensaje su valor es "Ataque".
+
+        **origen:** id del territorio desde donde se ataca.
+
+        **destino:** id del territorio a atacar.
+
+        **tropas:** número de tropas para atacar.
+
+    - ## Confirmación de ataque
+        El servidor envía este mensaje a todos los jugadores conectados cuando se ha realizado un ataque.
+
+            {
+                "_tipoMensaje":"a",
+                "territorioOrigen": { "id":int, "jugador":int, "tropas":int },
+                "territorioDestino": { "id":int, "jugador":int, "tropas":int },
+                "dadosOrigen": [ int ],
+                "dadosDestino": [ int ],
+            }
+        
+        **_tipoMensaje:** se utiliza para ayudar a la decodificación por parte de los clientes. Para este mensaje su valor es "a".
+
+        **territorioOrigen:** información del territorio desde el que se ha atacado.
+
+        **territorioDestino:** información del territorio atacado.
+        
+        **dadosOrigen:** resultado de los dados del atacante.
+
+        **dadosDestino:** resultado de los dados de la defensa.
+
+    - ## Mover
+        Cuando un cliente quiera mover tropas entre sus territorios debe enviar el siguiente mensaje.
+
+            {
+                "tipo":"Movimiento",
+                "origen":int,
+                "destino":int,
+                "tropas":int,
+            }
+
+        **tipo:** se utiliza para ayudar a la decodificación por parte del servidor. Para este mensaje su valor es "Movimiento".
+
+        **origen:** id del territorio desde donde se mueven las tropas.
+
+        **destino:** id del territorio a donde se mueven las tropas.
+
+        **tropas:** número de tropas que se mueven.
+
+    - ## Confirmación movimiento
+        El servidor envía este mensaje a todos los jugadores conectados cuando se ha realizado un movimiento de tropas.
+
+            {
+                "_tipoMensaje":"m",
+                "territorioOrigen": { "id":int, "jugador":int, "tropas":int },
+                "territorioDestino": { "id":int, "jugador":int, "tropas":int },
+            }
+
+        **_tipoMensaje:** se utiliza para ayudar a la decodificación por parte de los clientes. Para este mensaje su valor es "a".
+
+        **territorioOrigen:** información del territorio desde el que se han movido las tropas.
+
+        **territorioDestino:** información del territorio al que se han movido las tropas.
+        

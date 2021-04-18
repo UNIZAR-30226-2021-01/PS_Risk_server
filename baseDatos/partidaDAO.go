@@ -200,6 +200,7 @@ func (dao *PartidaDAO) EntrarPartida(p *Partida, u Usuario, ws *websocket.Conn) 
 	// Codificar los datos de la partida en formato json
 	mapstructure.Decode(p, &res)
 	res["_tipoMensaje"] = "d"
+	delete(res, "turnoJugador")
 	return res
 }
 

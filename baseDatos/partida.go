@@ -63,18 +63,19 @@ func CrearJugador(u Usuario) Jugador {
 	Las etiquetas `json` son para codificar los datos que se guardan en la base de datos.
 */
 type Partida struct {
-	IdPartida   int                                  `mapstructure:"idPartida" json:"idPartida"`
-	IdCreador   int                                  `mapstructure:"-" json:"idCreador"`
-	TiempoTurno int                                  `mapstructure:"tiempoTurno" json:"tiempoTurno"`
-	TurnoActual int                                  `mapstructure:"turnoActual,omitempty" json:"turnoActual"`
-	Fase        int                                  `mapstructure:"fase,omitempty" json:"fase"`
-	Nombre      string                               `mapstructure:"nombrePartida" json:"nombrePartida"`
-	Empezada    bool                                 `mapstructure:"-" json:"empezada"`
-	Territorios []Territorio                         `mapstructure:"territorios,omitempty" json:"territorios"`
-	Jugadores   []Jugador                            `mapstructure:"jugadores" json:"jugadores"`
-	Conexiones  sync.Map                             `mapstructure:"-" json:"-"`
-	Mensajes    chan mensajesInternos.MensajePartida `mapstructure:"-" json:"-"`
-	UltimoTurno time.Time                            `mapstructure:"-" json:"-"`
+	IdPartida    int                                  `mapstructure:"idPartida" json:"idPartida"`
+	IdCreador    int                                  `mapstructure:"-" json:"idCreador"`
+	TiempoTurno  int                                  `mapstructure:"tiempoTurno" json:"tiempoTurno"`
+	TurnoActual  int                                  `mapstructure:"turnoActual,omitempty" json:"turnoActual"`
+	TurnoJugador int                                  `mapstructure:"turnoJugador" json:"turnoJugador"`
+	Fase         int                                  `mapstructure:"fase,omitempty" json:"fase"`
+	Nombre       string                               `mapstructure:"nombrePartida" json:"nombrePartida"`
+	Empezada     bool                                 `mapstructure:"-" json:"empezada"`
+	Territorios  []Territorio                         `mapstructure:"territorios,omitempty" json:"territorios"`
+	Jugadores    []Jugador                            `mapstructure:"jugadores" json:"jugadores"`
+	Conexiones   sync.Map                             `mapstructure:"-" json:"-"`
+	Mensajes     chan mensajesInternos.MensajePartida `mapstructure:"-" json:"-"`
+	UltimoTurno  time.Time                            `mapstructure:"-" json:"-"`
 }
 
 /*
@@ -94,16 +95,6 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 
 	// Decidir asignación de territorios
 	p.asignarTerritorios()
-
-	asignados := make([]int, len(p.Jugadores))
-	for i := 0; i < len(p.Jugadores); {
-		idTerritorio := rand.Intn(numTerritorios)
-		if !contenido(asignados, idTerritorio) {
-			asignados[i] = idTerritorio
-			p.Territorios[idTerritorio].IdJugador = p.Jugadores[i].Id
-			i++
-		}
-	}
 
 	p.TurnoActual = 1
 	p.Fase = 1
@@ -234,6 +225,14 @@ func tropasPorTerritorio(numJugadores int) [][]int {
 	Si ocurre algún error lo devuelve en formato JSON.
 */
 func (p *Partida) Refuerzo(idDestino, idJugador, refuerzos int) mensajes.JsonData {
+	// Comprobar que la fase es correcta
+	if p.Fase != 1 {
+		return mensajes.ErrorJsonPartida("No estas en la fase de refuerzo", 1)
+	}
+	// Comprobar que es el turno del jugador
+	if p.TurnoJugador != idJugador {
+		return mensajes.ErrorJsonPartida("No es tu turno", 1)
+	}
 	// Comprobar que el territorio pertenece al jugador
 	if p.Territorios[idDestino].IdJugador != idJugador {
 		return mensajes.ErrorJsonPartida("El territorio no pertenece a este jugador", 1)
@@ -265,6 +264,14 @@ func (p *Partida) Refuerzo(idDestino, idJugador, refuerzos int) mensajes.JsonDat
 	Si ocurre algún error lo devuelve en formato JSON.
 */
 func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes.JsonData {
+	// Comprobar que la fase es correcta
+	if p.Fase != 2 {
+		return mensajes.ErrorJsonPartida("No estas en la fase de ataque", 1)
+	}
+	// Comprobar que es el turno del jugador
+	if p.TurnoJugador != idJugador {
+		return mensajes.ErrorJsonPartida("No es tu turno", 1)
+	}
 	// Comprobar que el territorio del que parte el ataque pertenece al jugador
 	if p.Territorios[idOrigen].IdJugador != idJugador {
 		return mensajes.ErrorJsonPartida("No se puede atacar desde un territorio"+
@@ -334,25 +341,124 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 	}
 }
 
+func (p *Partida) Movimiento(idOrigen, idDestino, idJugador, tropas int) mensajes.JsonData {
+	// Comprobar que la fase es correcta
+	if p.Fase != 2 {
+		return mensajes.ErrorJsonPartida("No estas en la fase de ataque", 1)
+	}
+	// Comprobar que es el turno del jugador
+	if p.TurnoJugador != idJugador {
+		return mensajes.ErrorJsonPartida("No es tu turno", 1)
+	}
+	// Comprobar que existe ruta entre territorios del jugador
+	// TODO
+	// Comprobar que se tienen suficientes tropas (y el origen no queda vacío)
+	if p.Territorios[idOrigen].NumTropas <= tropas {
+		return mensajes.ErrorJsonPartida("No tienes tropas suficientes, siempre"+
+			" debe quedar al menos una tropa en el territorio de origen", 1)
+	}
+	// Mover las tropas
+	p.Territorios[idOrigen].NumTropas -= tropas
+	p.Territorios[idDestino].NumTropas += tropas
+	// Codificar los datos en formato json
+	territorioOrigen := Territorio{}
+	territorioDestino := Territorio{}
+	mapstructure.Decode(p.Territorios[idOrigen], &territorioOrigen)
+	mapstructure.Decode(p.Territorios[idDestino], &territorioDestino)
+	return mensajes.JsonData{
+		"_tipoMensaje":      "m",
+		"territorioOrigen":  territorioOrigen,
+		"territorioDestino": territorioDestino,
+	}
+}
+
 func (p *Partida) AsignarRefuerzos() {
+	for i := range p.Jugadores {
+		// Dar a todos los jugadores el numero de refuerzos que les corresponde
+		// por número de territorios
+		p.Jugadores[i].Refuerzos = p.Jugadores[i].NumTerritorios / 3
+		if p.Jugadores[i].Refuerzos < 3 {
+			p.Jugadores[i].Refuerzos = 3
+		}
+	}
 
+	// TODO REFUERZOS POR CONTINENTES
+
+	// TODO SUSTITO A REFUERZOS POR CARTA
 }
 
-// FUNCIONES AUXILIARES PARA EL MANEJO DE ARRAYS
-
-func contenido(lista []int, valor int) bool {
-	i := indice(lista, valor)
-	return i >= 0
-}
-
-func indice(lista []int, valor int) int {
-	for i, v := range lista {
-		if v == valor {
+func (p *Partida) ObtenerPosicionJugador(id int) int {
+	for i := range p.Jugadores {
+		if p.Jugadores[i].Id == id {
 			return i
 		}
 	}
 	return -1
 }
+
+func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
+
+	if p.TurnoJugador != jugador {
+		return mensajes.ErrorJsonPartida("No es tu turno", 1)
+	}
+
+	res := mensajes.JsonData{"_tipoMensaje": "f"}
+
+	switch p.Fase {
+	case 1:
+		if p.Jugadores[jugador].Refuerzos > 0 {
+			return mensajes.ErrorJsonPartida("Aun te quedan refuerzos", 1)
+		}
+		p.Fase++
+		return res
+	case 2:
+		p.Fase++
+		return res
+	case 3:
+		p.Fase = 1
+		p.TurnoActual++
+
+		p.TurnoJugador = p.TurnoActual % len(p.Jugadores)
+		for !p.Jugadores[p.TurnoJugador].SigueVivo {
+			p.TurnoJugador = p.TurnoJugador % len(p.Jugadores)
+		}
+
+		// Codificar los datos de la partida en formato json
+		mapstructure.Decode(p, &res)
+		res["_tipoMensaje"] = "p"
+		return res
+	}
+
+	return mensajes.ErrorJsonPartida("La partida no esta empezada", 1)
+
+}
+
+// Funciones de envío de mensaje a traves de WebSockets
+
+func (p *Partida) EnviarATodos(mensaje mensajes.JsonData) {
+	for _, jugador := range p.Jugadores {
+		ws, ok := p.Conexiones.Load(jugador.Id)
+		if ok {
+			ws.(*websocket.Conn).WriteJSON(mensaje)
+		}
+	}
+}
+
+func (p *Partida) EnviarError(idUsuario, code int, err string) {
+	ws, ok := p.Conexiones.Load(idUsuario)
+	if ok {
+		ws.(*websocket.Conn).WriteJSON(mensajes.ErrorJsonPartida(err, code))
+	}
+}
+
+func (p *Partida) Enviar(id int, mensaje mensajes.JsonData) {
+	ws, ok := p.Conexiones.Load(id)
+	if ok {
+		ws.(*websocket.Conn).WriteJSON(mensaje)
+	}
+}
+
+// FUNCIONES AUXILIARES PARA EL MANEJO DE ARRAYS
 
 func borrar(lista []Jugador, valor int) []Jugador {
 	i := -1

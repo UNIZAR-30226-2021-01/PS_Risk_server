@@ -74,6 +74,11 @@ func (s *Servidor) Iniciar() error {
 	mux.HandleFunc("/aceptarSala", s.aceptarSalaHandler)
 	mux.HandleFunc("/partidas", s.partidasHandler)
 	mux.HandleFunc("/rechazarPartida", s.rechazarPartidaHandler)
+	mux.HandleFunc("/entrarPartida", s.aceptarSalaHandler)
+	// Eliminar todas las salas que no se han iniciado
+	// TODO
+	// Restaurar todas las partidas de la base de datos
+	// TODO
 	handler := cors.Default().Handler(mux)
 	s.upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	err := http.ListenAndServe(":"+s.Puerto, handler)
@@ -437,12 +442,11 @@ func (s *Servidor) partidasHandler(w http.ResponseWriter, r *http.Request) {
 		partida, ok := s.Partidas.Load(id)
 		if ok {
 			p := partida.(*baseDatos.Partida)
-			turno := p.TurnoActual
 			jsonArray = append(jsonArray, mensajes.JsonData{
 				"id":          p.IdPartida,
 				"nombre":      p.Nombre,
-				"nombreTurno": p.Jugadores[turno].Nombre,
-				"turnoActual": turno,
+				"nombreTurno": p.Jugadores[p.TurnoJugador].Nombre,
+				"turnoActual": p.TurnoActual,
 				"tiempoTurno": p.TiempoTurno,
 				"ultimoTurno": p.UltimoTurno,
 			})

@@ -62,12 +62,12 @@ func (s *Servidor) crearPartidaHandler(w http.ResponseWriter, r *http.Request) {
 	aux := mensajes.JsonData{}
 	mapstructure.Decode(p, &aux)
 	aux["_tipoMensaje"] = "d"
-	enviarPorWebsocket(p, aux, u.Id)
+	p.Enviar(u.Id, aux)
 
 	// Lanza una rutina para atender a la sala
 	go s.atenderSala(p)
 
-	s.recibirMensajesUsuarioEnSala(u, ws, p)
+	s.recibirMensajesUsuario(u, ws, p)
 }
 
 type mensajeEntrarSala struct {
@@ -117,7 +117,7 @@ func (s *Servidor) aceptarSalaHandler(w http.ResponseWriter, r *http.Request) {
 		IdUsuario: u.Id,
 		Ws:        ws,
 	}
-	s.recibirMensajesUsuarioEnSala(u, ws, p.(*baseDatos.Partida))
+	s.recibirMensajesUsuario(u, ws, p.(*baseDatos.Partida))
 }
 
 type mensajeSala struct {
@@ -130,11 +130,11 @@ type mensajeSala struct {
 }
 
 /*
-	recibirMensajesUsuarioEnSala recibe los mensajes que un usuario que está en
-	una sala envía a través de su websocket. Comprueba si los datos enviados son
-	correctos y notifica de eventos a la partida.
+	recibirMensajesUsuario recibe los mensajes que un usuario envía a través de su
+	websocket. Comprueba si los datos enviados son correctos y notifica de eventos
+	a la partida.
 */
-func (s *Servidor) recibirMensajesUsuarioEnSala(u baseDatos.Usuario,
+func (s *Servidor) recibirMensajesUsuario(u baseDatos.Usuario,
 	ws *websocket.Conn, p *baseDatos.Partida) {
 
 	var mensajeRecibido mensajeSala
@@ -210,40 +210,45 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 			// Cargar los datos del usuario de la base de datos
 			u, err := s.UsuarioDAO.ObtenerUsuarioId(mt.IdUsuario)
 			if err != nil {
-				devolverErrorWebsocket(mensajes.ErrorPeticion, err.Error(), mt.Ws)
+				devolverErrorWebsocket(mensajes.ErrorUsuario, err.Error(), mt.Ws)
 			} else {
 				// Añadir el usuario a la partida
 				mensajeEnviar := s.PartidasDAO.EntrarPartida(p, u, mt.Ws)
-				_, hayError := mensajeEnviar["err"]
-				if hayError {
+				if _, hayError := mensajeEnviar["err"]; hayError {
 					mt.Ws.WriteJSON(mensajeEnviar)
+					mt.Ws.Close()
 				} else {
 					// Si no hay error enviar a todos los jugadores de la sala
 					// el nuevo usuario
-					enviarATodos(p, mensajeEnviar)
+					p.EnviarATodos(mensajeEnviar)
 				}
 			}
 		case mensajesInternos.InvitacionPartida:
 			// Invitar usuario a la partida
 			err := s.PartidasDAO.InvitarPartida(p, mt.IdCreador, mt.IdInvitado)
 			if err != nil {
-				devolverErrorUsuario(p, mensajes.ErrorUsuario, mt.IdCreador, err.Error())
+				p.EnviarError(mt.IdCreador, mensajes.ErrorPeticion, err.Error())
 			}
 		case mensajesInternos.InicioPartida:
 			// Iniciar la partida
 			mensajeEnviar := s.PartidasDAO.IniciarPartida(p, mt.IdUsuario)
-			_, hayError := mensajeEnviar["err"]
-			if hayError {
-				enviarPorWebsocket(p, mensajeEnviar, mt.IdUsuario)
+			if _, hayError := mensajeEnviar["err"]; hayError {
+				p.Enviar(mt.IdUsuario, mensajeEnviar)
 			} else {
 				// Enviar a todos los jugadores de la sala los datos de inicio
-				enviarATodos(p, mensajeEnviar)
-				return // Cambiar función de gestión de sala por gestión de partida
+				p.EnviarATodos(mensajeEnviar)
+				// Funcion que gestiona una partida empezada
+				s.atenderPartida(p)
+				// Borrar la partida de la estructura del servidor
+				s.Partidas.Delete(p.IdPartida)
+				// Borrar la partida de la base de datos
+				s.PartidasDAO.BorrarPartida(p)
+				return
 			}
 		case mensajesInternos.SalidaUsuario:
 			if mt.IdUsuario == p.IdCreador {
 				// Enviar a todos que el creador ha abandonado
-				enviarATodos(p, mensajes.ErrorJsonPartida("El creador de "+
+				p.EnviarATodos(mensajes.ErrorJsonPartida("El creador de "+
 					"la sala se ha desconectado", mensajes.CierreSala))
 				// Borrar la partida de la estructura del servidor
 				s.Partidas.Delete(p.IdPartida)
@@ -251,67 +256,75 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 				s.PartidasDAO.BorrarPartida(p)
 			} else {
 				mensajeEnviar := s.PartidasDAO.AbandonarPartida(p, mt.IdUsuario)
-				_, hayError := mensajeEnviar["err"]
-				if !hayError {
+				if _, hayError := mensajeEnviar["err"]; !hayError {
 					// Enviar al resto de jugadores de la sala los nuevos datos
-					enviarATodos(p, mensajeEnviar)
+					p.EnviarATodos(mensajeEnviar)
 				}
 			}
 		case mensajesInternos.MensajeInvalido:
-			devolverErrorUsuario(p, mensajes.ErrorPeticion, mt.IdUsuario, mt.Err)
+			p.EnviarError(mt.IdUsuario, mensajes.ErrorPeticion, mt.Err)
 		}
 	}
 }
 
+/*
+	atenderPartida recibe las diferentes notificaciones de una paortida y ejecuta las
+	acciones que se requieran para cada notificación.
+*/
 func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
+	// Bucle infinito para leer notificaciones
 	for {
 		mensajeRecibido := <-p.Mensajes
 
 		switch mt := mensajeRecibido.(type) {
 		case mensajesInternos.MensajeFase:
+			// Mensaje para avanzar de fase
+			pos := p.ObtenerPosicionJugador(mt.IdUsuario)
+			msg := p.AvanzarFase(pos)
+			if _, hayError := msg["err"]; hayError {
+				p.Enviar(mt.IdUsuario, msg)
+			} else {
+				p.EnviarATodos(msg)
+			}
+			// Actualizar información de usuarios
+			// TODO
+			// Guardar información en la base de datos
+			// TODO
+			// Temporización de los turnos
+			// TODO
 		case mensajesInternos.MensajeRefuerzos:
+			// Mensaje para realizar un refuerzo
+			pos := p.ObtenerPosicionJugador(mt.IdUsuario)
+			msg := p.Refuerzo(mt.IdTerritorio, pos, mt.Tropas)
+			if _, hayError := msg["err"]; hayError {
+				p.Enviar(mt.IdUsuario, msg)
+			} else {
+				p.EnviarATodos(msg)
+			}
 		case mensajesInternos.MensajeAtaque:
+			// Mensaje para realizar un ataque
+			pos := p.ObtenerPosicionJugador(mt.IdUsuario)
+			msg := p.Ataque(mt.IdTerritorioOrigen, mt.IdTerritorioDestino, pos, mt.Tropas)
+			if _, hayError := msg["err"]; hayError {
+				p.Enviar(mt.IdUsuario, msg)
+			} else {
+				p.EnviarATodos(msg)
+			}
 		case mensajesInternos.MensajeMover:
+			// Mensaje para realizar un movimiento
+		case mensajesInternos.LlegadaUsuario:
+			if pos := p.ObtenerPosicionJugador(mt.IdUsuario); pos == -1 {
+				mt.Ws.WriteJSON(mensajes.ErrorJsonPartida("No estas en esta partida", 1))
+				mt.Ws.Close()
+			} else {
+				p.Conexiones.Store(mt.IdUsuario, mt.Ws)
+
+			}
+		case mensajesInternos.SalidaUsuario:
+			// Desconexión de un usuario
+			p.Conexiones.Delete(mt.IdUsuario)
 		case mensajesInternos.MensajeInvalido:
-		}
-	}
-}
-
-// REQUIEREN  REVISION
-
-/*
-	enviarPorWebsocket envía a un usuario dentro de una sala un mensaje a través
-	de su websocket
-*/
-func enviarPorWebsocket(p *baseDatos.Partida, mensaje mensajes.JsonData, idUsuario int) {
-	wsInterface, _ := p.Conexiones.Load(idUsuario)
-	if wsInterface != nil {
-		ws, ok := wsInterface.(*websocket.Conn)
-		if ok {
-			ws.WriteJSON(mensaje)
-		}
-	}
-}
-
-/*
-	enviarATodos envía a todos los usuarios de una sala un mensaje a través de sus
-	websockets
-*/
-func enviarATodos(p *baseDatos.Partida, mensaje mensajes.JsonData) {
-	for _, jugador := range p.Jugadores {
-		enviarPorWebsocket(p, mensaje, jugador.Id)
-	}
-}
-
-/*
-	devolverErrorUsuario envía un error a un usuario de una sala a través de su websocket
-*/
-func devolverErrorUsuario(p *baseDatos.Partida, code, idUsuario int, err string) {
-	wsInterface, _ := p.Conexiones.Load(idUsuario)
-	if wsInterface != nil {
-		ws, ok := wsInterface.(*websocket.Conn)
-		if ok {
-			devolverErrorWebsocket(code, err, ws)
+			p.EnviarError(mensajes.ErrorPeticion, mt.IdUsuario, mt.Err)
 		}
 	}
 }
