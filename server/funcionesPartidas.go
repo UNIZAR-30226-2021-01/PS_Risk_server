@@ -190,7 +190,7 @@ func (s *Servidor) recibirMensajesUsuario(u baseDatos.Usuario,
 		} else {
 			p.Mensajes <- mensajesInternos.MensajeInvalido{
 				IdUsuario: u.Id,
-				Err:       "Mensaje erroneo",
+				Err:       "Mensaje erróneo",
 			}
 		}
 	}
@@ -237,7 +237,7 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 			} else {
 				// Enviar a todos los jugadores de la sala los datos de inicio
 				p.EnviarATodos(mensajeEnviar)
-				// Funcion que gestiona una partida empezada
+				// Función que gestiona una partida empezada
 				s.atenderPartida(p)
 				// Borrar la partida de la estructura del servidor
 				s.Partidas.Delete(p.IdPartida)
@@ -268,8 +268,8 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 }
 
 /*
-	atenderPartida recibe las diferentes notificaciones de una paortida y ejecuta las
-	acciones que se requieran para cada notificación.
+	atenderPartida recibe las diferentes notificaciones de una partida y ejecuta
+	las acciones que se requieran para cada notificación.
 */
 func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 	// Bucle infinito para leer notificaciones
@@ -314,7 +314,7 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 			// Mensaje para realizar un movimiento
 		case mensajesInternos.LlegadaUsuario:
 			if pos := p.ObtenerPosicionJugador(mt.IdUsuario); pos == -1 {
-				mt.Ws.WriteJSON(mensajes.ErrorJsonPartida("No estas en esta partida", 1))
+				mt.Ws.WriteJSON(mensajes.ErrorJsonPartida("No estás en esta partida", 1))
 				mt.Ws.Close()
 			} else {
 				p.Conexiones.Store(mt.IdUsuario, mt.Ws)

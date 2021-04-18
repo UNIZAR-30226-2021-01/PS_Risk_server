@@ -227,7 +227,7 @@ func tropasPorTerritorio(numJugadores int) [][]int {
 func (p *Partida) Refuerzo(idDestino, idJugador, refuerzos int) mensajes.JsonData {
 	// Comprobar que la fase es correcta
 	if p.Fase != 1 {
-		return mensajes.ErrorJsonPartida("No estas en la fase de refuerzo", 1)
+		return mensajes.ErrorJsonPartida("No estás en la fase de refuerzo", 1)
 	}
 	// Comprobar que es el turno del jugador
 	if p.TurnoJugador != idJugador {
@@ -266,7 +266,7 @@ func (p *Partida) Refuerzo(idDestino, idJugador, refuerzos int) mensajes.JsonDat
 func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes.JsonData {
 	// Comprobar que la fase es correcta
 	if p.Fase != 2 {
-		return mensajes.ErrorJsonPartida("No estas en la fase de ataque", 1)
+		return mensajes.ErrorJsonPartida("No estás en la fase de ataque", 1)
 	}
 	// Comprobar que es el turno del jugador
 	if p.TurnoJugador != idJugador {
@@ -407,7 +407,7 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 	switch p.Fase {
 	case 1:
 		if p.Jugadores[jugador].Refuerzos > 0 {
-			return mensajes.ErrorJsonPartida("Aun te quedan refuerzos", 1)
+			return mensajes.ErrorJsonPartida("Aún te quedan refuerzos", 1)
 		}
 		p.Fase++
 		return res
@@ -420,7 +420,8 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 
 		p.TurnoJugador = p.TurnoActual % len(p.Jugadores)
 		for !p.Jugadores[p.TurnoJugador].SigueVivo {
-			p.TurnoJugador = p.TurnoJugador % len(p.Jugadores)
+			p.TurnoActual++
+			p.TurnoJugador = p.TurnoActual % len(p.Jugadores)
 		}
 
 		// Codificar los datos de la partida en formato json
@@ -429,7 +430,7 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 		return res
 	}
 
-	return mensajes.ErrorJsonPartida("La partida no esta empezada", 1)
+	return mensajes.ErrorJsonPartida("La partida no está empezada", 1)
 
 }
 

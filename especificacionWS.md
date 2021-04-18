@@ -5,7 +5,7 @@ Cuando un cliente se conecte a una sala se establecerá una conexión mediante W
 Cuando un cliente quiera establecer una conexión WebSocket con una sala debe hacerlo en las siguientes URL.
 
 - ## /crearSala
-    Cuando un cliente quiera crear una nueva sala debe establecer una conexión esta URL y enviar el siguiente mensaje.
+    Cuando un cliente quiera crear una nueva sala debe establecer una conexión a esta URL y enviar el siguiente mensaje.
         
         { 
             "idUsuario": int, 
@@ -56,7 +56,7 @@ Cuando un cliente quiera establecer una conexión WebSocket con una sala debe ha
 Durante el transcurso de la conexión tanto el servidor como los clientes se pueden enviar mensajes en formato JSON. Los mensajes estan detallados a continuación.
 
 - ## Errores
-    Si ocurre algun error durante el transcurso de la conexión se envía un error en formato JSON.
+    Si ocurre algún error durante el transcurso de la conexión se envía un error en formato JSON.
 
         {
             "_tipoMensaje":"e",
@@ -66,15 +66,15 @@ Durante el transcurso de la conexión tanto el servidor como los clientes se pue
 
     **_tipoMensaje:** se utiliza para ayudar a la decodificación por parte de los clientes. Para los errores su valor es "e".
 
-    **code:** Indica el tipo de error y la accion a tomar por el cliente. Puede tomar los siguientes valores:
+    **code:** Indica el tipo de error y la acción a tomar por el cliente. Puede tomar los siguientes valores:
     - 1: Ha ocurrido un error y la operación solicitada no se ha llevado a cabo, no se requiere ninguna acción.
     - 2: Ha ocurrido un error verificando al usuario y la operación solicitada no se ha llevado a cabo, se requiere cerrar la sesión del usuario.
     - 3: Ha ocurrido un error en una la sala de espera, se requiere cerrar la conexión con la sala.
 
-    **err:** Explica que error ha ocurrido.
+    **err:** Explica qué error ha ocurrido.
 
 - ## Salas de espera
-    Estos mensajes se envian para comunicar eventos en las salas de espera.
+    Estos mensajes se envían para comunicar eventos en las salas de espera.
 
     - ## Información de sala
         El servidor puede enviar a los distintos participantes de una sala el siguiente mensaje cuando necesite comunicar cambios en la información de la sala.
@@ -95,7 +95,7 @@ Durante el transcurso de la conexión tanto el servidor como los clientes se pue
 
         **idSala:** identificador numérico de la sala.
 
-        **jugadores:** lista de jugadores que se encuetren en la sala.
+        **jugadores:** lista de jugadores que se encuentran en la sala.
         - **id:** identificador numérico del jugador.
         - **nombre:** nombre del jugador.
         - **icono:** icono del jugador.
@@ -124,7 +124,7 @@ Durante el transcurso de la conexión tanto el servidor como los clientes se pue
 
 - ## Partida
     - ## Territorios 
-        Cuando el servidor quiera mandar la información sobre algun territorio la codificara de la siguiente manera
+        Cuando el servidor quiera mandar la información sobre algún territorio la codificará de la siguiente manera.
 
             {
                 "id":int, 
@@ -137,7 +137,7 @@ Durante el transcurso de la conexión tanto el servidor como los clientes se pue
         - **tropas:** número de tropas en el territorio.
 
     - ## Información de partida
-        El servidor envía este mensaje a todos los jugadores conectados cuando la partida se inicia y cuando se pasa de turno durante una partida. Cuando un jugador se conecta a una partida tambien recibe este mensaje.
+        El servidor envía este mensaje a todos los jugadores conectados cuando la partida se inicia y cuando se pasa de turno durante una partida. Cuando un jugador se conecta a una partida también recibe este mensaje.
 
             {
                 "_tipoMensaje": "p",
@@ -157,7 +157,7 @@ Durante el transcurso de la conexión tanto el servidor como los clientes se pue
 
         **nombreSala:** nombre de la sala.
 
-        **turnoActual:** numéro de turno.
+        **turnoActual:** número de turno.
 
         **fase:** número de fase dentro de un turno.
 
