@@ -78,6 +78,13 @@ type Partida struct {
 	UltimoTurno  time.Time                            `mapstructure:"-" json:"-"`
 }
 
+// Valores que puede tomar el campo Fase
+const (
+	faseRefuerzo   = iota + 1
+	faseAtaque     = iota + 1
+	faseMovimiento = iota + 1
+)
+
 /*
 	Inicia la partida, devuelve error en caso de no poder hacerlo.
 */
@@ -97,7 +104,7 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 	p.asignarTerritorios()
 
 	p.TurnoActual = 1
-	p.Fase = 1
+	p.Fase = faseRefuerzo
 	p.Empezada = true
 	p.UltimoTurno = time.Now().UTC()
 	return nil
@@ -226,7 +233,7 @@ func tropasPorTerritorio(numJugadores int) [][]int {
 */
 func (p *Partida) Refuerzo(idDestino, idJugador, refuerzos int) mensajes.JsonData {
 	// Comprobar que la fase es correcta
-	if p.Fase != 1 {
+	if p.Fase != faseRefuerzo {
 		return mensajes.ErrorJsonPartida("No estás en la fase de refuerzo", 1)
 	}
 	// Comprobar que es el turno del jugador
@@ -265,7 +272,7 @@ func (p *Partida) Refuerzo(idDestino, idJugador, refuerzos int) mensajes.JsonDat
 */
 func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes.JsonData {
 	// Comprobar que la fase es correcta
-	if p.Fase != 2 {
+	if p.Fase != faseAtaque {
 		return mensajes.ErrorJsonPartida("No estás en la fase de ataque", 1)
 	}
 	// Comprobar que es el turno del jugador
@@ -343,8 +350,8 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 
 func (p *Partida) Movimiento(idOrigen, idDestino, idJugador, tropas int) mensajes.JsonData {
 	// Comprobar que la fase es correcta
-	if p.Fase != 2 {
-		return mensajes.ErrorJsonPartida("No estas en la fase de ataque", 1)
+	if p.Fase != faseMovimiento {
+		return mensajes.ErrorJsonPartida("No estás en la fase de movimiento", 1)
 	}
 	// Comprobar que es el turno del jugador
 	if p.TurnoJugador != idJugador {
@@ -405,17 +412,17 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 	res := mensajes.JsonData{"_tipoMensaje": "f"}
 
 	switch p.Fase {
-	case 1:
+	case faseRefuerzo:
 		if p.Jugadores[jugador].Refuerzos > 0 {
 			return mensajes.ErrorJsonPartida("Aún te quedan refuerzos", 1)
 		}
 		p.Fase++
 		return res
-	case 2:
+	case faseAtaque:
 		p.Fase++
 		return res
-	case 3:
-		p.Fase = 1
+	case faseMovimiento:
+		p.Fase = faseRefuerzo
 		p.TurnoActual++
 
 		p.TurnoJugador = p.TurnoActual % len(p.Jugadores)
