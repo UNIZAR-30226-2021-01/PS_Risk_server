@@ -413,9 +413,9 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 
 	switch p.Fase {
 	case faseRefuerzo:
-		if p.Jugadores[jugador].Refuerzos > 0 {
-			return mensajes.ErrorJsonPartida("Aún te quedan refuerzos", 1)
-		}
+		//if p.Jugadores[jugador].Refuerzos > 0 {
+		//	return mensajes.ErrorJsonPartida("Aún te quedan refuerzos", 1)
+		//}
 		p.Fase++
 		return res
 	case faseAtaque:
