@@ -430,10 +430,9 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 		p.Fase = faseRefuerzo
 		p.TurnoActual++
 		// Calcular el jugador de cual es el turno
-		p.TurnoJugador = p.TurnoActual % len(p.Jugadores)
+		p.TurnoJugador = (p.TurnoJugador + 1) % len(p.Jugadores)
 		for !p.Jugadores[p.TurnoJugador].SigueVivo {
-			p.TurnoActual++
-			p.TurnoJugador = p.TurnoActual % len(p.Jugadores)
+			p.TurnoJugador = (p.TurnoJugador + 1) % len(p.Jugadores)
 		}
 		// Calcular el nuevo valor de los refuerzos
 		p.AsignarRefuerzos()
