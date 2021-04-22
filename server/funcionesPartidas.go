@@ -318,7 +318,10 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 				mt.Ws.Close()
 			} else {
 				p.Conexiones.Store(mt.IdUsuario, mt.Ws)
-
+				msg := mensajes.JsonData{}
+				mapstructure.Decode(*p, &msg)
+				msg["_tipoMensaje"] = "p"
+				p.Enviar(mt.IdUsuario, msg)
 			}
 		case mensajesInternos.SalidaUsuario:
 			// Desconexión de un usuario
