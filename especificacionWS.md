@@ -11,7 +11,7 @@ Cuando un cliente quiera establecer una conexión WebSocket con una sala debe ha
             "idUsuario": int, 
             "clave": string, 
             "tiempoTurno": int, 
-            "nombreSala": string,
+            "nombrePartida": string,
         }
     
     **idUsuario:** identificador numérico del usuario que quiere crear la sala.
@@ -20,7 +20,7 @@ Cuando un cliente quiera establecer una conexión WebSocket con una sala debe ha
 
     **tiempoTurno:** tiempo de turno para establecer en la sala.
 
-    **nombreSala:** nombre para establecer en la sala.
+    **nombrePartida:** nombre para establecer en la sala.
     
 - ## /aceptarSala
     Cuando un cliente solicite unirse a una sala ya existente debe establecer una conexión a esta URL y enviar el siguiente mensaje.
@@ -82,7 +82,7 @@ Durante el transcurso de la conexión tanto el servidor como los clientes se pue
             { 
                 "_tipoMensaje":"d", 
                 "tiempoTurno": int, 
-                "nombreSala": string, 
+                "nombrePartida": string, 
                 "idSala": int
                 "jugadores": [ { "id":int, "nombre":string, "icono":int, "aspecto": int, "sigueVivo":bool, "refuerzos":int, } ] 
             }
@@ -91,7 +91,7 @@ Durante el transcurso de la conexión tanto el servidor como los clientes se pue
 
         **tiempoTurno:** tiempo de turno configurado en la sala.
 
-        **nombreSala:** nombre de la sala.
+        **nombrePartida:** nombre de la partida que comenzará con los jugadores presentes en la sala.
 
         **idSala:** identificador numérico de la sala.
 
@@ -142,7 +142,7 @@ Durante el transcurso de la conexión tanto el servidor como los clientes se pue
             {
                 "_tipoMensaje": "p",
                 "tiempoTurno": int,
-                "nombreSala": string,
+                "nombrePartida": string,
                 "turnoActual": int,
                 "turnoJugador": int,
                 "fase": int,
@@ -155,9 +155,11 @@ Durante el transcurso de la conexión tanto el servidor como los clientes se pue
 
         **tiempoTurno:** tiempo de turno configurado en la sala.
 
-        **nombreSala:** nombre de la sala.
+        **nombrePartida:** nombre de la partida.
 
         **turnoActual:** número de turno.
+
+        **turnoJugador:** identificador numérico del jugador al que le toca el turno.
 
         **fase:** número de fase dentro de un turno.
 
