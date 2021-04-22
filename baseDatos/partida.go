@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/mitchellh/mapstructure"
@@ -19,9 +20,10 @@ const maxMensajes = 100
 	Territorio almacena los datos de un territorio.
 */
 type Territorio struct {
-	IdTerritorio int `mapstructure:"id" json:"id"`
-	IdJugador    int `mapstructure:"jugador" json:"jugador"`
-	NumTropas    int `mapstructure:"tropas" json:"tropas"`
+	IdTerritorio int   `mapstructure:"id" json:"id"`
+	IdJugador    int   `mapstructure:"jugador" json:"jugador"`
+	NumTropas    int   `mapstructure:"tropas" json:"tropas"`
+	Conexiones   []int `mapstructure:"-" json:"conexiones"`
 }
 
 /*
@@ -74,7 +76,7 @@ type Partida struct {
 	Jugadores    []Jugador                            `mapstructure:"jugadores" json:"jugadores"`
 	Conexiones   sync.Map                             `mapstructure:"-" json:"-"`
 	Mensajes     chan mensajesInternos.MensajePartida `mapstructure:"-" json:"-"`
-	UltimoTurno  string                               `mapstructure:"ultimoTurno" json:"-"`
+	UltimoTurno  string                               `mapstructure:"ultimoTurno,omitempty" json:"-"`
 }
 
 // Valores que puede tomar el campo Fase
@@ -103,10 +105,10 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 	p.asignarTerritorios()
 
 	p.TurnoActual = 1
+	p.TurnoJugador = 0
 	p.Fase = faseRefuerzo
 	p.Empezada = true
-	//p.UltimoTurno = time.Now().UTC().String()
-	p.UltimoTurno = "a"
+	p.UltimoTurno = time.Now().UTC().String()
 	return nil
 }
 
@@ -182,6 +184,9 @@ func (p *Partida) asignarTerritorios() {
 	numJugadores := len(p.Jugadores)
 	tropasTerritorio := tropasPorTerritorio(numJugadores)
 	p.Territorios = make([]Territorio, numTerritorios)
+	for i := range p.Territorios {
+		p.Territorios[i].Conexiones = listaConexiones[i]
+	}
 	// Dar territorios aleatoriamente y colocar tropas en ellos
 	ordenAsignacion := rand.Perm(numTerritorios)
 	for i := 0; i < numTerritorios; i++ {
@@ -433,8 +438,7 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 		// Calcular el nuevo valor de los refuerzos
 		p.AsignarRefuerzos()
 		// Nueva marca temporal del ultimo turno
-		//p.UltimoTurno = time.Now().UTC().String()
-		p.UltimoTurno = "a"
+		p.UltimoTurno = time.Now().UTC().String()
 		// Codificar los datos de la partida en formato json
 		mapstructure.Decode(p, &res)
 		res["_tipoMensaje"] = "p"
