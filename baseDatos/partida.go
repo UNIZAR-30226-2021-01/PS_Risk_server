@@ -75,7 +75,7 @@ type Partida struct {
 	Jugadores    []Jugador                            `mapstructure:"jugadores" json:"jugadores"`
 	Conexiones   sync.Map                             `mapstructure:"-" json:"-"`
 	Mensajes     chan mensajesInternos.MensajePartida `mapstructure:"-" json:"-"`
-	UltimoTurno  time.Time                            `mapstructure:"ultimoTurno" json:"-"`
+	UltimoTurno  string                               `mapstructure:"ultimoTurno" json:"-"`
 }
 
 // Valores que puede tomar el campo Fase
@@ -106,7 +106,7 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 	p.TurnoActual = 1
 	p.Fase = faseRefuerzo
 	p.Empezada = true
-	p.UltimoTurno = time.Now().UTC()
+	p.UltimoTurno = time.Now().UTC().String()
 	return nil
 }
 
@@ -424,13 +424,16 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 	case faseMovimiento:
 		p.Fase = faseRefuerzo
 		p.TurnoActual++
-
+		// Calcular el jugador de cual es el turno
 		p.TurnoJugador = p.TurnoActual % len(p.Jugadores)
 		for !p.Jugadores[p.TurnoJugador].SigueVivo {
 			p.TurnoActual++
 			p.TurnoJugador = p.TurnoActual % len(p.Jugadores)
 		}
-
+		// Calcular el nuevo valor de los refuerzos
+		p.AsignarRefuerzos()
+		// Nueva marca temporal del ultimo turno
+		p.UltimoTurno = time.Now().UTC().String()
 		// Codificar los datos de la partida en formato json
 		mapstructure.Decode(p, &res)
 		res["_tipoMensaje"] = "p"
