@@ -13,17 +13,15 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-const numTerritorios = 42
 const maxMensajes = 100
 
 /*
 	Territorio almacena los datos de un territorio.
 */
 type Territorio struct {
-	IdTerritorio int   `mapstructure:"id" json:"id"`
-	IdJugador    int   `mapstructure:"jugador" json:"jugador"`
-	NumTropas    int   `mapstructure:"tropas" json:"tropas"`
-	Conexiones   []int `mapstructure:"-" json:"conexiones"`
+	IdTerritorio int `mapstructure:"id" json:"id"`
+	IdJugador    int `mapstructure:"jugador" json:"jugador"`
+	NumTropas    int `mapstructure:"tropas" json:"tropas"`
 }
 
 /*
@@ -184,9 +182,6 @@ func (p *Partida) asignarTerritorios() {
 	numJugadores := len(p.Jugadores)
 	tropasTerritorio := tropasPorTerritorio(numJugadores)
 	p.Territorios = make([]Territorio, numTerritorios)
-	for i := range p.Territorios {
-		p.Territorios[i].Conexiones = listaConexiones[i]
-	}
 	// Dar territorios aleatoriamente y colocar tropas en ellos
 	ordenAsignacion := rand.Perm(numTerritorios)
 	for i := 0; i < numTerritorios; i++ {
@@ -295,7 +290,9 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 			"que ya te pertenece", 1)
 	}
 	// Comprobar que los territorios son adyacentes
-	// TODO
+	if !p.sonAdyacentes(idOrigen, idDestino) {
+		return mensajes.ErrorJsonPartida("Los territorios no estan conectados", 1)
+	}
 	// Comprobar que se tienen suficientes tropas (y el origen no queda vacío)
 	if p.Territorios[idOrigen].NumTropas <= atacantes {
 		return mensajes.ErrorJsonPartida("No tienes tropas suficientes, siempre"+
@@ -353,6 +350,41 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 	}
 }
 
+func (p *Partida) existeRuta(idOrigen, idDestino, idJugador int, explorados []int) bool {
+	// Caso base
+	if idOrigen == idDestino {
+		return true
+	}
+	// Si ya se ha explorado el territorio se devuelve falso
+	for _, e := range explorados {
+		if idOrigen == e {
+			return false
+		}
+	}
+	// Añadir el territorio origen a explorados
+	explorados = append(explorados, idOrigen)
+	// Comprobar todas las conexiones
+	for i := range infoMapa[idOrigen].Conexiones {
+		// Solo considerar territorios del usuario
+		if p.Territorios[i].IdJugador == idJugador {
+			res := p.existeRuta(i, idDestino, idJugador, explorados)
+			if res {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (p *Partida) sonAdyacentes(idOrigen, idDestino int) bool {
+	for i := range infoMapa[idOrigen].Conexiones {
+		if i == idDestino {
+			return true
+		}
+	}
+	return false
+}
+
 func (p *Partida) Movimiento(idOrigen, idDestino, idJugador, tropas int) mensajes.JsonData {
 	// Comprobar que la fase es correcta
 	if p.Fase != faseMovimiento {
@@ -363,7 +395,9 @@ func (p *Partida) Movimiento(idOrigen, idDestino, idJugador, tropas int) mensaje
 		return mensajes.ErrorJsonPartida("No es tu turno", 1)
 	}
 	// Comprobar que existe ruta entre territorios del jugador
-	// TODO
+	if !p.existeRuta(idOrigen, idDestino, idJugador, []int{}) {
+		return mensajes.ErrorJsonPartida("No existe ruta entre territorios", 1)
+	}
 	// Comprobar que se tienen suficientes tropas (y el origen no queda vacío)
 	if p.Territorios[idOrigen].NumTropas <= tropas {
 		return mensajes.ErrorJsonPartida("No tienes tropas suficientes, siempre"+
@@ -384,19 +418,25 @@ func (p *Partida) Movimiento(idOrigen, idDestino, idJugador, tropas int) mensaje
 	}
 }
 
-func (p *Partida) AsignarRefuerzos() {
-	for i := range p.Jugadores {
-		// Dar a todos los jugadores el numero de refuerzos que les corresponde
-		// por número de territorios
-		p.Jugadores[i].Refuerzos = p.Jugadores[i].NumTerritorios / 3
-		if p.Jugadores[i].Refuerzos < 3 {
-			p.Jugadores[i].Refuerzos = 3
+func (p *Partida) AsignarRefuerzos(id int) {
+	// Dar el número de refuerzos que corresponde por número de territorios
+	p.Jugadores[id].Refuerzos = p.Jugadores[id].NumTerritorios / 3
+	if p.Jugadores[id].Refuerzos < 3 {
+		p.Jugadores[id].Refuerzos = 3
+	}
+	//Dar el número de refuerzos que corresponde por continentes
+	cuenta := [numContinentes]int{0, 0, 0, 0, 0, 0}
+	for i := range p.Territorios {
+		if p.Territorios[i].IdJugador == id {
+			cuenta[infoMapa[i].Continente]++
 		}
 	}
-
-	// TODO REFUERZOS POR CONTINENTES
-
-	// TODO SUSTITO A REFUERZOS POR CARTA
+	for i := range cuenta {
+		if cuenta[i] == paises[i] {
+			p.Jugadores[id].Refuerzos += bonos[i]
+		}
+	}
+	// TODO SUSTITUTO A REFUERZOS POR CARTA
 }
 
 func (p *Partida) ObtenerPosicionJugador(id int) int {
@@ -435,7 +475,7 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 			p.TurnoJugador = (p.TurnoJugador + 1) % len(p.Jugadores)
 		}
 		// Calcular el nuevo valor de los refuerzos
-		p.AsignarRefuerzos()
+		p.AsignarRefuerzos(jugador)
 		// Nueva marca temporal del ultimo turno
 		p.UltimoTurno = time.Now().UTC().String()
 		// Codificar los datos de la partida en formato json

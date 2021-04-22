@@ -276,6 +276,9 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 	for {
 		mensajeRecibido := <-p.Mensajes
 
+		// Temporización de los turnos
+		// TODO
+
 		switch mt := mensajeRecibido.(type) {
 		case mensajesInternos.MensajeFase:
 			// Mensaje para avanzar de fase
@@ -289,8 +292,6 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 			// Actualizar información de usuarios
 			// TODO
 			// Guardar información en la base de datos
-			// TODO
-			// Temporización de los turnos
 			// TODO
 		case mensajesInternos.MensajeRefuerzos:
 			// Mensaje para realizar un refuerzo
