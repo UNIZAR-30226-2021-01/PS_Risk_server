@@ -75,7 +75,7 @@ type Partida struct {
 	Jugadores    []Jugador                            `mapstructure:"jugadores" json:"jugadores"`
 	Conexiones   sync.Map                             `mapstructure:"-" json:"-"`
 	Mensajes     chan mensajesInternos.MensajePartida `mapstructure:"-" json:"-"`
-	UltimoTurno  time.Time                            `mapstructure:"-" json:"-"`
+	UltimoTurno  time.Time                            `mapstructure:"ultimoTurno" json:"-"`
 }
 
 // Valores que puede tomar el campo Fase
