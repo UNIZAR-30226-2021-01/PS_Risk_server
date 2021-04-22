@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"sort"
 	"sync"
-	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/mitchellh/mapstructure"
@@ -106,7 +105,8 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 	p.TurnoActual = 1
 	p.Fase = faseRefuerzo
 	p.Empezada = true
-	p.UltimoTurno = time.Now().UTC().String()
+	//p.UltimoTurno = time.Now().UTC().String()
+	p.UltimoTurno = "a"
 	return nil
 }
 
@@ -433,7 +433,8 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 		// Calcular el nuevo valor de los refuerzos
 		p.AsignarRefuerzos()
 		// Nueva marca temporal del ultimo turno
-		p.UltimoTurno = time.Now().UTC().String()
+		//p.UltimoTurno = time.Now().UTC().String()
+		p.UltimoTurno = "a"
 		// Codificar los datos de la partida en formato json
 		mapstructure.Decode(p, &res)
 		res["_tipoMensaje"] = "p"
