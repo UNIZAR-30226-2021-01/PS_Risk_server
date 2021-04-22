@@ -220,7 +220,10 @@ func tropasPorTerritorio(numJugadores int) [][]int {
 			tropasTerritorio[i] = make([]int, numTerritorios/numJugadores)
 		}
 		for j := range tropasTerritorio[i] {
-			tropasTerritorio[i][j] = numTropasIniciales / len(tropasTerritorio)
+			tropasTerritorio[i][j] = numTropasIniciales / len(tropasTerritorio[i])
+			if j < numTropasIniciales%len(tropasTerritorio[i]) {
+				tropasTerritorio[i][j]++
+			}
 		}
 	}
 	return tropasTerritorio
