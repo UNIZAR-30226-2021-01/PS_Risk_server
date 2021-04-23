@@ -367,7 +367,7 @@ func (p *Partida) existeRuta(idOrigen, idDestino, idJugador int, explorados []in
 	// Añadir el territorio origen a explorados
 	explorados = append(explorados, idOrigen)
 	// Comprobar todas las conexiones
-	for i := range infoMapa[idOrigen].Conexiones {
+	for _, i := range infoMapa[idOrigen].Conexiones {
 		// Solo considerar territorios del usuario
 		if p.Territorios[i].IdJugador == idJugador {
 			res := p.existeRuta(i, idDestino, idJugador, explorados)
@@ -380,7 +380,7 @@ func (p *Partida) existeRuta(idOrigen, idDestino, idJugador int, explorados []in
 }
 
 func (p *Partida) sonAdyacentes(idOrigen, idDestino int) bool {
-	for i := range infoMapa[idOrigen].Conexiones {
+	for _, i := range infoMapa[idOrigen].Conexiones {
 		if i == idDestino {
 			return true
 		}
