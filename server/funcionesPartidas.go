@@ -313,6 +313,13 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 			}
 		case mensajesInternos.MensajeMover:
 			// Mensaje para realizar un movimiento
+			pos := p.ObtenerPosicionJugador(mt.IdUsuario)
+			msg := p.Movimiento(mt.IdTerritorioOrigen, mt.IdTerritorioDestino, pos, mt.Tropas)
+			if _, hayError := msg["err"]; hayError {
+				p.Enviar(mt.IdUsuario, msg)
+			} else {
+				p.EnviarATodos(msg)
+			}
 		case mensajesInternos.LlegadaUsuario:
 			if pos := p.ObtenerPosicionJugador(mt.IdUsuario); pos == -1 {
 				mt.Ws.WriteJSON(mensajes.ErrorJsonPartida("No estás en esta partida", 1))

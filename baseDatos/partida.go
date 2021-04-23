@@ -4,7 +4,6 @@ import (
 	"PS_Risk_server/mensajes"
 	"PS_Risk_server/mensajesInternos"
 	"errors"
-	"log"
 	"math/rand"
 	"sort"
 	"sync"
@@ -105,6 +104,7 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 
 	p.TurnoActual = 1
 	p.TurnoJugador = 0
+	p.AsignarRefuerzos(0)
 	p.Fase = faseRefuerzo
 	p.Empezada = true
 	p.UltimoTurno = time.Now().UTC().String()
@@ -255,7 +255,7 @@ func (p *Partida) Refuerzo(idDestino, idJugador, refuerzos int) mensajes.JsonDat
 	}
 	if refuerzos < 0 {
 		return mensajes.ErrorJsonPartida("No se puede asignar un número negativo"+
-			"de tropas a un territorio", 1)
+			" de tropas a un territorio", 1)
 	}
 	// Algoritmo de refuerzo
 	p.Territorios[idDestino].NumTropas += refuerzos
@@ -283,8 +283,6 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 	if p.TurnoJugador != idJugador {
 		return mensajes.ErrorJsonPartida("No es tu turno", 1)
 	}
-	log.Println("Número de territorios:", len(p.Territorios), "; idOrigen:", idOrigen,
-		"; idDestino;", idDestino)
 	// Comprobar que el territorio del que parte el ataque pertenece al jugador
 	if p.Territorios[idOrigen].IdJugador != idJugador {
 		return mensajes.ErrorJsonPartida("No se puede atacar desde un territorio"+
@@ -293,7 +291,7 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 	// Comprobar que el territorio al que ataca no pertenece al jugador
 	if p.Territorios[idDestino].IdJugador == idJugador {
 		return mensajes.ErrorJsonPartida("No se puede atacar a un territorio"+
-			"que ya te pertenece", 1)
+			" que ya te pertenece", 1)
 	}
 	// Comprobar que los territorios son adyacentes
 	if !p.sonAdyacentes(idOrigen, idDestino) {
@@ -464,9 +462,9 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 
 	switch p.Fase {
 	case faseRefuerzo:
-		//if p.Jugadores[jugador].Refuerzos > 0 {
-		//	return mensajes.ErrorJsonPartida("Aún te quedan refuerzos", 1)
-		//}
+		if p.Jugadores[jugador].Refuerzos > 0 {
+			return mensajes.ErrorJsonPartida("Aún te quedan refuerzos", 1)
+		}
 		p.Fase++
 		return res
 	case faseAtaque:
@@ -480,8 +478,8 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 		for !p.Jugadores[p.TurnoJugador].SigueVivo {
 			p.TurnoJugador = (p.TurnoJugador + 1) % len(p.Jugadores)
 		}
-		// Calcular el nuevo valor de los refuerzos
-		p.AsignarRefuerzos(jugador)
+		// Calcular el nuevo valor de los refuerzos para el jugador al que le toca
+		p.AsignarRefuerzos(p.TurnoJugador)
 		// Nueva marca temporal del ultimo turno
 		p.UltimoTurno = time.Now().UTC().String()
 		// Codificar los datos de la partida en formato json
@@ -494,7 +492,7 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 
 }
 
-// Funciones de envío de mensaje a traves de WebSockets
+// Funciones de envío de mensaje a través de WebSockets
 
 func (p *Partida) EnviarATodos(mensaje mensajes.JsonData) {
 	for _, jugador := range p.Jugadores {
