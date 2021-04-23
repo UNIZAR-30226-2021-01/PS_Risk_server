@@ -294,7 +294,7 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 	}
 	// Comprobar que los territorios son adyacentes
 	if !p.sonAdyacentes(idOrigen, idDestino) {
-		return mensajes.ErrorJsonPartida("Los territorios no estan conectados", 1)
+		return mensajes.ErrorJsonPartida("Los territorios no están conectados", 1)
 	}
 	// Comprobar que se tienen suficientes tropas (y el origen no queda vacío)
 	if p.Territorios[idOrigen].NumTropas <= atacantes {
