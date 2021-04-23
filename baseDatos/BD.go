@@ -20,6 +20,7 @@ func CrearBD(bbdd string) (*sql.DB, error) {
 	}
 	execScript(db, "scripts/destruirBBDD.sql")
 	execScript(db, "scripts/crearBBDD.sql")
+	execScript(db, "scripts/crearCuentasTest.sql")
 	return db, err
 }
 

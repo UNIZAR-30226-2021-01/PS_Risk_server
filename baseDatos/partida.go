@@ -4,6 +4,7 @@ import (
 	"PS_Risk_server/mensajes"
 	"PS_Risk_server/mensajesInternos"
 	"errors"
+	"log"
 	"math/rand"
 	"sort"
 	"sync"
@@ -282,6 +283,8 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 	if p.TurnoJugador != idJugador {
 		return mensajes.ErrorJsonPartida("No es tu turno", 1)
 	}
+	log.Println("Número de territorios:", len(p.Territorios), "; idOrigen:", idOrigen,
+		"; idDestino;", idDestino)
 	// Comprobar que el territorio del que parte el ataque pertenece al jugador
 	if p.Territorios[idOrigen].IdJugador != idJugador {
 		return mensajes.ErrorJsonPartida("No se puede atacar desde un territorio"+
@@ -303,14 +306,14 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 	}
 
 	// Algoritmo ataque
-	dadosAtaque := []int{}
-	dadosDefensa := []int{}
+	defensores := min(3, p.Territorios[idDestino].NumTropas)
+	dadosAtaque := make([]int, min(3, atacantes))
+	dadosDefensa := make([]int, defensores)
 	// Lanzar los dados del atacante
 	for i := 0; i < 3 && i < atacantes; i++ {
 		dadosAtaque[i] = rand.Intn(6) + 1
 	}
 	// Lanzar los dados del defensor
-	defensores := min(3, p.Territorios[idDestino].NumTropas)
 	for i := 0; i < defensores; i++ {
 		dadosDefensa[i] = rand.Intn(6) + 1
 	}
@@ -349,7 +352,7 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 		"territorioOrigen":  territorioOrigen,
 		"territorioDestino": territorioDestino,
 		"dadosOrigen":       dadosAtaque,
-		"dadosDestrino":     dadosDefensa,
+		"dadosDestino":      dadosDefensa,
 	}
 }
 
