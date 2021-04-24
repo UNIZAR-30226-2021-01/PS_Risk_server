@@ -398,6 +398,16 @@ func (p *Partida) Movimiento(idOrigen, idDestino, idJugador, tropas int) mensaje
 	if p.TurnoJugador != idJugador {
 		return mensajes.ErrorJsonPartida("No es tu turno", 1)
 	}
+	// Comprobar que el territorio de origen pertenece al jugador
+	if p.Territorios[idOrigen].IdJugador != idJugador {
+		return mensajes.ErrorJsonPartida("No se pueden mover tropas de un"+
+			" territorio que no te pertenece", 1)
+	}
+	// Comprobar que el territorio destino pertenece al jugador
+	if p.Territorios[idDestino].IdJugador != idJugador {
+		return mensajes.ErrorJsonPartida("No se pueden mover tropas a un"+
+			" territorio que no te pertenece", 1)
+	}
 	// Comprobar que existe ruta entre territorios del jugador
 	if !p.existeRuta(idOrigen, idDestino, idJugador, []int{}) {
 		return mensajes.ErrorJsonPartida("No existe ruta entre territorios", 1)
