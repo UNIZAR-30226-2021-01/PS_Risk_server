@@ -288,6 +288,8 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 				p.Enviar(mt.IdUsuario, msg)
 			} else {
 				p.EnviarATodos(msg)
+				s.PartidasDAO.NotificarTurno(p)
+				// TODO gestionar error
 			}
 			// Actualizar información de usuarios
 			// TODO

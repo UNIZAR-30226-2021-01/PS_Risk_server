@@ -30,6 +30,9 @@ const (
 	obtenerPartida   = "SELECT id_creador, json_estado FROM partida " +
 		"WHERE id_partida = $1"
 	consultaPartidas = "SELECT id_partida FROM juega WHERE id_usuario = $1"
+	guardarTurno     = "INSERT INTO notificacionTurno (id_recibe, id_envia) " +
+		"VALUES ($1, $2)"
+	borrarTurno = "DELETE FROM notificacionTurno WHERE id_envia = $1"
 )
 
 /*
@@ -103,6 +106,13 @@ func (dao *PartidaDAO) IniciarPartida(p *Partida, idCreador int) mensajes.JsonDa
 	}
 	// Borrar todas las invitaciones a la partida
 	_, err = tx.ExecContext(ctx, borrarInvitaciones, p.IdPartida)
+	if err != nil {
+		tx.Rollback()
+		p.AnularInicio()
+		return mensajes.ErrorJsonPartida(err.Error(), mensajes.ErrorPeticion)
+	}
+	// Guardar a qué jugador le corresponde turno
+	_, err = tx.ExecContext(ctx, guardarTurno, p.IdCreador, p.IdPartida)
 	if err != nil {
 		tx.Rollback()
 		p.AnularInicio()
@@ -280,4 +290,28 @@ func (dao *PartidaDAO) ObtenerPartidas(u Usuario) ([]int, error) {
 	}
 
 	return resultado, nil
+}
+
+func (dao *PartidaDAO) NotificarTurno(p *Partida) error {
+	// Inicia una transacción en la base de datos
+	ctx := context.Background()
+	tx, err := dao.bd.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	// Borrar el turno enterior de la base de datos
+	_, err = tx.ExecContext(ctx, borrarTurno, p.IdPartida)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	// Guardar el turno actual de la base de datos
+	_, err = tx.ExecContext(ctx, guardarTurno, p.Jugadores[p.TurnoJugador].Id, p.IdPartida)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	// Finalizar la transaccion
+	err = tx.Commit()
+	return err
 }
