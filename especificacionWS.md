@@ -291,4 +291,19 @@ Durante el transcurso de la conexión tanto el servidor como los clientes se pue
         **territorioOrigen:** información del territorio desde el que se han movido las tropas.
 
         **territorioDestino:** información del territorio al que se han movido las tropas.
+
+    - ## Fin de partida
+        El servidor envía este mensaje a todos los jugadores conectados cuando termina el turno del último jugador en pie.
+
+            {
+                "_tipoMensaje":"t",
+                "ganador": { "id":int, "nombre":string, "icono":int, "aspecto":int, "sigueVivo":bool, "refuerzos":int, },
+                "riskos":int,
+            }
+        
+        **_tipoMensaje:** se utiliza para ayudar a la decodificación por parte de los clientes. Para este mensaje su valor es "t".
+
+        **ganador:** datos del ganador de la partida.
+
+        **riskos:** cuántos riskos consigue el ganador de la partida. 
         

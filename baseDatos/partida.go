@@ -499,7 +499,16 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 	}
 
 	return mensajes.ErrorJsonPartida("La partida no está empezada", 1)
+}
 
+func (p *Partida) JugadoresRestantes() int {
+	respuesta := 0
+	for _, j := range p.Jugadores {
+		if j.SigueVivo {
+			respuesta++
+		}
+	}
+	return respuesta
 }
 
 // Funciones de envío de mensaje a través de WebSockets
