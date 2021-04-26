@@ -304,16 +304,16 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 					if p.JugadoresRestantes() == 1 {
 						// TODO hacer función para eliminar de la base de datos,
 						// revisar el formato del mensaje y la cantidad de riskos dados
-						ganador := map[string]interface{}{}
-						mapstructure.Decode(p.Jugadores[p.TurnoJugador], &ganador)
-						p.EnviarATodos(mensajes.JsonData{
-							"_tipoMensaje": "t",
-							"ganador":      ganador,
-							"riskos":       50,
-						})
-						u, _ := s.UsuarioDAO.ObtenerUsuarioId(p.Jugadores[p.TurnoJugador].Id)
-						s.UsuarioDAO.IncrementarRiskos(&u, 50)
-						return
+						msg, ganador, err := p.FinalizarPartida()
+						if err != nil {
+							p.EnviarATodos(msg)
+							u, _ := s.UsuarioDAO.ObtenerUsuarioId(ganador)
+							s.UsuarioDAO.IncrementarRiskos(&u, 50)
+							s.PartidasDAO.BorrarPartida(p)
+							return
+						} //else {
+						//	log.Print(err)
+						//}
 					}
 				}
 			}

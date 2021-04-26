@@ -511,6 +511,28 @@ func (p *Partida) JugadoresRestantes() int {
 	return respuesta
 }
 
+/*
+	FinalizarPartida devuelve el mensaje de fin y el identificador
+	de usuario del ganador, si se puede acabar la partida.
+	En caso contrario, devuelve el error ocurrido.
+*/
+func (p *Partida) FinalizarPartida() (mensajes.JsonData, int, error) {
+	respuesta := mensajes.JsonData{}
+	ganador := p.Jugadores[p.TurnoJugador].Id
+	if p.JugadoresRestantes() > 1 {
+		return respuesta, ganador, errors.New("queda más de un jugador con territorios" +
+			", no se puede terminar la partida")
+	}
+	datosGanador := mensajes.JsonData{}
+	mapstructure.Decode(p.Jugadores[p.TurnoJugador], &datosGanador)
+	respuesta = mensajes.JsonData{
+		"_tipoMensaje": "t",
+		"ganador":      datosGanador,
+		"riskos":       50,
+	}
+	return respuesta, ganador, nil
+}
+
 // Funciones de envío de mensaje a través de WebSockets
 
 func (p *Partida) EnviarATodos(mensaje mensajes.JsonData) {

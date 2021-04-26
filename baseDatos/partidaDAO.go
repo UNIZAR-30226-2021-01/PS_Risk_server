@@ -245,7 +245,7 @@ func (dao *PartidaDAO) AbandonarPartida(p *Partida, IdUsuario int) mensajes.Json
 
 	// Esta función no se puede utilizar para borrar al creador
 	if p.IdCreador == IdUsuario {
-		return mensajes.ErrorJsonPartida("Mal uso de la funcion", mensajes.ErrorPeticion)
+		return mensajes.ErrorJsonPartida("Mal uso de la función", mensajes.ErrorPeticion)
 	}
 
 	// Eliminar al jugador de la partida
