@@ -253,6 +253,14 @@ func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
 	res, err := dao.bd.Exec(actualizarUsuario, u.Aspecto, u.Icono, u.Nombre,
 		u.Correo, u.Clave, u.RecibeCorreos, u.Id)
 	if err != nil {
+		e := err.(*pq.Error)
+		if e.Code.Name() == violacionUnicidad {
+			if strings.Contains(e.Error(), "usuario_correo_key") {
+				err = errors.New("ya existe un usuario con la dirección de correo indicada")
+			} else if strings.Contains(e.Error(), "usuario_nombre_key") {
+				err = errors.New("ya existe un usuario con el nombre indicado")
+			}
+		}
 		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 	n, _ := res.RowsAffected()
