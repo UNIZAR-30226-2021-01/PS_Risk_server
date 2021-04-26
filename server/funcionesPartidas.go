@@ -112,12 +112,17 @@ func (s *Servidor) aceptarSalaHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	recibirMensajes := make(chan bool)
 	// Notifica a la partida de que un jugador nuevo ha entrado
 	p.(*baseDatos.Partida).Mensajes <- mensajesInternos.LlegadaUsuario{
-		IdUsuario: u.Id,
-		Ws:        ws,
+		IdUsuario:       u.Id,
+		Ws:              ws,
+		RecibirMensajes: recibirMensajes,
 	}
-	s.recibirMensajesUsuario(u, ws, p.(*baseDatos.Partida))
+	permiso := <-recibirMensajes
+	if permiso {
+		s.recibirMensajesUsuario(u, ws, p.(*baseDatos.Partida))
+	}
 }
 
 type mensajeSala struct {
@@ -201,8 +206,6 @@ func (s *Servidor) recibirMensajesUsuario(u baseDatos.Usuario,
 	acciones que se requieran para cada notificación.
 */
 func (s *Servidor) atenderSala(p *baseDatos.Partida) {
-	var usuarioUltimoErrorConexion int
-	seEsperaDesconexionSinEliminarDeSala := false
 	// Bucle infinito para leer notificaciones
 	for {
 		mensajeRecibido := <-p.Mensajes
@@ -213,21 +216,20 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 			u, err := s.UsuarioDAO.ObtenerUsuarioId(mt.IdUsuario)
 			if err != nil {
 				devolverErrorWebsocket(mensajes.ErrorUsuario, err.Error(), mt.Ws)
+				mt.Ws.Close()
+				mt.RecibirMensajes <- false
 			} else {
 				// Añadir el usuario a la partida
 				mensajeEnviar := s.PartidasDAO.EntrarPartida(p, u, mt.Ws)
 				if _, hayError := mensajeEnviar["err"]; hayError {
-					// Al cerrar el websocket se enviará un mensaje SalidaUsuario
-					// pero no hay que echar de la partida/sala a este usuario
-					// porque no ha sido añadido o está conectado desde otro sitio
-					seEsperaDesconexionSinEliminarDeSala = true
-					usuarioUltimoErrorConexion = mt.IdUsuario
 					mt.Ws.WriteJSON(mensajeEnviar)
 					mt.Ws.Close()
+					mt.RecibirMensajes <- false
 				} else {
 					// Si no hay error enviar a todos los jugadores de la sala
 					// el nuevo usuario
 					p.EnviarATodos(mensajeEnviar)
+					mt.RecibirMensajes <- true
 				}
 			}
 		case mensajesInternos.InvitacionPartida:
@@ -253,25 +255,19 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 				return
 			}
 		case mensajesInternos.SalidaUsuario:
-			// Es posible que la desconexión se produzca porque se ha conectado
-			// alguien 2 veces, y no queremos eliminar su primera conexión
-			if !seEsperaDesconexionSinEliminarDeSala ||
-				usuarioUltimoErrorConexion != mt.IdUsuario {
-				seEsperaDesconexionSinEliminarDeSala = false
-				if mt.IdUsuario == p.IdCreador {
-					// Enviar a todos que el creador ha abandonado
-					p.EnviarATodos(mensajes.ErrorJsonPartida("El creador de "+
-						"la sala se ha desconectado", mensajes.CierreSala))
-					// Borrar la partida de la estructura del servidor
-					s.Partidas.Delete(p.IdPartida)
-					// Borrar la partida de la base de datos
-					s.PartidasDAO.BorrarPartida(p)
-				} else {
-					mensajeEnviar := s.PartidasDAO.AbandonarPartida(p, mt.IdUsuario)
-					if _, hayError := mensajeEnviar["err"]; !hayError {
-						// Enviar al resto de jugadores de la sala los nuevos datos
-						p.EnviarATodos(mensajeEnviar)
-					}
+			if mt.IdUsuario == p.IdCreador {
+				// Enviar a todos que el creador ha abandonado
+				p.EnviarATodos(mensajes.ErrorJsonPartida("El creador de "+
+					"la sala se ha desconectado", mensajes.CierreSala))
+				// Borrar la partida de la estructura del servidor
+				s.Partidas.Delete(p.IdPartida)
+				// Borrar la partida de la base de datos
+				s.PartidasDAO.BorrarPartida(p)
+			} else {
+				mensajeEnviar := s.PartidasDAO.AbandonarPartida(p, mt.IdUsuario)
+				if _, hayError := mensajeEnviar["err"]; !hayError {
+					// Enviar al resto de jugadores de la sala los nuevos datos
+					p.EnviarATodos(mensajeEnviar)
 				}
 			}
 		case mensajesInternos.MensajeInvalido:
@@ -285,8 +281,6 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 	las acciones que se requieran para cada notificación.
 */
 func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
-	var usuarioUltimoErrorConexion int
-	seEsperaDesconexionSinEliminarDeSala := false
 	// Bucle infinito para leer notificaciones
 	for {
 		mensajeRecibido := <-p.Mensajes
@@ -358,29 +352,28 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 			if pos := p.ObtenerPosicionJugador(mt.IdUsuario); pos == -1 {
 				mt.Ws.WriteJSON(mensajes.ErrorJsonPartida("No estás en esta partida", 1))
 				mt.Ws.Close()
+				mt.RecibirMensajes <- false
 			} else {
 				antiguaConexion, _ := p.Conexiones.Load(mt.IdUsuario)
 				if antiguaConexion != nil {
-					// Al cerrar el websocket se enviará un mensaje SalidaUsuario
-					// pero no hay que echar de la partida/sala a este usuario
-					seEsperaDesconexionSinEliminarDeSala = true
-					usuarioUltimoErrorConexion = mt.IdUsuario
-					antiguaConexion.(*websocket.Conn).Close()
+					mt.Ws.WriteJSON(mensajes.ErrorJsonPartida("Ya estás conectado a esta"+
+						" partida desde otro lugar", 1))
+					mt.Ws.Close()
+					mt.RecibirMensajes <- false
+					// TODO: actualizar la conexión para usar la nueva sin que
+					// al cerrar la vieja se cierren las dos
+					//antiguaConexion.(*websocket.Conn).Close()
+				} else {
+					p.Conexiones.Store(mt.IdUsuario, mt.Ws)
+					msg := mensajes.JsonData{}
+					mapstructure.Decode(p, &msg)
+					msg["_tipoMensaje"] = "p"
+					p.Enviar(mt.IdUsuario, msg)
 				}
-				p.Conexiones.Store(mt.IdUsuario, mt.Ws)
-				msg := mensajes.JsonData{}
-				mapstructure.Decode(p, &msg)
-				msg["_tipoMensaje"] = "p"
-				p.Enviar(mt.IdUsuario, msg)
 			}
 		case mensajesInternos.SalidaUsuario:
-			// Desconexión de un usuario, en algunos casos es esperada y sigue
-			// conectado desde otro websocket
-			if !seEsperaDesconexionSinEliminarDeSala ||
-				usuarioUltimoErrorConexion != mt.IdUsuario {
-				seEsperaDesconexionSinEliminarDeSala = false
-				p.Conexiones.Delete(mt.IdUsuario)
-			}
+			// Desconexión de un usuario
+			p.Conexiones.Delete(mt.IdUsuario)
 		case mensajesInternos.MensajeInvalido:
 			p.EnviarError(mensajes.ErrorPeticion, mt.IdUsuario, mt.Err)
 		}

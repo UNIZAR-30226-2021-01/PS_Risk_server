@@ -15,8 +15,9 @@ type MensajePartida interface{}
 	id y cuál es la conexión con él.
 */
 type LlegadaUsuario struct {
-	IdUsuario int
-	Ws        *websocket.Conn
+	IdUsuario       int
+	Ws              *websocket.Conn
+	RecibirMensajes chan bool
 }
 
 /*
