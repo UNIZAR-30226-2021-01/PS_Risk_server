@@ -9,6 +9,10 @@ import (
 	_ "github.com/lib/pq"
 )
 
+const (
+	violacionUnicidad = "unique_violation"
+)
+
 /*
 	CrearBD abre una conexión a la base de datos bbdd, borra el contenido actual
 	y crea de nuevo las tablas.

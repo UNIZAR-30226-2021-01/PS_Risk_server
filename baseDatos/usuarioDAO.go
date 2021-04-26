@@ -4,6 +4,10 @@ import (
 	"PS_Risk_server/mensajes"
 	"context"
 	"database/sql"
+	"errors"
+	"strings"
+
+	"github.com/lib/pq"
 )
 
 const (
@@ -90,6 +94,14 @@ func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 		recibeCorreos).Scan(&id)
 	if err != nil {
 		tx.Rollback()
+		e := err.(*pq.Error)
+		if e.Code.Name() == violacionUnicidad {
+			if strings.Contains(e.Error(), "usuario_correo_key") {
+				return u, errors.New("ya existe un usuario con la dirección de correo indicada")
+			} else if strings.Contains(e.Error(), "usuario_nombre_key") {
+				return u, errors.New("ya existe un usuario con el nombre indicado")
+			}
+		}
 		return u, err
 	}
 	// Guardar en la base de datos los iconos por defecto como comprados
