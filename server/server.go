@@ -194,7 +194,7 @@ func (s *Servidor) inicioSesionHandler(w http.ResponseWriter, r *http.Request) {
 		user, err = s.UsuarioDAO.IniciarSesionNombre(f.Usuario, f.Clave)
 	}
 	if err != nil {
-		devolverError(mensajes.ErrorPeticion, "No se ha podido iniciar sesion", w)
+		devolverError(mensajes.ErrorPeticion, "No se ha podido iniciar sesión", w)
 		return
 	}
 

@@ -195,6 +195,9 @@ func (dao *UsuarioDAO) ObtenerUsuario(id int, clave string) (Usuario, error) {
 	// Obtener los datos de usuario de la base de datos
 	err := dao.bd.QueryRow(consultaUsuario, id, clave).Scan(&icono,
 		&aspecto, &riskos, &correo, &nombre, &recibeCorreos)
+	if err == sql.ErrNoRows {
+		return u, errors.New("el usuario no existe o la contraseña es incorrecta")
+	}
 	if err != nil {
 		return u, err
 	}
@@ -218,6 +221,9 @@ func (dao *UsuarioDAO) ObtenerUsuarioId(id int) (Usuario, error) {
 
 	err := dao.bd.QueryRow(consultaUsuarioId, id).Scan(&icono,
 		&aspecto, &riskos, &correo, &nombre, &clave, &recibeCorreos)
+	if err == sql.ErrNoRows {
+		return u, errors.New("el usuario no existe")
+	}
 	if err != nil {
 		return u, err
 	}
