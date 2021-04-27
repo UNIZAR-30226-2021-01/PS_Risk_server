@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	violacionUnicidad = "unique_violation"
+	violacionUnicidad     = "unique_violation"
+	violacionClaveForanea = "foreign_key_violation"
 )
 
 /*
