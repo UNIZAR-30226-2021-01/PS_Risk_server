@@ -227,6 +227,11 @@ func (dao *AmigosDAO) EnviarSolicitudAmistad(u Usuario, amigo string) mensajes.J
 					return mensajes.ErrorJson("Ya has enviado una solicitud de "+
 						"amistad a este usuario", mensajes.ErrorPeticion)
 				}
+			} else if e.Code.Name() == violacionRestricciones {
+				if strings.Contains(e.Error(), "solicitudamistad_check") {
+					return mensajes.ErrorJson("No puedes enviarte una solicitud"+
+						" de amistad a ti mismo", mensajes.ErrorPeticion)
+				}
 			}
 		}
 		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
