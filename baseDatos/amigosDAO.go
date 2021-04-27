@@ -4,6 +4,9 @@ import (
 	"PS_Risk_server/mensajes"
 	"context"
 	"database/sql"
+	"strings"
+
+	"github.com/lib/pq"
 )
 
 /*
@@ -67,7 +70,7 @@ func (dao *AmigosDAO) EliminarAmigo(u Usuario, id int) mensajes.JsonData {
 	id1 := min(u.Id, id)
 	id2 := max(u.Id, id)
 
-	// Iniciar transaccion
+	// Iniciar transacción
 	ctx := context.Background()
 	tx, err := dao.bd.BeginTx(ctx, nil)
 	if err != nil {
@@ -175,7 +178,7 @@ func (dao *AmigosDAO) RechazarSolicitudAmistad(u Usuario, id int) mensajes.JsonD
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
-	// Si no habia solicitud se devuelve un error pero no pasa nada
+	// Si no había solicitud se devuelve un error pero no pasa nada
 	filasEliminadas, err := resultadoConsulta.RowsAffected()
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
@@ -195,6 +198,10 @@ func (dao *AmigosDAO) EnviarSolicitudAmistad(u Usuario, amigo string) mensajes.J
 
 	// Comprobar si el usuario al que se le quiere enviar la solicitud existe
 	err := dao.bd.QueryRow(obtenerIdUsuario, amigo).Scan(&idAmigo)
+	if err == sql.ErrNoRows {
+		return mensajes.ErrorJson("No existe ningún usuario con el nombre indicado",
+			mensajes.ErrorPeticion)
+	}
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
@@ -213,6 +220,13 @@ func (dao *AmigosDAO) EnviarSolicitudAmistad(u Usuario, amigo string) mensajes.J
 
 	// Guardar en la base de datos que se ha enviado la solicitud
 	_, err = dao.bd.Exec(solicitarAmistad, u.Id, idAmigo)
+	e := err.(*pq.Error)
+	if e.Code.Name() == violacionUnicidad {
+		if strings.Contains(e.Error(), "solicitudamistad_pkey") {
+			return mensajes.ErrorJson("Ya has enviado una solicitud de "+
+				"amistad a este usuario", mensajes.ErrorPeticion)
+		}
+	}
 	if err != nil {
 		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
