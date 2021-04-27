@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math/rand"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -13,7 +14,11 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-const maxMensajes = 100
+const (
+	maxMensajes     = 100
+	maxDadosDefensa = 2
+	maxDadosAtaque  = 3
+)
 
 /*
 	Territorio almacena los datos de un territorio.
@@ -304,11 +309,11 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 	}
 
 	// Algoritmo ataque
-	defensores := min(3, p.Territorios[idDestino].NumTropas)
-	dadosAtaque := make([]int, min(3, atacantes))
+	defensores := min(maxDadosDefensa, p.Territorios[idDestino].NumTropas)
+	dadosAtaque := make([]int, min(maxDadosAtaque, atacantes))
 	dadosDefensa := make([]int, defensores)
 	// Lanzar los dados del atacante
-	for i := 0; i < 3 && i < atacantes; i++ {
+	for i := 0; i < maxDadosAtaque && i < atacantes; i++ {
 		dadosAtaque[i] = rand.Intn(6) + 1
 	}
 	// Lanzar los dados del defensor
@@ -473,7 +478,8 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 	switch p.Fase {
 	case faseRefuerzo:
 		if p.Jugadores[jugador].Refuerzos > 0 {
-			return mensajes.ErrorJsonPartida("Aún te quedan refuerzos", 1)
+			return mensajes.ErrorJsonPartida("Aún te quedan "+
+				strconv.Itoa(p.Jugadores[jugador].Refuerzos)+" refuerzos", 1)
 		}
 		p.Fase++
 		return res

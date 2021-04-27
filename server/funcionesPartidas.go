@@ -5,6 +5,7 @@ import (
 	"PS_Risk_server/mensajes"
 	"PS_Risk_server/mensajesInternos"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -305,15 +306,15 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 						// TODO hacer función para eliminar de la base de datos,
 						// revisar el formato del mensaje y la cantidad de riskos dados
 						msg, ganador, err := p.FinalizarPartida()
-						if err != nil {
+						if err == nil {
 							p.EnviarATodos(msg)
 							u, _ := s.UsuarioDAO.ObtenerUsuarioId(ganador)
 							s.UsuarioDAO.IncrementarRiskos(&u, 50)
 							s.PartidasDAO.BorrarPartida(p)
 							return
-						} //else {
-						//	log.Print(err)
-						//}
+						} else {
+							log.Print(err)
+						}
 					}
 				}
 			}
