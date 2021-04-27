@@ -193,6 +193,8 @@ func (s *Servidor) recibirMensajesUsuario(u baseDatos.Usuario,
 				IdTerritorioDestino: mensajeRecibido.IdTerritorioDestino,
 				Tropas:              mensajeRecibido.Tropas,
 			}
+		} else if strings.EqualFold(mensajeRecibido.Tipo, "Ping") {
+			// Ignorar
 		} else {
 			p.Mensajes <- mensajesInternos.MensajeInvalido{
 				IdUsuario: u.Id,

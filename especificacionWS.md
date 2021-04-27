@@ -1,5 +1,5 @@
 # COMUNICACIÓN CON WEBSOCKETS
-Cuando un cliente se conecte a una sala se establecerá una conexión mediante WebSockets. Tanto los parámetros como resultados se envían en formato JSON. Las conexiones son a la URL base https://risk-servidor.herokuapp.com/.
+Cuando un cliente se conecte a una sala se establecerá una conexión mediante WebSockets. Tanto los parámetros como resultados se envían en formato JSON. El servidor no diferencia entre mayúsculas y minúsculas en el campo "tipo" de los mensajes que recibe. Las conexiones son a la URL base https://risk-servidor.herokuapp.com/.
 
 ## Establecer una conexión
 Cuando un cliente quiera establecer una conexión WebSocket con una sala debe hacerlo en las siguientes URL.
@@ -72,6 +72,15 @@ Durante el transcurso de la conexión tanto el servidor como los clientes se pue
     - 3: Ha ocurrido un error en una la sala de espera, se requiere cerrar la conexión con la sala.
 
     **err:** Explica qué error ha ocurrido.
+
+- ## Ping
+    Estos mensajes son ignorados por el servidor, y sirven para mantener activa una conexión desde el cliente si es necesario que no esté inactiva durante cierto tiempo.
+
+        {
+            "tipo":"Ping",
+        }
+    
+    **tipo:** se utiliza para ayudar a la decodificación por parte del servidor. Para este mensaje su valor es "Ping"
 
 - ## Salas de espera
     Estos mensajes se envían para comunicar eventos en las salas de espera.
