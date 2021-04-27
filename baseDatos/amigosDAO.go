@@ -220,14 +220,15 @@ func (dao *AmigosDAO) EnviarSolicitudAmistad(u Usuario, amigo string) mensajes.J
 
 	// Guardar en la base de datos que se ha enviado la solicitud
 	_, err = dao.bd.Exec(solicitarAmistad, u.Id, idAmigo)
-	e := err.(*pq.Error)
-	if e.Code.Name() == violacionUnicidad {
-		if strings.Contains(e.Error(), "solicitudamistad_pkey") {
-			return mensajes.ErrorJson("Ya has enviado una solicitud de "+
-				"amistad a este usuario", mensajes.ErrorPeticion)
-		}
-	}
 	if err != nil {
+		if e, ok := err.(*pq.Error); ok {
+			if e.Code.Name() == violacionUnicidad {
+				if strings.Contains(e.Error(), "solicitudamistad_pkey") {
+					return mensajes.ErrorJson("Ya has enviado una solicitud de "+
+						"amistad a este usuario", mensajes.ErrorPeticion)
+				}
+			}
+		}
 		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 	return mensajes.ErrorJson("", mensajes.NoError)
