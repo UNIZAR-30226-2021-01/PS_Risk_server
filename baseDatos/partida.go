@@ -67,19 +67,20 @@ func CrearJugador(u Usuario) Jugador {
 	Las etiquetas `json` son para codificar los datos que se guardan en la base de datos.
 */
 type Partida struct {
-	IdPartida    int                                  `mapstructure:"idPartida" json:"idPartida"`
-	IdCreador    int                                  `mapstructure:"-" json:"idCreador"`
-	TiempoTurno  int                                  `mapstructure:"tiempoTurno" json:"tiempoTurno"`
-	TurnoActual  int                                  `mapstructure:"turnoActual,omitempty" json:"turnoActual"`
-	TurnoJugador int                                  `mapstructure:"turnoJugador" json:"turnoJugador"`
-	Fase         int                                  `mapstructure:"fase,omitempty" json:"fase"`
-	Nombre       string                               `mapstructure:"nombrePartida" json:"nombrePartida"`
-	Empezada     bool                                 `mapstructure:"-" json:"empezada"`
-	Territorios  []Territorio                         `mapstructure:"territorios,omitempty" json:"territorios"`
-	Jugadores    []Jugador                            `mapstructure:"jugadores" json:"jugadores"`
-	Conexiones   sync.Map                             `mapstructure:"-" json:"-"`
-	Mensajes     chan mensajesInternos.MensajePartida `mapstructure:"-" json:"-"`
-	UltimoTurno  string                               `mapstructure:"ultimoTurno,omitempty" json:"-"`
+	IdPartida           int                                  `mapstructure:"idPartida" json:"idPartida"`
+	IdCreador           int                                  `mapstructure:"-" json:"idCreador"`
+	TiempoTurno         int                                  `mapstructure:"tiempoTurno" json:"tiempoTurno"`
+	TurnoActual         int                                  `mapstructure:"turnoActual,omitempty" json:"turnoActual"`
+	TurnoJugador        int                                  `mapstructure:"turnoJugador" json:"turnoJugador"`
+	Fase                int                                  `mapstructure:"fase,omitempty" json:"fase"`
+	Nombre              string                               `mapstructure:"nombrePartida" json:"nombrePartida"`
+	Empezada            bool                                 `mapstructure:"-" json:"empezada"`
+	Territorios         []Territorio                         `mapstructure:"territorios,omitempty" json:"territorios"`
+	Jugadores           []Jugador                            `mapstructure:"jugadores" json:"jugadores"`
+	Conexiones          sync.Map                             `mapstructure:"-" json:"-"`
+	Mensajes            chan mensajesInternos.MensajePartida `mapstructure:"-" json:"-"`
+	UltimoTurno         string                               `mapstructure:"ultimoTurno,omitempty" json:"-"`
+	MovimientoRealizado bool                                 `mapstructure:"movimientoRealizado" json:"movimientoRealizado"`
 }
 
 // Valores que puede tomar el campo Fase
@@ -113,6 +114,7 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 	p.Fase = faseRefuerzo
 	p.Empezada = true
 	p.UltimoTurno = time.Now().UTC().String()
+	p.MovimientoRealizado = false
 	return nil
 }
 
@@ -399,6 +401,11 @@ func (p *Partida) Movimiento(idOrigen, idDestino, idJugador, tropas int) mensaje
 	if p.Fase != faseMovimiento {
 		return mensajes.ErrorJsonPartida("No estás en la fase de movimiento", 1)
 	}
+	// Comprobar que se puede realizar el movimiento
+	if p.MovimientoRealizado {
+		return mensajes.ErrorJsonPartida("Solo puedes realizar un movimiento por "+
+			"fase de movimiento", 1)
+	}
 	// Comprobar que es el turno del jugador
 	if p.TurnoJugador != idJugador {
 		return mensajes.ErrorJsonPartida("No es tu turno", 1)
@@ -413,6 +420,14 @@ func (p *Partida) Movimiento(idOrigen, idDestino, idJugador, tropas int) mensaje
 		return mensajes.ErrorJsonPartida("No se pueden mover tropas a un"+
 			" territorio que no te pertenece", 1)
 	}
+	// Comprobar que no se muevan al mismo sitio
+	if idOrigen == idDestino {
+		return mensajes.ErrorJsonPartida("No puedes mover tropas al mismo territorio", 1)
+	}
+	// Comprobar que sea mayor que 0 el número de tropas
+	if idOrigen == idDestino {
+		return mensajes.ErrorJsonPartida("No puedes mover 0 tropas", 1)
+	}
 	// Comprobar que existe ruta entre territorios del jugador
 	if !p.existeRuta(idOrigen, idDestino, idJugador, []int{}) {
 		return mensajes.ErrorJsonPartida("No existe ruta entre territorios", 1)
@@ -422,6 +437,8 @@ func (p *Partida) Movimiento(idOrigen, idDestino, idJugador, tropas int) mensaje
 		return mensajes.ErrorJsonPartida("No tienes tropas suficientes, siempre"+
 			" debe quedar al menos una tropa en el territorio de origen", 1)
 	}
+	// Guardar que en esta fase se ha realizado un movmiento
+	p.MovimientoRealizado = true
 	// Mover las tropas
 	p.Territorios[idOrigen].NumTropas -= tropas
 	p.Territorios[idDestino].NumTropas += tropas
@@ -485,6 +502,7 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 		return res
 	case faseAtaque:
 		p.Fase++
+		p.MovimientoRealizado = false
 		return res
 	case faseMovimiento:
 		p.Fase = faseRefuerzo
