@@ -365,16 +365,27 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 					mt.RecibirMensajes <- false
 					// TODO: actualizar la conexión para usar la nueva sin que
 					// al cerrar la vieja se cierren las dos
-					//antiguaConexion.(*websocket.Conn).Close()
+					// antiguaConexion.(*websocket.Conn).Close()
 				} else {
+
+					fmt.Println("Usuario se ha reconectado")
+
+					// Guardar la nueva conexion
 					p.Conexiones.Store(mt.IdUsuario, mt.Ws)
 					msg := mensajes.JsonData{}
+					// Activar la funcion de recibir mensajes de usuario
+					mt.RecibirMensajes <- true
+					// Enviar de mensajes en formatio JSON
 					mapstructure.Decode(p, &msg)
 					msg["_tipoMensaje"] = "p"
 					p.Enviar(mt.IdUsuario, msg)
+
 				}
 			}
 		case mensajesInternos.SalidaUsuario:
+
+			fmt.Println("Usuario se ha desconectado")
+
 			// Desconexión de un usuario
 			p.Conexiones.Delete(mt.IdUsuario)
 		case mensajesInternos.MensajeInvalido:
