@@ -32,7 +32,9 @@ const (
 	consultaPartidas = "SELECT id_partida FROM juega WHERE id_usuario = $1"
 	guardarTurno     = "INSERT INTO notificacionTurno (id_recibe, id_envia) " +
 		"VALUES ($1, $2)"
-	borrarTurno = "DELETE FROM notificacionTurno WHERE id_envia = $1"
+	borrarTurno        = "DELETE FROM notificacionTurno WHERE id_envia = $1"
+	borrarTurnoJugador = "DELETE FROM notificacionTurno WHERE id_envia = $1 " +
+		"AND id_recibe = $2"
 )
 
 /*
@@ -304,13 +306,13 @@ func (dao *PartidaDAO) NotificarTurno(p *Partida) error {
 	if err != nil {
 		return err
 	}
-	// Borrar el turno enterior de la base de datos
+	// Borrar el turno anterior de la base de datos
 	_, err = tx.ExecContext(ctx, borrarTurno, p.IdPartida)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	// Guardar el turno actual de la base de datos
+	// Guardar el turno actual en la base de datos
 	_, err = tx.ExecContext(ctx, guardarTurno, p.Jugadores[p.TurnoJugador].Id, p.IdPartida)
 	if err != nil {
 		tx.Rollback()
@@ -319,4 +321,24 @@ func (dao *PartidaDAO) NotificarTurno(p *Partida) error {
 	// Finalizar la transaccion
 	err = tx.Commit()
 	return err
+}
+
+/*
+	BorrarNotificacionTurno elimina de la base de datos la notificación que indica
+	que es el turno del jugador indicado en la partida indicada.
+	Devuelve el error ocurrido, o nil si se ha podido eliminar correctamente.
+*/
+func (dao *PartidaDAO) BorrarNotificacionTurno(idPartida int, u Usuario) error {
+	resultado, err := dao.bd.Exec(borrarTurnoJugador, idPartida, u.Id)
+	if err != nil {
+		return err
+	}
+	borradas, err := resultado.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if borradas == 0 {
+		return errors.New("no se ha podido eliminar la notificación")
+	}
+	return nil
 }

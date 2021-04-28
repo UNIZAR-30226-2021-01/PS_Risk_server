@@ -9,6 +9,7 @@ Esta API utiliza peticiones HTTP POST con los parámetros en formato URL-Encoded
     * [/recargarUsuario](#recargarusuario)
     * [/personalizarUsuario](#personalizarUsuario)
     * [/notificaciones](#notificaciones)
+    * [/borrarNotificacionTurno](#borrarnotificacionturno)
 * [Sistema de Amigos](#sistema-de-amigos)
     * [/amigos](#amigos)
     * [/enviarSolicitudAmistad](#enviarsolicitudamistad)
@@ -168,6 +169,20 @@ Peticiones relacionadas con la creación de cuentas, inicio de sesión y persona
             - Invitacion
         - **idEnvio:** Identificador numérico de quien ha enviado la notificación.
 
+- ## /borrarNotificacionTurno
+    Se envía el identificador numérico de un usuario junto con su clave y el identificador numérico de la partida en la que es su turno y se devuelve un error. Este será error nulo en caso de que todo haya funcionado correctamente.
+
+    - **Parámetros:**
+        | Nombre    | Tipo   | Descripción                          |
+        |-----------|--------|--------------------------------------|
+        | idUsuario | int    | Identificador numérico del usuario.  |
+        | clave     | string | Hash SHA256 de la clave del usuario. |
+        | idSala    | int    | Identificador numérico de la partida.|
+
+    - **Resultado:**
+
+        JSON de error.
+        
 ## Sistema de Amigos
 Peticiones relacionadas con enviar solicitudes de amistad, aceptarlas, rechazarlas y obtener la lista de amigos.
 
@@ -282,7 +297,7 @@ Peticiones relacionadas con las partidas.
         - **ultimoTurno:** fecha del último inicio de turno.
 
 - ## /rechazarPartida
-    Se envía el identificador numérico de un usuario junto con su clave y el identificador numérico de una partida. Se devuelve la lista de notificaciones del usuario después de eliminar la invitación a la partida indicada o un error.
+    Se envía el identificador numérico de un usuario junto con su clave y el identificador numérico de una partida y se devuelve un error. Este será error nulo en caso de que todo haya funcionado correctamente.
 
     - **Parámetros:**
         | Nombre    | Tipo   | Descripción                          |

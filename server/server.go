@@ -75,6 +75,7 @@ func (s *Servidor) Iniciar() error {
 	mux.HandleFunc("/partidas", s.partidasHandler)
 	mux.HandleFunc("/rechazarPartida", s.rechazarPartidaHandler)
 	mux.HandleFunc("/entrarPartida", s.aceptarSalaHandler)
+	mux.HandleFunc("/borrarNotificacionTurno", s.borrarNotificacionTurnoHandler)
 	// Eliminar todas las salas que no se han iniciado
 	// TODO
 	// Restaurar todas las partidas de la base de datos
@@ -554,6 +555,41 @@ func (s *Servidor) rechazarPartidaHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		devolverError(mensajes.ErrorPeticion, "No se ha podido rechazar la "+
 			"invitación", w)
+		return
+	}
+
+	// Devolver resultado
+	devolverError(mensajes.NoError, "", w)
+}
+
+func (s *Servidor) borrarNotificacionTurnoHandler(w http.ResponseWriter, r *http.Request) {
+	var f formularioRechazarPartida
+
+	// Comprobar que los datos recibidos son correctos
+	decoder := form.NewDecoder()
+	err := r.ParseForm()
+	if err != nil {
+		devolverError(mensajes.ErrorPeticion, err.Error(), w)
+		return
+	}
+	err = decoder.Decode(&f, r.PostForm)
+	if err != nil {
+		devolverError(mensajes.ErrorPeticion, "Campos formulario incorrectos", w)
+		return
+	}
+
+	// Obtener los datos del usuario que hace la petición
+	u, err := s.UsuarioDAO.ObtenerUsuario(f.IdUsuario, f.Clave)
+	if err != nil {
+		devolverError(mensajes.ErrorUsuario, "No se ha podido obtener el usuario", w)
+		return
+	}
+
+	// Borrar la notificación
+	err = s.PartidasDAO.BorrarNotificacionTurno(f.IdSala, u)
+	if err != nil {
+		devolverError(mensajes.ErrorPeticion, "No se ha podido eliminar la "+
+			"notificación", w)
 		return
 	}
 
