@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/mitchellh/mapstructure"
@@ -285,111 +286,115 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 */
 func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 	// Bucle infinito para leer notificaciones
+	timeout := time.After(time.Duration(p.TiempoTurno) * time.Minute)
 	for {
-		mensajeRecibido := <-p.Mensajes
-
-		// Temporización de los turnos
-		// TODO
-
-		switch mt := mensajeRecibido.(type) {
-		case mensajesInternos.MensajeFase:
-			// Mensaje para avanzar de fase
-			pos := p.ObtenerPosicionJugador(mt.IdUsuario)
-			msg := p.AvanzarFase(pos)
-			if _, hayError := msg["err"]; hayError {
-				p.Enviar(mt.IdUsuario, msg)
-			} else {
-				p.EnviarATodos(msg)
-				if msg["_tipoMensaje"].(string) == "p" {
-					// Datos completos de la partida: se avanza turno
-					s.PartidasDAO.NotificarTurno(p)
-					// TODO gestionar error
-					if p.JugadoresRestantes() == 1 {
-						// TODO hacer función para eliminar de la base de datos,
-						// revisar el formato del mensaje y la cantidad de riskos dados
-						msg, ganador, err := p.FinalizarPartida()
-						if err == nil {
-							p.EnviarATodos(msg)
-							u, _ := s.UsuarioDAO.ObtenerUsuarioId(ganador)
-							s.UsuarioDAO.IncrementarRiskos(&u, 50)
-							s.PartidasDAO.BorrarPartida(p)
-							return
-						} else {
-							log.Print(err)
+		select {
+		case mensajeRecibido := <-p.Mensajes:
+			switch mt := mensajeRecibido.(type) {
+			case mensajesInternos.MensajeFase:
+				// Mensaje para avanzar de fase
+				pos := p.ObtenerPosicionJugador(mt.IdUsuario)
+				msg := p.AvanzarFase(pos)
+				if _, hayError := msg["err"]; hayError {
+					p.Enviar(mt.IdUsuario, msg)
+				} else {
+					p.EnviarATodos(msg)
+					if msg["_tipoMensaje"].(string) == "p" {
+						// Datos completos de la partida: se avanza turno
+						s.PartidasDAO.NotificarTurno(p)
+						timeout = time.After(time.Duration(p.TiempoTurno) * time.Minute)
+						// TODO gestionar error
+						if p.JugadoresRestantes() == 1 {
+							// TODO hacer función para eliminar de la base de datos,
+							// revisar el formato del mensaje y la cantidad de riskos dados
+							msg, ganador, err := p.FinalizarPartida()
+							if err == nil {
+								p.EnviarATodos(msg)
+								u, _ := s.UsuarioDAO.ObtenerUsuarioId(ganador)
+								s.UsuarioDAO.IncrementarRiskos(&u, 50)
+								s.PartidasDAO.BorrarPartida(p)
+								return
+							} else {
+								log.Print(err)
+							}
 						}
 					}
 				}
-			}
-			// Actualizar información de usuarios
-			// TODO
-			// Guardar información en la base de datos
-			// TODO
-		case mensajesInternos.MensajeRefuerzos:
-			// Mensaje para realizar un refuerzo
-			pos := p.ObtenerPosicionJugador(mt.IdUsuario)
-			msg := p.Refuerzo(mt.IdTerritorio, pos, mt.Tropas)
-			if _, hayError := msg["err"]; hayError {
-				p.Enviar(mt.IdUsuario, msg)
-			} else {
-				p.EnviarATodos(msg)
-			}
-		case mensajesInternos.MensajeAtaque:
-			// Mensaje para realizar un ataque
-			pos := p.ObtenerPosicionJugador(mt.IdUsuario)
-			msg := p.Ataque(mt.IdTerritorioOrigen, mt.IdTerritorioDestino, pos, mt.Tropas)
-			if _, hayError := msg["err"]; hayError {
-				p.Enviar(mt.IdUsuario, msg)
-			} else {
-				p.EnviarATodos(msg)
-			}
-		case mensajesInternos.MensajeMover:
-			// Mensaje para realizar un movimiento
-			pos := p.ObtenerPosicionJugador(mt.IdUsuario)
-			msg := p.Movimiento(mt.IdTerritorioOrigen, mt.IdTerritorioDestino, pos, mt.Tropas)
-			if _, hayError := msg["err"]; hayError {
-				p.Enviar(mt.IdUsuario, msg)
-			} else {
-				p.EnviarATodos(msg)
-			}
-		case mensajesInternos.LlegadaUsuario:
-			if pos := p.ObtenerPosicionJugador(mt.IdUsuario); pos == -1 {
-				mt.Ws.WriteJSON(mensajes.ErrorJsonPartida("No estás en esta partida", 1))
-				mt.Ws.Close()
-				mt.RecibirMensajes <- false
-			} else {
-				antiguaConexion, _ := p.Conexiones.Load(mt.IdUsuario)
-				if antiguaConexion != nil {
-					mt.Ws.WriteJSON(mensajes.ErrorJsonPartida("Ya estás conectado a esta"+
-						" partida desde otro lugar", 1))
+				// Actualizar información de usuarios
+				// TODO
+				// Guardar información en la base de datos
+				// TODO
+			case mensajesInternos.MensajeRefuerzos:
+				// Mensaje para realizar un refuerzo
+				pos := p.ObtenerPosicionJugador(mt.IdUsuario)
+				msg := p.Refuerzo(mt.IdTerritorio, pos, mt.Tropas)
+				if _, hayError := msg["err"]; hayError {
+					p.Enviar(mt.IdUsuario, msg)
+				} else {
+					p.EnviarATodos(msg)
+				}
+			case mensajesInternos.MensajeAtaque:
+				// Mensaje para realizar un ataque
+				pos := p.ObtenerPosicionJugador(mt.IdUsuario)
+				msg := p.Ataque(mt.IdTerritorioOrigen, mt.IdTerritorioDestino, pos, mt.Tropas)
+				if _, hayError := msg["err"]; hayError {
+					p.Enviar(mt.IdUsuario, msg)
+				} else {
+					p.EnviarATodos(msg)
+				}
+			case mensajesInternos.MensajeMover:
+				// Mensaje para realizar un movimiento
+				pos := p.ObtenerPosicionJugador(mt.IdUsuario)
+				msg := p.Movimiento(mt.IdTerritorioOrigen, mt.IdTerritorioDestino, pos, mt.Tropas)
+				if _, hayError := msg["err"]; hayError {
+					p.Enviar(mt.IdUsuario, msg)
+				} else {
+					p.EnviarATodos(msg)
+				}
+			case mensajesInternos.LlegadaUsuario:
+				if pos := p.ObtenerPosicionJugador(mt.IdUsuario); pos == -1 {
+					mt.Ws.WriteJSON(mensajes.ErrorJsonPartida("No estás en esta partida", 1))
 					mt.Ws.Close()
 					mt.RecibirMensajes <- false
-					// TODO: actualizar la conexión para usar la nueva sin que
-					// al cerrar la vieja se cierren las dos
-					// antiguaConexion.(*websocket.Conn).Close()
 				} else {
+					antiguaConexion, _ := p.Conexiones.Load(mt.IdUsuario)
+					if antiguaConexion != nil {
+						mt.Ws.WriteJSON(mensajes.ErrorJsonPartida("Ya estás conectado a esta"+
+							" partida desde otro lugar", 1))
+						mt.Ws.Close()
+						mt.RecibirMensajes <- false
+						// TODO: actualizar la conexión para usar la nueva sin que
+						// al cerrar la vieja se cierren las dos
+						// antiguaConexion.(*websocket.Conn).Close()
+					} else {
 
-					fmt.Println("Usuario se ha reconectado")
+						fmt.Println("Usuario se ha reconectado")
 
-					// Guardar la nueva conexion
-					p.Conexiones.Store(mt.IdUsuario, mt.Ws)
-					msg := mensajes.JsonData{}
-					// Activar la funcion de recibir mensajes de usuario
-					mt.RecibirMensajes <- true
-					// Enviar de mensajes en formatio JSON
-					mapstructure.Decode(p, &msg)
-					msg["_tipoMensaje"] = "p"
-					p.Enviar(mt.IdUsuario, msg)
+						// Guardar la nueva conexion
+						p.Conexiones.Store(mt.IdUsuario, mt.Ws)
+						msg := mensajes.JsonData{}
+						// Activar la funcion de recibir mensajes de usuario
+						mt.RecibirMensajes <- true
+						// Enviar de mensajes en formatio JSON
+						mapstructure.Decode(p, &msg)
+						msg["_tipoMensaje"] = "p"
+						p.Enviar(mt.IdUsuario, msg)
 
+					}
 				}
+			case mensajesInternos.SalidaUsuario:
+
+				fmt.Println("Usuario se ha desconectado")
+
+				// Desconexión de un usuario
+				p.Conexiones.Delete(mt.IdUsuario)
+			case mensajesInternos.MensajeInvalido:
+				p.EnviarError(mensajes.ErrorPeticion, mt.IdUsuario, mt.Err)
 			}
-		case mensajesInternos.SalidaUsuario:
-
-			fmt.Println("Usuario se ha desconectado")
-
-			// Desconexión de un usuario
-			p.Conexiones.Delete(mt.IdUsuario)
-		case mensajesInternos.MensajeInvalido:
-			p.EnviarError(mensajes.ErrorPeticion, mt.IdUsuario, mt.Err)
+		case <-timeout:
+			// Eliminar al que ha sido timeout
+			// TODO
+			p.EnviarATodos(mensajes.JsonData{"timeout": "timeout"})
 		}
 	}
 }
