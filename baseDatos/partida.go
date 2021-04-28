@@ -554,6 +554,26 @@ func (p *Partida) ObtenerPosicionJugador(id int) int {
 	return -1
 }
 
+func (p *Partida) PasarTurno() mensajes.JsonData {
+	var res mensajes.JsonData
+
+	p.Fase = faseRefuerzo
+	p.TurnoActual++
+	// Calcular el jugador de cual es el turno
+	p.TurnoJugador = (p.TurnoJugador + 1) % len(p.Jugadores)
+	for !p.Jugadores[p.TurnoJugador].SigueVivo {
+		p.TurnoJugador = (p.TurnoJugador + 1) % len(p.Jugadores)
+	}
+	// Calcular el nuevo valor de los refuerzos para el jugador al que le toca
+	p.AsignarRefuerzos(p.TurnoJugador)
+	// Nueva marca temporal del ultimo turno
+	p.UltimoTurno = time.Now().UTC().String()
+	// Codificar los datos de la partida en formato json
+	mapstructure.Decode(p, &res)
+	res["_tipoMensaje"] = "p"
+	return res
+}
+
 func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 
 	if p.TurnoJugador != jugador {
@@ -576,21 +596,7 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 		p.MovimientoRealizado = false
 		return res
 	case faseMovimiento:
-		p.Fase = faseRefuerzo
-		p.TurnoActual++
-		// Calcular el jugador de cual es el turno
-		p.TurnoJugador = (p.TurnoJugador + 1) % len(p.Jugadores)
-		for !p.Jugadores[p.TurnoJugador].SigueVivo {
-			p.TurnoJugador = (p.TurnoJugador + 1) % len(p.Jugadores)
-		}
-		// Calcular el nuevo valor de los refuerzos para el jugador al que le toca
-		p.AsignarRefuerzos(p.TurnoJugador)
-		// Nueva marca temporal del ultimo turno
-		p.UltimoTurno = time.Now().UTC().String()
-		// Codificar los datos de la partida en formato json
-		mapstructure.Decode(p, &res)
-		res["_tipoMensaje"] = "p"
-		return res
+		return p.PasarTurno()
 	}
 
 	return mensajes.ErrorJsonPartida("La partida no está empezada", 1)
