@@ -328,8 +328,8 @@ func (dao *PartidaDAO) NotificarTurno(p *Partida) error {
 	que es el turno del jugador indicado en la partida indicada.
 	Devuelve el error ocurrido, o nil si se ha podido eliminar correctamente.
 */
-func (dao *PartidaDAO) BorrarNotificacionTurno(idPartida int, u Usuario) error {
-	resultado, err := dao.bd.Exec(borrarTurnoJugador, idPartida, u.Id)
+func (dao *PartidaDAO) BorrarNotificacionTurno(idPartida int, idUsuario int) error {
+	resultado, err := dao.bd.Exec(borrarTurnoJugador, idPartida, idUsuario)
 	if err != nil {
 		return err
 	}

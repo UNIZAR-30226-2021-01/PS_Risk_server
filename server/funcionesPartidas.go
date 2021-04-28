@@ -371,6 +371,7 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 
 						// Guardar la nueva conexion
 						p.Conexiones.Store(mt.IdUsuario, mt.Ws)
+						s.PartidasDAO.BorrarNotificacionTurno(p.IdPartida, mt.IdUsuario)
 						msg := mensajes.JsonData{}
 						// Activar la funcion de recibir mensajes de usuario
 						mt.RecibirMensajes <- true

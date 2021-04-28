@@ -586,7 +586,7 @@ func (s *Servidor) borrarNotificacionTurnoHandler(w http.ResponseWriter, r *http
 	}
 
 	// Borrar la notificación
-	err = s.PartidasDAO.BorrarNotificacionTurno(f.IdSala, u)
+	err = s.PartidasDAO.BorrarNotificacionTurno(f.IdSala, u.Id)
 	if err != nil {
 		devolverError(mensajes.ErrorPeticion, "No se ha podido eliminar la "+
 			"notificación", w)
