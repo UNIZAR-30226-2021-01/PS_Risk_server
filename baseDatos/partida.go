@@ -57,6 +57,61 @@ func CrearJugador(u Usuario) Jugador {
 	}
 }
 
+type Mano struct {
+	Infanteria int `mapstructure:"-" json:"infanteria"`
+	Caballeria int `mapstructure:"-" json:"caballeria"`
+	Artilleria int `mapstructure:"-" json:"artilleria"`
+}
+
+func (m *Mano) Informar() string {
+	if m.Artilleria >= 1 && m.Caballeria >= 1 && m.Infanteria >= 1 {
+		return "Has encontrado un gran botín, recibiras 10 refuerzos extra."
+	}
+	if m.Artilleria >= 3 {
+		return "Has encontrado botín, recibiras 8 refuerzos extra."
+	}
+	if m.Caballeria >= 3 {
+		return "Has encontrado un pequeño botín, recibiras 6 refuerzos extra."
+	}
+	if m.Infanteria >= 3 {
+		return "Has encontrado unos pocos recursos, recibiras 3 refuerzos extra."
+	}
+	return ""
+}
+
+func (m *Mano) Negociar() int {
+	if m.Artilleria >= 1 && m.Caballeria >= 1 && m.Infanteria >= 1 {
+		m.Infanteria--
+		m.Caballeria--
+		m.Artilleria--
+		return 10
+	}
+	if m.Artilleria >= 3 {
+		m.Artilleria -= 3
+		return 8
+	}
+	if m.Caballeria >= 3 {
+		m.Caballeria -= 3
+		return 6
+	}
+	if m.Infanteria >= 3 {
+		m.Infanteria -= 3
+		return 4
+	}
+	return 0
+}
+
+func (m *Mano) Robar(c int) {
+	switch c {
+	case 0:
+		m.Artilleria++
+	case 1:
+		m.Caballeria++
+	case 2:
+		m.Artilleria++
+	}
+}
+
 /*
 	Partida almacena los datos relativos a una partida. Una partida sin iniciar es una
 	sala de espera.
@@ -81,6 +136,8 @@ type Partida struct {
 	Mensajes            chan mensajesInternos.MensajePartida `mapstructure:"-" json:"-"`
 	UltimoTurno         string                               `mapstructure:"ultimoTurno,omitempty" json:"-"`
 	MovimientoRealizado bool                                 `mapstructure:"movimientoRealizado" json:"movimientoRealizado"`
+	CartaEntregada      bool                                 `mapstructure:"-" json:"cartaEntregada"`
+	Cartas              []Mano                               `mapstructure:"-" json:"cartas"`
 }
 
 // Valores que puede tomar el campo Fase
@@ -115,6 +172,11 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 	p.Empezada = true
 	p.UltimoTurno = time.Now().UTC().String()
 	p.MovimientoRealizado = false
+	p.CartaEntregada = false
+	// Inicializar las manos de los jugadores
+	for i := 0; i < len(p.Jugadores); i++ {
+		p.Cartas = append(p.Cartas, Mano{0, 0, 0})
+	}
 	return nil
 }
 
@@ -309,7 +371,8 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 		return mensajes.ErrorJsonPartida("No tienes tropas suficientes, siempre"+
 			" debe quedar al menos una tropa en el territorio de origen", 1)
 	}
-
+	// Inicializar el string vacío
+	infoRefuerzos := ""
 	// Algoritmo ataque
 	defensores := min(maxDadosDefensa, p.Territorios[idDestino].NumTropas)
 	dadosAtaque := make([]int, min(maxDadosAtaque, atacantes))
@@ -347,6 +410,11 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 		if p.Jugadores[idDefensor].NumTerritorios == 0 {
 			p.Jugadores[idDefensor].SigueVivo = false
 		}
+		if !p.CartaEntregada {
+			p.Cartas[idJugador].Robar(rand.Intn(3))
+			p.CartaEntregada = true
+			infoRefuerzos = p.Cartas[idJugador].Informar()
+		}
 	}
 	territorioOrigen := Territorio{}
 	territorioDestino := Territorio{}
@@ -358,6 +426,7 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 		"territorioDestino": territorioDestino,
 		"dadosOrigen":       dadosAtaque,
 		"dadosDestino":      dadosDefensa,
+		"infoRefuerzos":     infoRefuerzos,
 	}
 }
 
@@ -473,6 +542,7 @@ func (p *Partida) AsignarRefuerzos(id int) {
 		}
 	}
 	// TODO SUSTITUTO A REFUERZOS POR CARTA
+	p.Jugadores[id].Refuerzos += p.Cartas[id].Negociar()
 }
 
 func (p *Partida) ObtenerPosicionJugador(id int) int {
@@ -499,6 +569,7 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 				strconv.Itoa(p.Jugadores[jugador].Refuerzos)+" refuerzos", 1)
 		}
 		p.Fase++
+		p.CartaEntregada = false
 		return res
 	case faseAtaque:
 		p.Fase++
