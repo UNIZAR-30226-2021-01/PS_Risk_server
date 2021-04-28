@@ -392,8 +392,9 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 				p.EnviarError(mensajes.ErrorPeticion, mt.IdUsuario, mt.Err)
 			}
 		case <-timeout:
-			// Eliminar al que ha sido timeout
+			// Eliminar al jugador que le ha saltado el timeout
 			// TODO
+			timeout = time.After(time.Duration(p.TiempoTurno) * time.Minute)
 			p.EnviarATodos(mensajes.JsonData{"timeout": "timeout"})
 		}
 	}

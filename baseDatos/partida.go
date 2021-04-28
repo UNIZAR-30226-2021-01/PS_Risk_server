@@ -167,7 +167,6 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 
 	p.TurnoActual = 1
 	p.TurnoJugador = 0
-	p.AsignarRefuerzos(0)
 	p.Fase = faseRefuerzo
 	p.Empezada = true
 	p.UltimoTurno = time.Now().UTC().String()
@@ -177,6 +176,7 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 	for i := 0; i < len(p.Jugadores); i++ {
 		p.Cartas = append(p.Cartas, Mano{0, 0, 0})
 	}
+	p.AsignarRefuerzos(0)
 	return nil
 }
 
