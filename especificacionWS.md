@@ -306,13 +306,13 @@ Durante el transcurso de la conexión tanto el servidor como los clientes se pue
 
             {
                 "_tipoMensaje":"t",
-                "ganador": { "id":int, "nombre":string, "icono":int, "aspecto":int, "sigueVivo":bool, "refuerzos":int, },
+                "ganador":int,
                 "riskos":int,
             }
         
         **_tipoMensaje:** se utiliza para ayudar a la decodificación por parte de los clientes. Para este mensaje su valor es "t".
 
-        **ganador:** datos del ganador de la partida.
+        **ganador:** identificador numérico dentro de la partida del ganador.
 
         **riskos:** cuántos riskos consigue el ganador de la partida. 
         

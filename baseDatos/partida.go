@@ -624,11 +624,9 @@ func (p *Partida) FinalizarPartida() (mensajes.JsonData, int, error) {
 		return respuesta, ganador, errors.New("queda más de un jugador con territorios" +
 			", no se puede terminar la partida")
 	}
-	datosGanador := mensajes.JsonData{}
-	mapstructure.Decode(p.Jugadores[p.TurnoJugador], &datosGanador)
 	respuesta = mensajes.JsonData{
 		"_tipoMensaje": "t",
-		"ganador":      datosGanador,
+		"ganador":      p.TurnoJugador,
 		"riskos":       50,
 	}
 	return respuesta, ganador, nil
