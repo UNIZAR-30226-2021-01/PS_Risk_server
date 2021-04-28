@@ -81,6 +81,15 @@ func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 		id int
 	)
 
+	if nombre == "" {
+		return u, errors.New("no se puede crear un usuario sin nombre")
+	}
+	if clave == "" {
+		return u, errors.New("no se puede crear un usuario sin contraseña")
+	}
+
+	// TODO comprobar validez del correo
+
 	// Iniciar una transacción, solo se modifican las tablas si se modifican
 	// todas
 	ctx := context.Background()
@@ -99,7 +108,7 @@ func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 			if strings.Contains(e.Error(), "usuario_correo_key") {
 				return u, errors.New("ya existe un usuario con la dirección de correo indicada")
 			} else if strings.Contains(e.Error(), "usuario_nombre_key") {
-				return u, errors.New("ya existe un usuario con el nombre indicado")
+				return u, errors.New("el nombre de usuario " + nombre + " ya está en uso")
 			}
 		}
 		return u, err
@@ -145,6 +154,9 @@ func (dao *UsuarioDAO) IniciarSesionNombre(nombre, clave string) (Usuario, error
 	// Obtener los datos de usuario de la base de datos
 	err := dao.bd.QueryRow(consultaUsuarioNombre, nombre, clave).Scan(&id,
 		&icono, &aspecto, &riskos, &correo, &recibeCorreos)
+	if err == sql.ErrNoRows {
+		return u, errors.New("nombre de usuario o contraseña incorrectos")
+	}
 	if err != nil {
 		return u, err
 	}
@@ -170,6 +182,9 @@ func (dao *UsuarioDAO) IniciarSesionCorreo(correo, clave string) (Usuario, error
 	// Obtener los datos de usuario de la base de datos
 	err := dao.bd.QueryRow(consultaUsuarioCorreo, correo, clave).Scan(&id,
 		&icono, &aspecto, &riskos, &nombre, &recibeCorreos)
+	if err == sql.ErrNoRows {
+		return u, errors.New("correo o contraseña incorrectos")
+	}
 	if err != nil {
 		return u, err
 	}
@@ -255,6 +270,14 @@ func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
 		return mensajes.ErrorJson("Aspecto no comprado", mensajes.ErrorPeticion)
 	}
 
+	// Comprobar que el nombre de usuario no es vacío
+	if u.Nombre == "" {
+		return mensajes.ErrorJson("Tu nombre de usuario no puede ser vacío",
+			mensajes.ErrorPeticion)
+	}
+
+	// TODO: comprobar validez del correo
+
 	// Actualizar el usuario en la base de datos
 	res, err := dao.bd.Exec(actualizarUsuario, u.Aspecto, u.Icono, u.Nombre,
 		u.Correo, u.Clave, u.RecibeCorreos, u.Id)
@@ -264,7 +287,7 @@ func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
 			if strings.Contains(e.Error(), "usuario_correo_key") {
 				err = errors.New("ya existe un usuario con la dirección de correo indicada")
 			} else if strings.Contains(e.Error(), "usuario_nombre_key") {
-				err = errors.New("ya existe un usuario con el nombre indicado")
+				err = errors.New("el nombre de usuario " + u.Nombre + " ya está en uso")
 			}
 		}
 		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)

@@ -58,6 +58,10 @@ func (dao *PartidaDAO) CrearPartida(creador Usuario, tiempoTurno int, nombreSala
 
 	var idPartida int
 
+	if nombreSala == "" {
+		return nil, errors.New("no se puede crear una sala sin nombre")
+	}
+
 	// Crea la partida en la base de datos
 	err := dao.bd.QueryRow(crearPartida, creador.Id, nombreSala, []byte(`{}`)).Scan(&idPartida)
 	if err != nil {
@@ -167,9 +171,10 @@ func (dao *PartidaDAO) InvitarPartida(p *Partida, idCreador int, idInvitado int)
 	id1 := min(idCreador, idInvitado)
 	id2 := max(idCreador, idInvitado)
 	err := dao.bd.QueryRow(consultaAmistad, id1, id2).Scan(&id1)
-	if err != nil && err == sql.ErrNoRows {
+	if err == sql.ErrNoRows {
 		return errors.New("no se puede invitar a una partida a alguien que no es amigo")
-	} else if err != nil {
+	}
+	if err != nil {
 		return err
 	}
 
