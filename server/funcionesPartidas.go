@@ -303,7 +303,6 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 						// Datos completos de la partida: se avanza turno
 						s.PartidasDAO.NotificarTurno(p)
 						timeout = time.After(time.Duration(p.TiempoTurno) * time.Minute)
-						// TODO gestionar error
 						if p.JugadoresRestantes() == 1 {
 							// TODO hacer función para eliminar de la base de datos,
 							// revisar el formato del mensaje y la cantidad de riskos dados
@@ -394,6 +393,7 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 		case <-timeout:
 			p.Jugadores[p.TurnoJugador].SigueVivo = false
 			res := p.PasarTurno()
+			s.PartidasDAO.NotificarTurno(p)
 			timeout = time.After(time.Duration(p.TiempoTurno) * time.Minute)
 			p.EnviarATodos(res)
 		}
