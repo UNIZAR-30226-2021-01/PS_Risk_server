@@ -182,6 +182,12 @@ func (dao *PartidaDAO) InvitarPartida(p *Partida, idCreador int, idInvitado int)
 	if err == sql.ErrNoRows {
 		return errors.New("no se puede invitar a una partida a alguien que no es amigo")
 	}
+	if err != nil {
+		return err
+	}
+
+	// Guardar en la base de datos la invitación
+	_, err = dao.bd.Exec(crearInvitacion, idInvitado, p.IdPartida)
 	if e, ok := err.(*pq.Error); ok {
 		if e.Code.Name() == violacionUnicidad {
 			if strings.Contains(e.Error(), "invitacionpartida_pkey") {
@@ -189,12 +195,6 @@ func (dao *PartidaDAO) InvitarPartida(p *Partida, idCreador int, idInvitado int)
 			}
 		}
 	}
-	if err != nil {
-		return err
-	}
-
-	// Guardar en la base de datos la invitación
-	_, err = dao.bd.Exec(crearInvitacion, idInvitado, p.IdPartida)
 	return err
 }
 
