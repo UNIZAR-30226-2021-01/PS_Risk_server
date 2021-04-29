@@ -7,9 +7,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/websocket"
+	"github.com/lib/pq"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -62,6 +64,10 @@ func (dao *PartidaDAO) CrearPartida(creador Usuario, tiempoTurno int, nombreSala
 
 	if nombreSala == "" {
 		return nil, errors.New("no se puede crear una sala sin nombre")
+	}
+
+	if tiempoTurno < 10 {
+		return nil, errors.New("no se puede poner un tiempo de turno menor de 10 minutos")
 	}
 
 	// Crea la partida en la base de datos
@@ -175,6 +181,13 @@ func (dao *PartidaDAO) InvitarPartida(p *Partida, idCreador int, idInvitado int)
 	err := dao.bd.QueryRow(consultaAmistad, id1, id2).Scan(&id1)
 	if err == sql.ErrNoRows {
 		return errors.New("no se puede invitar a una partida a alguien que no es amigo")
+	}
+	if e, ok := err.(*pq.Error); ok {
+		if e.Code.Name() == violacionUnicidad {
+			if strings.Contains(e.Error(), "invitacionpartida_pkey") {
+				return errors.New("ya has invitado a este usuario")
+			}
+		}
 	}
 	if err != nil {
 		return err
