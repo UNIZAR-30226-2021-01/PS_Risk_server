@@ -175,7 +175,7 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 	p.TurnoJugador = 0
 	p.Fase = faseRefuerzo
 	p.Empezada = true
-	p.UltimoTurno = time.Now().UTC().String()
+	p.UltimoTurno = time.Now().UTC().Format(time.RFC3339)
 	p.MovimientoRealizado = false
 	p.CartaEntregada = false
 	// Inicializar las manos de los jugadores
@@ -188,7 +188,7 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 
 func (p *Partida) Restaurar() {
 	p.Conexiones = sync.Map{}
-	p.UltimoTurno = time.Now().UTC().String()
+	p.UltimoTurno = time.Now().UTC().Format(time.RFC3339)
 	p.Mensajes = make(chan mensajesInternos.MensajePartida, maxMensajes)
 }
 
@@ -579,7 +579,7 @@ func (p *Partida) PasarTurno() mensajes.JsonData {
 	// Calcular el nuevo valor de los refuerzos para el jugador al que le toca
 	p.AsignarRefuerzos(p.TurnoJugador)
 	// Nueva marca temporal del ultimo turno
-	p.UltimoTurno = time.Now().UTC().String()
+	p.UltimoTurno = time.Now().UTC().Format(time.RFC3339)
 	// Codificar los datos de la partida en formato json
 	mapstructure.Decode(p, &res)
 	res["_tipoMensaje"] = "p"
