@@ -57,6 +57,12 @@ func CrearJugador(u Usuario) Jugador {
 	}
 }
 
+func (j *Jugador) ActualizarJugador(u Usuario) {
+	j.Nombre = u.Nombre
+	j.Icono = u.Icono
+	j.Aspecto = u.Aspecto
+}
+
 type Mano struct {
 	Infanteria int `mapstructure:"-" json:"infanteria"`
 	Caballeria int `mapstructure:"-" json:"caballeria"`
@@ -178,6 +184,12 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 	}
 	p.AsignarRefuerzos(0)
 	return nil
+}
+
+func (p *Partida) Restaurar() {
+	p.Conexiones = sync.Map{}
+	p.UltimoTurno = time.Now().UTC().String()
+	p.Mensajes = make(chan mensajesInternos.MensajePartida, maxMensajes)
 }
 
 /*

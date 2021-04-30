@@ -77,12 +77,18 @@ func (s *Servidor) Iniciar() error {
 	mux.HandleFunc("/entrarPartida", s.aceptarSalaHandler)
 	mux.HandleFunc("/borrarNotificacionTurno", s.borrarNotificacionTurnoHandler)
 	// Eliminar todas las salas que no se han iniciado
-	// TODO
+	err := s.PartidasDAO.EliminarSalas()
+	if err != nil {
+		return err
+	}
 	// Restaurar todas las partidas de la base de datos
-	// TODO
+	err = s.RestaurarPartidas()
+	if err != nil {
+		return err
+	}
 	handler := cors.Default().Handler(mux)
 	s.upgrader.CheckOrigin = func(r *http.Request) bool { return true }
-	err := http.ListenAndServe(":"+s.Puerto, handler)
+	err = http.ListenAndServe(":"+s.Puerto, handler)
 	return err
 }
 

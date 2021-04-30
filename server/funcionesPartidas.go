@@ -4,8 +4,8 @@ import (
 	"PS_Risk_server/baseDatos"
 	"PS_Risk_server/mensajes"
 	"PS_Risk_server/mensajesInternos"
+	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -280,6 +280,23 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 	}
 }
 
+func (s *Servidor) finalizarPartida(p *baseDatos.Partida) {
+	msg, ganador, _ := p.FinalizarPartida()
+	p.EnviarATodos(msg)
+	u, _ := s.UsuarioDAO.ObtenerUsuarioId(ganador)
+	s.UsuarioDAO.IncrementarRiskos(&u, 50)
+	s.PartidasDAO.BorrarPartida(p)
+}
+
+func (s *Servidor) recargarUsuarios(p *baseDatos.Partida) {
+	for i := range p.Jugadores {
+		u, err := s.UsuarioDAO.ObtenerUsuarioId(p.Jugadores[i].Id)
+		if err != nil {
+			p.Jugadores[i].ActualizarJugador(u)
+		}
+	}
+}
+
 /*
 	atenderPartida recibe las diferentes notificaciones de una partida y ejecuta
 	las acciones que se requieran para cada notificación.
@@ -293,36 +310,26 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 			switch mt := mensajeRecibido.(type) {
 			case mensajesInternos.MensajeFase:
 				// Mensaje para avanzar de fase
+				// Actualizar información de usuarios
+				s.recargarUsuarios(p)
 				pos := p.ObtenerPosicionJugador(mt.IdUsuario)
 				msg := p.AvanzarFase(pos)
 				if _, hayError := msg["err"]; hayError {
 					p.Enviar(mt.IdUsuario, msg)
 				} else {
+					// Guardar información en la base de datos
+					s.PartidasDAO.ActualizarPartida(p)
 					p.EnviarATodos(msg)
 					if msg["_tipoMensaje"].(string) == "p" {
 						// Datos completos de la partida: se avanza turno
 						s.PartidasDAO.NotificarTurno(p)
 						timeout = time.After(time.Duration(p.TiempoTurno) * time.Minute)
 						if p.JugadoresRestantes() == 1 {
-							// TODO hacer función para eliminar de la base de datos,
-							// revisar el formato del mensaje y la cantidad de riskos dados
-							msg, ganador, err := p.FinalizarPartida()
-							if err == nil {
-								p.EnviarATodos(msg)
-								u, _ := s.UsuarioDAO.ObtenerUsuarioId(ganador)
-								s.UsuarioDAO.IncrementarRiskos(&u, 50)
-								s.PartidasDAO.BorrarPartida(p)
-								return
-							} else {
-								log.Print(err)
-							}
+							s.finalizarPartida(p)
+							return
 						}
 					}
 				}
-				// Actualizar información de usuarios
-				// TODO
-				// Guardar información en la base de datos
-				// TODO
 			case mensajesInternos.MensajeRefuerzos:
 				// Mensaje para realizar un refuerzo
 				pos := p.ObtenerPosicionJugador(mt.IdUsuario)
@@ -366,9 +373,6 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 						// al cerrar la vieja se cierren las dos
 						// antiguaConexion.(*websocket.Conn).Close()
 					} else {
-
-						fmt.Println("Usuario se ha reconectado")
-
 						// Guardar la nueva conexion
 						p.Conexiones.Store(mt.IdUsuario, mt.Ws)
 						s.PartidasDAO.BorrarNotificacionTurno(p.IdPartida, mt.IdUsuario)
@@ -383,9 +387,6 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 					}
 				}
 			case mensajesInternos.SalidaUsuario:
-
-				fmt.Println("Usuario se ha desconectado")
-
 				// Desconexión de un usuario
 				p.Conexiones.Delete(mt.IdUsuario)
 			case mensajesInternos.MensajeInvalido:
@@ -394,9 +395,14 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 		case <-timeout:
 			p.Jugadores[p.TurnoJugador].SigueVivo = false
 			res := p.PasarTurno()
+			// Datos completos de la partida: se avanza turno
+			p.EnviarATodos(res)
 			s.PartidasDAO.NotificarTurno(p)
 			timeout = time.After(time.Duration(p.TiempoTurno) * time.Minute)
-			p.EnviarATodos(res)
+			if p.JugadoresRestantes() == 1 {
+				s.finalizarPartida(p)
+				return
+			}
 		}
 	}
 }
@@ -407,4 +413,22 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 func devolverErrorWebsocket(code int, err string, ws *websocket.Conn) {
 	resultado := mensajes.ErrorJsonPartida(err, code)
 	ws.WriteJSON(resultado)
+}
+
+func (s *Servidor) RestaurarPartidas() error {
+	res, err := s.PartidasDAO.ObtenerPartidasEmpezadas()
+	if err != nil {
+		return err
+	}
+	for i := range res {
+		p := baseDatos.Partida{}
+		err := json.Unmarshal(res[i], &p)
+		if err != nil {
+			return err
+		}
+		p.Restaurar()
+		s.Partidas.Store(p.IdPartida, &p)
+		go s.atenderPartida(&p)
+	}
+	return nil
 }

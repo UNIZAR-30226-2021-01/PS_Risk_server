@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	crearPartida = "INSERT INTO partida (id_creador, nombre, json_estado) " +
-		"VALUES ($1, $2, $3) RETURNING id_partida"
+	crearPartida = "INSERT INTO partida (id_creador, nombre, empezada, json_estado) " +
+		"VALUES ($1, $2, 0, $3) RETURNING id_partida"
 	borrarInvitaciones      = "DELETE FROM invitacionPartida WHERE id_envia = $1"
 	actualizarEstadoPartida = "UPDATE partida SET json_estado = $1 WHERE " +
 		"id_partida = $2"
@@ -37,6 +37,9 @@ const (
 	borrarTurno        = "DELETE FROM notificacionTurno WHERE id_envia = $1"
 	borrarTurnoJugador = "DELETE FROM notificacionTurno WHERE id_envia = $1 " +
 		"AND id_recibe = $2"
+	empezarPartida           = "UPDATE partida SET empezada = 1 WHERE id_partida = $1"
+	eliminarSalas            = "DELETE FROM partida WHERE empezada = 0"
+	obtenerPartidasEmpezadas = "SELECT json_estado AS p FROM partida"
 )
 
 /*
@@ -78,17 +81,20 @@ func (dao *PartidaDAO) CrearPartida(creador Usuario, tiempoTurno int, nombreSala
 
 	// Crea la estructura de datos
 	p := &Partida{
-		IdPartida:   idPartida,
-		IdCreador:   creador.Id,
-		TiempoTurno: tiempoTurno,
-		TurnoActual: 0,
-		Fase:        0,
-		Nombre:      nombreSala,
-		Empezada:    false,
-		Territorios: []Territorio{},
-		Jugadores:   []Jugador{},
-		Conexiones:  sync.Map{},
-		Mensajes:    make(chan mensajesInternos.MensajePartida, maxMensajes),
+		IdPartida:           idPartida,
+		IdCreador:           creador.Id,
+		TiempoTurno:         tiempoTurno,
+		TurnoActual:         0,
+		TurnoJugador:        0,
+		Fase:                0,
+		Nombre:              nombreSala,
+		Empezada:            false,
+		Territorios:         []Territorio{},
+		Jugadores:           []Jugador{},
+		Conexiones:          sync.Map{},
+		Mensajes:            make(chan mensajesInternos.MensajePartida, maxMensajes),
+		UltimoTurno:         "",
+		MovimientoRealizado: false,
 	}
 	p.Jugadores = append(p.Jugadores, CrearJugador(creador))
 	p.Conexiones.Store(creador.Id, wsCreador)
@@ -133,6 +139,13 @@ func (dao *PartidaDAO) IniciarPartida(p *Partida, idCreador int) mensajes.JsonDa
 	// Actualiza el estado de la partida en la base de datos
 	estadoJson, _ := json.Marshal(p)
 	_, err = tx.ExecContext(ctx, actualizarEstadoPartida, estadoJson, p.IdPartida)
+	if err != nil {
+		tx.Rollback()
+		p.AnularInicio()
+		return mensajes.ErrorJsonPartida(err.Error(), mensajes.ErrorPeticion)
+	}
+	// Marcar la partida como iniciada
+	_, err = tx.ExecContext(ctx, empezarPartida, p.IdPartida)
 	if err != nil {
 		tx.Rollback()
 		p.AnularInicio()
@@ -354,4 +367,31 @@ func (dao *PartidaDAO) BorrarNotificacionTurno(idPartida int, idUsuario int) err
 		return errors.New("no se ha podido eliminar la notificación")
 	}
 	return nil
+}
+
+func (dao *PartidaDAO) ActualizarPartida(p *Partida) {
+	estadoJson, _ := json.Marshal(p)
+	dao.bd.Exec(actualizarEstadoPartida, estadoJson, p.IdPartida)
+}
+
+func (dao *PartidaDAO) EliminarSalas() error {
+	_, err := dao.bd.Exec(eliminarSalas)
+	return err
+}
+
+func (dao *PartidaDAO) ObtenerPartidasEmpezadas() ([][]byte, error) {
+	var resultado [][]byte
+
+	filas, err := dao.bd.Query(obtenerPartidasEmpezadas)
+	if err != nil {
+		return nil, err
+	}
+	for filas.Next() {
+		var datos []byte
+		if err := filas.Scan(&datos); err != nil {
+			return nil, err
+		}
+		resultado = append(resultado, datos)
+	}
+	return resultado, nil
 }
