@@ -17,7 +17,7 @@ import (
 
 const (
 	crearPartida = "INSERT INTO partida (id_creador, nombre, empezada, json_estado) " +
-		"VALUES ($1, $2, 0, $3) RETURNING id_partida"
+		"VALUES ($1, $2, false, $3) RETURNING id_partida"
 	borrarInvitaciones      = "DELETE FROM invitacionPartida WHERE id_envia = $1"
 	actualizarEstadoPartida = "UPDATE partida SET json_estado = $1 WHERE " +
 		"id_partida = $2"
@@ -37,8 +37,8 @@ const (
 	borrarTurno        = "DELETE FROM notificacionTurno WHERE id_envia = $1"
 	borrarTurnoJugador = "DELETE FROM notificacionTurno WHERE id_envia = $1 " +
 		"AND id_recibe = $2"
-	empezarPartida           = "UPDATE partida SET empezada = 1 WHERE id_partida = $1"
-	eliminarSalas            = "DELETE FROM partida WHERE empezada = 0"
+	empezarPartida           = "UPDATE partida SET empezada = true WHERE id_partida = $1"
+	eliminarSalas            = "DELETE FROM partida WHERE empezada = false"
 	obtenerPartidasEmpezadas = "SELECT json_estado AS p FROM partida"
 )
 
