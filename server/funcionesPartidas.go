@@ -291,7 +291,7 @@ func (s *Servidor) finalizarPartida(p *baseDatos.Partida) {
 func (s *Servidor) recargarUsuarios(p *baseDatos.Partida) {
 	for i := range p.Jugadores {
 		u, err := s.UsuarioDAO.ObtenerUsuarioId(p.Jugadores[i].Id)
-		if err != nil {
+		if err == nil {
 			p.Jugadores[i].ActualizarJugador(u)
 		}
 	}
