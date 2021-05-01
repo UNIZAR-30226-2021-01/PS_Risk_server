@@ -3,6 +3,7 @@ package server
 import (
 	"PS_Risk_server/baseDatos"
 	"PS_Risk_server/mensajes"
+	"database/sql"
 	"sync"
 
 	"encoding/json"
@@ -35,7 +36,7 @@ type Servidor struct {
 	datos.
 */
 func NuevoServidor(p, bbdd string) (*Servidor, error) {
-	b, err := baseDatos.CrearBD(bbdd)
+	b, err := sql.Open("postgres", bbdd)
 	if err != nil {
 		return nil, err
 	}
