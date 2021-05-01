@@ -57,18 +57,30 @@ func CrearJugador(u Usuario) Jugador {
 	}
 }
 
+/*
+	ActualizarJugador actualiza los datos del jugador indicado para que
+	coincidan con los de u.
+*/
 func (j *Jugador) ActualizarJugador(u Usuario) {
 	j.Nombre = u.Nombre
 	j.Icono = u.Icono
 	j.Aspecto = u.Aspecto
 }
 
+/*
+	Mano almacena la cantidad de cartas de refuerzo de cada tipo que tiene un
+	jugador.
+*/
 type Mano struct {
 	Infanteria int `mapstructure:"-" json:"infanteria"`
 	Caballeria int `mapstructure:"-" json:"caballeria"`
 	Artilleria int `mapstructure:"-" json:"artilleria"`
 }
 
+/*
+	Informar devuelve un mensaje indicando cuántos refuerzos extra se consiguen
+	por sets de cartas, o una cadena vacía si no se consiguen refuerzos extra.
+*/
 func (m *Mano) Informar() string {
 	if m.Artilleria >= 1 && m.Caballeria >= 1 && m.Infanteria >= 1 {
 		return "Has encontrado un gran botín, recibirás 10 refuerzos extra."
@@ -85,6 +97,11 @@ func (m *Mano) Informar() string {
 	return ""
 }
 
+/*
+	Negociar intercambia 3 cartas de la mano por tropas de refuerzo extra,
+	siempre de la forma que más tropas proporciona, y devuelve cuántas tropas
+	se consiguen.
+*/
 func (m *Mano) Negociar() int {
 	if m.Artilleria >= 1 && m.Caballeria >= 1 && m.Infanteria >= 1 {
 		m.Infanteria--
@@ -107,6 +124,9 @@ func (m *Mano) Negociar() int {
 	return 0
 }
 
+/*
+	Robar añade una carta del tipo indicado a la mano.
+*/
 func (m *Mano) Robar(c int) {
 	switch c {
 	case 0:

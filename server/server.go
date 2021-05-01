@@ -77,6 +77,7 @@ func (s *Servidor) Iniciar() error {
 	mux.HandleFunc("/rechazarPartida", s.rechazarPartidaHandler)
 	mux.HandleFunc("/entrarPartida", s.aceptarSalaHandler)
 	mux.HandleFunc("/borrarNotificacionTurno", s.borrarNotificacionTurnoHandler)
+
 	// Eliminar todas las salas que no se han iniciado
 	err := s.PartidasDAO.EliminarSalas()
 	if err != nil {
@@ -137,7 +138,7 @@ type formularioRegistro struct {
 }
 
 /*
-	registroUsuario maneja las peticiones para registrar usuarios.
+	registroUsuarioHandler maneja las peticiones para registrar usuarios.
 */
 func (s *Servidor) registroUsuarioHandler(w http.ResponseWriter, r *http.Request) {
 	var f formularioRegistro
@@ -300,7 +301,7 @@ func (s *Servidor) gestionAmistadHandler(w http.ResponseWriter, r *http.Request)
 	case "rechazar":
 		resultado = s.AmigosDAO.RechazarSolicitudAmistad(user, f.IDamigo)
 	default:
-		resultado = mensajes.ErrorJson("La decision no es valida",
+		resultado = mensajes.ErrorJson("La decision no es válida",
 			mensajes.ErrorPeticion)
 	}
 
@@ -353,7 +354,7 @@ type formularioObtener struct {
 
 /*
 	obtener comprueba que los datos recibidos son correctos y devuelve la información
-	solicitada en la función método.
+	solicitada en la función metodo.
 */
 func (s *Servidor) obtener(w http.ResponseWriter, r *http.Request,
 	metodo func(baseDatos.Usuario) mensajes.JsonData) {

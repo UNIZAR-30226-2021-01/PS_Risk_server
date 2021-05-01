@@ -252,10 +252,6 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 				p.EnviarATodos(mensajeEnviar)
 				// Función que gestiona una partida empezada
 				s.atenderPartida(p)
-				// Borrar la partida de la estructura del servidor
-				s.Partidas.Delete(p.IdPartida)
-				// Borrar la partida de la base de datos
-				s.PartidasDAO.BorrarPartida(p)
 				return
 			}
 		case mensajesInternos.SalidaUsuario:
@@ -280,14 +276,27 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 	}
 }
 
+/*
+	finalizarPartida envía a todos los jugadores conectados a la partida el
+	mensaje de fin, añade la recompensa al ganador en la base de datos y elimina
+	la partida del servidor y de la base de datos.
+*/
 func (s *Servidor) finalizarPartida(p *baseDatos.Partida) {
 	msg, ganador, _ := p.FinalizarPartida()
 	p.EnviarATodos(msg)
 	u, _ := s.UsuarioDAO.ObtenerUsuarioId(ganador)
 	s.UsuarioDAO.IncrementarRiskos(&u, 50)
+
+	// Borrar la partida de la estructura del servidor
+	s.Partidas.Delete(p.IdPartida)
+	// Borrar la partida de la base de datos
 	s.PartidasDAO.BorrarPartida(p)
 }
 
+/*
+	recargarUsuarios actualiza la información que se guarda en la partida sobre
+	los usuarios que juegan en ella, si no se ha eliminado su cuenta.
+*/
 func (s *Servidor) recargarUsuarios(p *baseDatos.Partida) {
 	for i := range p.Jugadores {
 		u, err := s.UsuarioDAO.ObtenerUsuarioId(p.Jugadores[i].Id)
@@ -373,13 +382,13 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 						// al cerrar la vieja se cierren las dos
 						// antiguaConexion.(*websocket.Conn).Close()
 					} else {
-						// Guardar la nueva conexion
+						// Guardar la nueva conexión
 						p.Conexiones.Store(mt.IdUsuario, mt.Ws)
 						s.PartidasDAO.BorrarNotificacionTurno(p.IdPartida, mt.IdUsuario)
 						msg := mensajes.JsonData{}
-						// Activar la funcion de recibir mensajes de usuario
+						// Activar la función de recibir mensajes de usuario
 						mt.RecibirMensajes <- true
-						// Enviar de mensajes en formatio JSON
+						// Enviar estado de la partida en formato json
 						mapstructure.Decode(p, &msg)
 						msg["_tipoMensaje"] = "p"
 						p.Enviar(mt.IdUsuario, msg)
@@ -415,6 +424,11 @@ func devolverErrorWebsocket(code int, err string, ws *websocket.Conn) {
 	ws.WriteJSON(resultado)
 }
 
+/*
+	RestaurarPartidas carga de la base de datos todas las partidas empezadas y
+	comienza a atenderlas de nuevo.
+	Devuelve error si ocurre alguno.
+*/
 func (s *Servidor) RestaurarPartidas() error {
 	res, err := s.PartidasDAO.ObtenerPartidasEmpezadas()
 	if err != nil {
