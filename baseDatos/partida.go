@@ -71,16 +71,16 @@ type Mano struct {
 
 func (m *Mano) Informar() string {
 	if m.Artilleria >= 1 && m.Caballeria >= 1 && m.Infanteria >= 1 {
-		return "Has encontrado un gran botín, recibiras 10 refuerzos extra."
+		return "Has encontrado un gran botín, recibirás 10 refuerzos extra."
 	}
 	if m.Artilleria >= 3 {
-		return "Has encontrado botín, recibiras 8 refuerzos extra."
+		return "Has encontrado un botín, recibirás 8 refuerzos extra."
 	}
 	if m.Caballeria >= 3 {
-		return "Has encontrado un pequeño botín, recibiras 6 refuerzos extra."
+		return "Has encontrado un pequeño botín, recibirás 6 refuerzos extra."
 	}
 	if m.Infanteria >= 3 {
-		return "Has encontrado unos pocos recursos, recibiras 3 refuerzos extra."
+		return "Has encontrado unos pocos recursos, recibirás 4 refuerzos extra."
 	}
 	return ""
 }
@@ -312,9 +312,9 @@ func tropasPorTerritorio(numJugadores int) [][]int {
 }
 
 /*
-	Refuerzo coloca tropas de un jugador en un territorio y devuelve un JSON
+	Refuerzo coloca tropas de un jugador en un territorio y devuelve un json
 	con el estado en el que ha quedado el territorio y un campo "_tipoMensaje".
-	Si ocurre algún error lo devuelve en formato JSON.
+	Si ocurre algún error lo devuelve en formato json.
 */
 func (p *Partida) Refuerzo(idDestino, idJugador, refuerzos int) mensajes.JsonData {
 	// Comprobar que la fase es correcta
@@ -327,7 +327,7 @@ func (p *Partida) Refuerzo(idDestino, idJugador, refuerzos int) mensajes.JsonDat
 	}
 	// Comprobar que el territorio pertenece al jugador
 	if p.Territorios[idDestino].IdJugador != idJugador {
-		return mensajes.ErrorJsonPartida("El territorio no pertenece a este jugador", 1)
+		return mensajes.ErrorJsonPartida("El territorio no te pertenece", 1)
 	}
 	// Comprobar que tiene suficientes refuerzos
 	if p.Jugadores[idJugador].Refuerzos < refuerzos {
@@ -350,10 +350,10 @@ func (p *Partida) Refuerzo(idDestino, idJugador, refuerzos int) mensajes.JsonDat
 }
 
 /*
-	Ataque realiza un ataque entre los territorios indicados y devuelve un JSON
+	Ataque realiza un ataque entre los territorios indicados y devuelve un json
 	con el estado de los territorios involucrados después del ataque y los
 	valores obtenidos en los dados.
-	Si ocurre algún error lo devuelve en formato JSON.
+	Si ocurre algún error lo devuelve en formato json.
 */
 func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes.JsonData {
 	// Comprobar que la fase es correcta
@@ -366,12 +366,12 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 	}
 	// Comprobar que el territorio del que parte el ataque pertenece al jugador
 	if p.Territorios[idOrigen].IdJugador != idJugador {
-		return mensajes.ErrorJsonPartida("No se puede atacar desde un territorio"+
+		return mensajes.ErrorJsonPartida("No puedes atacar desde un territorio"+
 			" que no te pertenece", 1)
 	}
 	// Comprobar que el territorio al que ataca no pertenece al jugador
 	if p.Territorios[idDestino].IdJugador == idJugador {
-		return mensajes.ErrorJsonPartida("No se puede atacar a un territorio"+
+		return mensajes.ErrorJsonPartida("No puedes atacar a un territorio"+
 			" que ya te pertenece", 1)
 	}
 	// Comprobar que los territorios son adyacentes
@@ -442,6 +442,12 @@ func (p *Partida) Ataque(idOrigen, idDestino, idJugador, atacantes int) mensajes
 	}
 }
 
+/*
+	existeRuta devuelve si existe un camino que conecte los territorios idOrigen
+	e idDestino pasando solo por territorios que pertenecen al jugador idJugador.
+	explorados es la lista de territorios por los que ya se ha pasado antes de
+	llegar a idOrigen.
+*/
 func (p *Partida) existeRuta(idOrigen, idDestino, idJugador int, explorados []int) bool {
 	// Caso base
 	if idOrigen == idDestino {
@@ -468,6 +474,9 @@ func (p *Partida) existeRuta(idOrigen, idDestino, idJugador int, explorados []in
 	return false
 }
 
+/*
+	sonAdyacentes devuelve si dos territorios están conectados.
+*/
 func (p *Partida) sonAdyacentes(idOrigen, idDestino int) bool {
 	for _, i := range infoMapa[idOrigen].Conexiones {
 		if i == idDestino {
@@ -477,6 +486,11 @@ func (p *Partida) sonAdyacentes(idOrigen, idDestino int) bool {
 	return false
 }
 
+/*
+	Movimiento mueve tropas entre los territorios indicados y devuelve un json
+	con el estado de los territorios después del movimiento.
+	Si ocurre algún error lo devuelve en formato json.
+*/
 func (p *Partida) Movimiento(idOrigen, idDestino, idJugador, tropas int) mensajes.JsonData {
 	// Comprobar que la fase es correcta
 	if p.Fase != faseMovimiento {
@@ -535,13 +549,17 @@ func (p *Partida) Movimiento(idOrigen, idDestino, idJugador, tropas int) mensaje
 	}
 }
 
+/*
+	AsignarRefuerzos calcula la cantidad de refuerzos que le corresponden al
+	jugador indicado según el estado de la partida y se los asigna.
+*/
 func (p *Partida) AsignarRefuerzos(id int) {
 	// Dar el número de refuerzos que corresponde por número de territorios
 	p.Jugadores[id].Refuerzos = p.Jugadores[id].NumTerritorios / 3
 	if p.Jugadores[id].Refuerzos < 3 {
 		p.Jugadores[id].Refuerzos = 3
 	}
-	//Dar el número de refuerzos que corresponde por continentes
+	// Dar el número de refuerzos que corresponde por continentes
 	cuenta := [numContinentes]int{0, 0, 0, 0, 0, 0}
 	for i := range p.Territorios {
 		if p.Territorios[i].IdJugador == id {
@@ -553,10 +571,15 @@ func (p *Partida) AsignarRefuerzos(id int) {
 			p.Jugadores[id].Refuerzos += bonos[i]
 		}
 	}
-	// TODO SUSTITUTO A REFUERZOS POR CARTA
+	// Dar refuerzos correspondientes a grupos de cartas
 	p.Jugadores[id].Refuerzos += p.Cartas[id].Negociar()
 }
 
+/*
+	ObtenerPosicionJugador devuelve el identificador dentro de la partida del
+	jugador indicado.
+	Si no está en la partida, devuelve -1.
+*/
 func (p *Partida) ObtenerPosicionJugador(id int) int {
 	for i := range p.Jugadores {
 		if p.Jugadores[i].Id == id {
@@ -566,6 +589,10 @@ func (p *Partida) ObtenerPosicionJugador(id int) int {
 	return -1
 }
 
+/*
+	PasarTurno avanza de turno la partida y asigna los refuerzos que le
+	corresponden al siguiente jugador.
+*/
 func (p *Partida) PasarTurno() mensajes.JsonData {
 	var res mensajes.JsonData
 
@@ -586,6 +613,11 @@ func (p *Partida) PasarTurno() mensajes.JsonData {
 	return res
 }
 
+/*
+	AvanzarFase avanza la fase en la que se encuentra el jugador y devuelve un
+	json de confirmación.
+	Si ocurre algún error lo devuelve en formato json.
+*/
 func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 
 	if p.TurnoJugador != jugador {
@@ -598,7 +630,8 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 	case faseRefuerzo:
 		if p.Jugadores[jugador].Refuerzos > 0 {
 			return mensajes.ErrorJsonPartida("Aún te quedan "+
-				strconv.Itoa(p.Jugadores[jugador].Refuerzos)+" refuerzos", 1)
+				strconv.Itoa(p.Jugadores[jugador].Refuerzos)+
+				" refuerzos por colocar", 1)
 		}
 		p.Fase++
 		p.CartaEntregada = false
@@ -614,6 +647,9 @@ func (p *Partida) AvanzarFase(jugador int) mensajes.JsonData {
 	return mensajes.ErrorJsonPartida("La partida no está empezada", 1)
 }
 
+/*
+	JugadoresRestantes devuelve el número de jugadores que quedan en la partida.
+*/
 func (p *Partida) JugadoresRestantes() int {
 	respuesta := 0
 	for _, j := range p.Jugadores {
@@ -633,8 +669,8 @@ func (p *Partida) FinalizarPartida() (mensajes.JsonData, int, error) {
 	respuesta := mensajes.JsonData{}
 	ganador := p.Jugadores[p.TurnoJugador].Id
 	if p.JugadoresRestantes() > 1 {
-		return respuesta, ganador, errors.New("queda más de un jugador con territorios" +
-			", no se puede terminar la partida")
+		return respuesta, ganador, errors.New("queda más de un jugador con " +
+			"territorios, no se puede terminar la partida")
 	}
 	respuesta = mensajes.JsonData{
 		"_tipoMensaje": "t",

@@ -69,12 +69,13 @@ func (dao *PartidaDAO) CrearPartida(creador Usuario, tiempoTurno int, nombreSala
 		return nil, errors.New("no se puede crear una sala sin nombre")
 	}
 
-	if tiempoTurno < 10 {
-		return nil, errors.New("no se puede poner un tiempo de turno menor de 10 minutos")
+	if tiempoTurno < 3 {
+		return nil, errors.New("no se puede poner un tiempo de turno menor de 3 minutos")
 	}
 
 	// Crea la partida en la base de datos
-	err := dao.bd.QueryRow(crearPartida, creador.Id, nombreSala, []byte(`{}`)).Scan(&idPartida)
+	err := dao.bd.QueryRow(crearPartida, creador.Id, nombreSala,
+		[]byte(`{}`)).Scan(&idPartida)
 	if err != nil {
 		return nil, err
 	}
@@ -269,9 +270,10 @@ func (dao *PartidaDAO) RechazarPartida(idPartida int, u Usuario) error {
 }
 
 /*
-	AbandonarPartida elimina a un jugador de la partida, este no puede ser el creador de la misma.
-	Devuelve el estado de la partida o un error, en caso de que no se haya podido borrar,
-	en formato json.
+	AbandonarPartida elimina a un jugador de la partida, este no puede ser el
+	creador de la misma.
+	Devuelve el estado de la partida o un error, en caso de que no se haya
+	podido borrar, en formato json.
 */
 func (dao *PartidaDAO) AbandonarPartida(p *Partida, IdUsuario int) mensajes.JsonData {
 	var res mensajes.JsonData
@@ -325,28 +327,16 @@ func (dao *PartidaDAO) ObtenerPartidas(u Usuario) ([]int, error) {
 	return resultado, nil
 }
 
-func (dao *PartidaDAO) NotificarTurno(p *Partida) error {
-	// Inicia una transacción en la base de datos
-	ctx := context.Background()
-	tx, err := dao.bd.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
+/*
+	NotificarTurno guarda en la base de datos de quién es el turno actual en la
+	partida, y borra la notificación del turno anterior si existía.
+*/
+func (dao *PartidaDAO) NotificarTurno(p *Partida) {
 	// Borrar el turno anterior de la base de datos
-	_, err = tx.ExecContext(ctx, borrarTurno, p.IdPartida)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+	dao.bd.Exec(borrarTurno, p.IdPartida)
+
 	// Guardar el turno actual en la base de datos
-	_, err = tx.ExecContext(ctx, guardarTurno, p.Jugadores[p.TurnoJugador].Id, p.IdPartida)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	// Finalizar la transaccion
-	err = tx.Commit()
-	return err
+	dao.bd.Exec(guardarTurno, p.Jugadores[p.TurnoJugador].Id, p.IdPartida)
 }
 
 /*
@@ -357,28 +347,38 @@ func (dao *PartidaDAO) NotificarTurno(p *Partida) error {
 func (dao *PartidaDAO) BorrarNotificacionTurno(idPartida int, idUsuario int) error {
 	resultado, err := dao.bd.Exec(borrarTurnoJugador, idPartida, idUsuario)
 	if err != nil {
-		return err
+		return errors.New("no se ha podido eliminar la notificación")
 	}
-	borradas, err := resultado.RowsAffected()
-	if err != nil {
-		return err
-	}
+	borradas, _ := resultado.RowsAffected()
 	if borradas == 0 {
 		return errors.New("no se ha podido eliminar la notificación")
 	}
 	return nil
 }
 
+/*
+	ActualizarPartida guarda en la base de datos el estado en que se encuentra
+	la partida actualmente.
+*/
 func (dao *PartidaDAO) ActualizarPartida(p *Partida) {
 	estadoJson, _ := json.Marshal(p)
 	dao.bd.Exec(actualizarEstadoPartida, estadoJson, p.IdPartida)
 }
 
+/*
+	EliminarSalas borra de la base de datos todas las partidas que no están
+	empezadas.
+*/
 func (dao *PartidaDAO) EliminarSalas() error {
 	_, err := dao.bd.Exec(eliminarSalas)
 	return err
 }
 
+/*
+	ObtenerPartidasEmpezadas devuelve un slice con el estado en formato json
+	(slice de bytes) de cada partida empezada que hay en la base de datos.
+	Devuelve error si hay algún problema.
+*/
 func (dao *PartidaDAO) ObtenerPartidasEmpezadas() ([][]byte, error) {
 	var resultado [][]byte
 

@@ -45,6 +45,11 @@ func NuevoServidor(p, bbdd string) (*Servidor, error) {
 	if err != nil {
 		return nil, err
 	}
+	pd := baseDatos.NuevaPartidaDAO(b)
+	err = pd.EliminarSalas()
+	if err != nil {
+		return nil, err
+	}
 	return &Servidor{
 		Puerto:      p,
 		UsuarioDAO:  baseDatos.NuevoUsuarioDAO(b),
@@ -52,7 +57,7 @@ func NuevoServidor(p, bbdd string) (*Servidor, error) {
 		TiendaDAO:   td,
 		Tienda:      tienda,
 		upgrader:    websocket.Upgrader{},
-		PartidasDAO: baseDatos.NuevaPartidaDAO(b),
+		PartidasDAO: pd,
 		Partidas:    sync.Map{}}, nil
 }
 
