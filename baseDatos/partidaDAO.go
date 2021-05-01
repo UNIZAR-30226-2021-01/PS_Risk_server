@@ -39,7 +39,8 @@ const (
 		"AND id_recibe = $2"
 	empezarPartida           = "UPDATE partida SET empezada = true WHERE id_partida = $1"
 	eliminarSalas            = "DELETE FROM partida WHERE empezada = false"
-	obtenerPartidasEmpezadas = "SELECT json_estado AS p FROM partida"
+	obtenerPartidasEmpezadas = "SELECT json_estado AS p FROM partida WHERE empezada = true"
+	obtenerSalas             = "SELECT id_partida FROM partida WHERE empezada = false"
 )
 
 /*
@@ -69,8 +70,8 @@ func (dao *PartidaDAO) CrearPartida(creador Usuario, tiempoTurno int, nombreSala
 		return nil, errors.New("no se puede crear una sala sin nombre")
 	}
 
-	if tiempoTurno < 3 {
-		return nil, errors.New("no se puede poner un tiempo de turno menor de 3 minutos")
+	if tiempoTurno < 1 {
+		return nil, errors.New("no se puede poner un tiempo de turno menor de 1 minuto")
 	}
 
 	// Crea la partida en la base de datos
@@ -392,6 +393,28 @@ func (dao *PartidaDAO) ObtenerPartidasEmpezadas() ([][]byte, error) {
 			return nil, err
 		}
 		resultado = append(resultado, datos)
+	}
+	return resultado, nil
+}
+
+/*
+	ObtenerSalas devuelve una lista con los identificadores de todas las partidas
+	sin empezar que hay guardadas en la base de datos.
+	Devuelve error si hay algún problema.
+*/
+func (dao *PartidaDAO) ObtenerSalas() ([]int, error) {
+	var resultado []int
+
+	filas, err := dao.bd.Query(obtenerSalas)
+	if err != nil {
+		return nil, err
+	}
+	for filas.Next() {
+		var id int
+		if err := filas.Scan(&id); err != nil {
+			return nil, err
+		}
+		resultado = append(resultado, id)
 	}
 	return resultado, nil
 }

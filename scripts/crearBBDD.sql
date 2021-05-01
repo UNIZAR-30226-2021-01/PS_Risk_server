@@ -50,8 +50,7 @@ CREATE TABLE partida (
     id_creador INT NOT NULL,
     nombre VARCHAR(20) NOT NULL CHECK (nombre <> ''),
     empezada BOOLEAN NOT NULL,
-    json_estado JSON,
-    FOREIGN KEY (id_creador) REFERENCES usuario(id_usuario)
+    json_estado JSON
 );
 
 CREATE TABLE notificacionTurno (

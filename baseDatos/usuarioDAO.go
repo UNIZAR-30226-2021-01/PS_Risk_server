@@ -52,6 +52,8 @@ const (
 		"WHERE id_usuario = $1 AND id_icono = $2"
 	comprobarAspectoComprado = "SELECT id_usuario AS id FROM aspectosComprados " +
 		"WHERE id_usuario = $1 AND id_aspecto = $2"
+
+	borrarUsuario = "DELETE FROM usuario WHERE id_usuario = $1"
 )
 
 /*
@@ -368,4 +370,9 @@ func (dao *UsuarioDAO) leerNotificaciones(id int, consulta,
 			mensajes.NotificacionJson(idEnvia, tipo, nombre))
 	}
 	return notificaciones, nil
+}
+
+func (dao *UsuarioDAO) BorrarUsuario(u Usuario) error {
+	_, err := dao.bd.Exec(borrarUsuario, u.Id)
+	return err
 }

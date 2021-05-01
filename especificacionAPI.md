@@ -182,6 +182,19 @@ Peticiones relacionadas con la creación de cuentas, inicio de sesión y persona
     - **Resultado:**
 
         JSON de error.
+
+- ## /borrarCuenta
+    Se envía el identificador numérico de un usuario junto con su clave y se devuelve un error vacío si la cuenta se ha podido eliminar, o el error sucedido en caso contrario.
+
+    - **Parámetros:**
+        | Nombre    | Tipo   | Descripción                         |
+        |-----------|--------|-------------------------------------|
+        | idUsuario | int    | Identificador numérico del usuario. |
+        | clave     | string | Hash SHA256 de la clave del usuario.|
+
+    - **Resultado:**
+
+        JSON de error.
         
 ## Sistema de Amigos
 Peticiones relacionadas con enviar solicitudes de amistad, aceptarlas, rechazarlas y obtener la lista de amigos.

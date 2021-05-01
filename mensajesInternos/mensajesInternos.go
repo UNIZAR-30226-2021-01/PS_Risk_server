@@ -81,3 +81,10 @@ type MensajeInvalido struct {
 	IdUsuario int
 	Err       string
 }
+
+/*
+	CuentaEliminada indica que se ha borrado la cuenta de usuario de un jugador.
+*/
+type CuentaEliminada struct {
+	IdUsuario int
+}

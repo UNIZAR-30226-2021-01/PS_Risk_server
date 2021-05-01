@@ -3,6 +3,7 @@ package server
 import (
 	"PS_Risk_server/baseDatos"
 	"PS_Risk_server/mensajes"
+	"PS_Risk_server/mensajesInternos"
 	"database/sql"
 	"sync"
 
@@ -77,6 +78,7 @@ func (s *Servidor) Iniciar() error {
 	mux.HandleFunc("/rechazarPartida", s.rechazarPartidaHandler)
 	mux.HandleFunc("/entrarPartida", s.aceptarSalaHandler)
 	mux.HandleFunc("/borrarNotificacionTurno", s.borrarNotificacionTurnoHandler)
+	mux.HandleFunc("/borrarCuenta", s.borrarCuentaHandler)
 
 	// Eliminar todas las salas que no se han iniciado
 	err := s.PartidasDAO.EliminarSalas()
@@ -602,5 +604,72 @@ func (s *Servidor) borrarNotificacionTurnoHandler(w http.ResponseWriter, r *http
 	}
 
 	// Devolver resultado
+	devolverError(mensajes.NoError, "", w)
+}
+
+func (s *Servidor) borrarCuentaHandler(w http.ResponseWriter, r *http.Request) {
+	var f formularioObtener
+
+	// Comprobar que los datos recibidos son correctos
+	decoder := form.NewDecoder()
+	err := r.ParseForm()
+	if err != nil {
+		devolverError(mensajes.ErrorPeticion, err.Error(), w)
+		return
+	}
+	err = decoder.Decode(&f, r.PostForm)
+	if err != nil {
+		devolverError(mensajes.ErrorPeticion, "Campos formulario incorrectos", w)
+		return
+	}
+
+	// Obtener los datos básicos del usuario
+	user, err := s.UsuarioDAO.ObtenerUsuario(f.ID, f.Clave)
+	if err != nil {
+		devolverError(mensajes.ErrorUsuario, "No se ha podido obtener el usuario", w)
+		return
+	}
+
+	// Obtener partidas empezadas en las que participa
+	partidas, err := s.PartidasDAO.ObtenerPartidas(user)
+	if err != nil {
+		devolverError(mensajes.ErrorUsuario, "No se ha podido eliminar la cuenta: "+err.Error(), w)
+		return
+	}
+
+	// Eliminar cuenta
+	err = s.UsuarioDAO.BorrarUsuario(user)
+	if err != nil {
+		devolverError(mensajes.ErrorUsuario, "No se ha podido eliminar la cuenta: "+err.Error(), w)
+		return
+	}
+
+	// Obtener partidas sin empezar en las que participa y avisar de que el
+	// usuario ya no existe
+	salas, err := s.PartidasDAO.ObtenerSalas()
+	if err != nil {
+		devolverError(mensajes.ErrorUsuario, "No se ha podido eliminar la cuenta: "+err.Error(), w)
+		return
+	}
+	for _, idSala := range salas {
+		pInterface, _ := s.Partidas.Load(idSala)
+		p := pInterface.(*baseDatos.Partida)
+		if p.EstaEnPartida(f.ID) {
+			p.Mensajes <- mensajesInternos.CuentaEliminada{
+				IdUsuario: f.ID,
+			}
+		}
+	}
+
+	// Avisar a todas las partidas en las que está de que el usuario ya no existe
+	for _, idPartida := range partidas {
+		pInterface, _ := s.Partidas.Load(idPartida)
+		p := pInterface.(*baseDatos.Partida)
+		p.Mensajes <- mensajesInternos.CuentaEliminada{
+			IdUsuario: f.ID,
+		}
+	}
+
+	// Informar de que se ha eliminado correctamente
 	devolverError(mensajes.NoError, "", w)
 }

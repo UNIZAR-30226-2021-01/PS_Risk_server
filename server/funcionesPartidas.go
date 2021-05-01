@@ -263,6 +263,7 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 				s.Partidas.Delete(p.IdPartida)
 				// Borrar la partida de la base de datos
 				s.PartidasDAO.BorrarPartida(p)
+				return
 			} else {
 				mensajeEnviar := s.PartidasDAO.AbandonarPartida(p, mt.IdUsuario)
 				if _, hayError := mensajeEnviar["err"]; !hayError {
@@ -272,6 +273,30 @@ func (s *Servidor) atenderSala(p *baseDatos.Partida) {
 			}
 		case mensajesInternos.MensajeInvalido:
 			p.EnviarError(mt.IdUsuario, mensajes.ErrorPeticion, mt.Err)
+		case mensajesInternos.CuentaEliminada:
+			antiguaConexion, _ := p.Conexiones.Load(mt.IdUsuario)
+			p.Conexiones.Delete(mt.IdUsuario)
+			if antiguaConexion != nil {
+				p.EnviarError(mt.IdUsuario, mensajes.CierreSala, "La cuenta que"+
+					" estás utilizando ha sido eliminada")
+				antiguaConexion.(*websocket.Conn).Close()
+			}
+			if mt.IdUsuario == p.IdCreador {
+				// Enviar a todos que el creador ha abandonado
+				p.EnviarATodos(mensajes.ErrorJsonPartida("El creador de "+
+					"la sala se ha desconectado", mensajes.CierreSala))
+				// Borrar la partida de la estructura del servidor
+				s.Partidas.Delete(p.IdPartida)
+				// Borrar la partida de la base de datos
+				s.PartidasDAO.BorrarPartida(p)
+				return
+			} else {
+				mensajeEnviar := s.PartidasDAO.AbandonarPartida(p, mt.IdUsuario)
+				if _, hayError := mensajeEnviar["err"]; !hayError {
+					// Enviar al resto de jugadores de la sala los nuevos datos
+					p.EnviarATodos(mensajeEnviar)
+				}
+			}
 		}
 	}
 }
@@ -400,6 +425,29 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 				p.Conexiones.Delete(mt.IdUsuario)
 			case mensajesInternos.MensajeInvalido:
 				p.EnviarError(mensajes.ErrorPeticion, mt.IdUsuario, mt.Err)
+			case mensajesInternos.CuentaEliminada:
+				pos := p.ObtenerPosicionJugador(mt.IdUsuario)
+				p.Jugadores[pos].SigueVivo = false
+				antiguaConexion, ok := p.Conexiones.Load(mt.IdUsuario)
+				if ok {
+					if antiguaConexion != nil {
+						p.EnviarError(mt.IdUsuario, mensajes.CierreSala, "La cuenta que"+
+							" estás utilizando ha sido eliminada")
+						antiguaConexion.(*websocket.Conn).Close()
+					}
+					p.Conexiones.Delete(mt.IdUsuario)
+				}
+				if p.TurnoJugador == pos {
+					res := p.PasarTurno()
+					// Datos completos de la partida: se avanza turno
+					p.EnviarATodos(res)
+					s.PartidasDAO.NotificarTurno(p)
+					timeout = time.After(time.Duration(p.TiempoTurno) * time.Minute)
+					if p.JugadoresRestantes() == 1 {
+						s.finalizarPartida(p)
+						return
+					}
+				}
 			}
 		case <-timeout:
 			p.Jugadores[p.TurnoJugador].SigueVivo = false
