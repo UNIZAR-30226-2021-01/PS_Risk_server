@@ -311,7 +311,7 @@ func (s *Servidor) finalizarPartida(p *baseDatos.Partida) {
 	p.EnviarATodos(msg)
 	u, _ := s.UsuarioDAO.ObtenerUsuarioId(ganador)
 	s.UsuarioDAO.IncrementarRiskos(&u, 50)
-
+	p.EnviarCorreoFinPartida(s.SMTPserver, s.SMTPport, s.Correo, s.ClaveCorreo)
 	// Borrar la partida de la estructura del servidor
 	s.Partidas.Delete(p.IdPartida)
 	// Borrar la partida de la base de datos
@@ -361,6 +361,8 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 						if p.JugadoresRestantes() == 1 {
 							s.finalizarPartida(p)
 							return
+						} else {
+							p.EnviarCorreoTurno(s.SMTPserver, s.SMTPport, s.Correo, s.ClaveCorreo)
 						}
 					}
 				}
@@ -446,6 +448,8 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 					if p.JugadoresRestantes() == 1 {
 						s.finalizarPartida(p)
 						return
+					} else {
+						p.EnviarCorreoTurno(s.SMTPserver, s.SMTPport, s.Correo, s.ClaveCorreo)
 					}
 				}
 			}
@@ -459,6 +463,8 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 			if p.JugadoresRestantes() == 1 {
 				s.finalizarPartida(p)
 				return
+			} else {
+				p.EnviarCorreoTurno(s.SMTPserver, s.SMTPport, s.Correo, s.ClaveCorreo)
 			}
 		}
 	}

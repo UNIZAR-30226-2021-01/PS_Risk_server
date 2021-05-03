@@ -5,12 +5,14 @@ import (
 	"PS_Risk_server/mensajesInternos"
 	"errors"
 	"math/rand"
+	"net/smtp"
 	"sort"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/jordan-wright/email"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -34,6 +36,7 @@ type Territorio struct {
 */
 type Jugador struct {
 	Id             int    `mapstructure:"id" json:"id"`
+	Correo         string `mapstructure:"correo" json:"correo"`
 	Nombre         string `mapstructure:"nombre" json:"nombre"`
 	Icono          int    `mapstructure:"icono" json:"icono"`
 	Aspecto        int    `mapstructure:"aspecto" json:"aspecto"`
@@ -46,8 +49,17 @@ type Jugador struct {
 	CrearJugador crea un jugador mediante los datos de un usuario.
 */
 func CrearJugador(u Usuario) Jugador {
+	var correo string
+
+	if !u.RecibeCorreos {
+		correo = ""
+	} else {
+		correo = u.Correo
+	}
+
 	return Jugador{
 		Id:             u.Id,
+		Correo:         correo,
 		Nombre:         u.Nombre,
 		Icono:          u.Icono,
 		Aspecto:        u.Aspecto,
@@ -62,7 +74,16 @@ func CrearJugador(u Usuario) Jugador {
 	coincidan con los de u.
 */
 func (j *Jugador) ActualizarJugador(u Usuario) {
+	var correo string
+
+	if !u.RecibeCorreos {
+		correo = ""
+	} else {
+		correo = u.Correo
+	}
+
 	j.Nombre = u.Nombre
+	j.Correo = correo
 	j.Icono = u.Icono
 	j.Aspecto = u.Aspecto
 }
@@ -698,6 +719,52 @@ func (p *Partida) FinalizarPartida() (mensajes.JsonData, int, error) {
 		"riskos":       50,
 	}
 	return respuesta, ganador, nil
+}
+
+// Funciones de envío de correos
+
+func (p *Partida) EnviarCorreoTurno(smtpServer, smtpPort, correo, clave string) error {
+	if p.Jugadores[p.TurnoJugador].Correo == "" {
+		return errors.New("este usuario no recibe correos")
+	}
+
+	if _, ok := p.Conexiones.Load(p.Jugadores[p.TurnoJugador].Id); ok {
+		return errors.New("el usuario esta conectado")
+	}
+
+	e := email.NewEmail()
+	e.From = "PixelRisk <" + correo + ">"
+	e.To = []string{p.Jugadores[p.TurnoJugador].Correo}
+	e.Subject = "Notificación de turno"
+	e.Text = []byte("Es tu turno en la partida " + p.Nombre + "!")
+	err := e.Send(smtpServer+":"+smtpPort, smtp.PlainAuth("", correo, clave, smtpServer))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Partida) EnviarCorreoFinPartida(smtpServer, smtpPort, correo, clave string) error {
+	if p.Jugadores[p.TurnoJugador].Correo == "" {
+		return errors.New("este usuario no recibe correos")
+	}
+
+	if _, ok := p.Conexiones.Load(p.Jugadores[p.TurnoJugador].Id); ok {
+		return errors.New("el usuario esta conectado")
+	}
+
+	e := email.NewEmail()
+	e.From = "PixelRisk <" + correo + ">"
+	e.To = []string{p.Jugadores[p.TurnoJugador].Correo}
+	e.Subject = "Fin de partida"
+	e.Text = []byte("Has ganado la partida " + p.Nombre + "!")
+	err := e.Send(smtpServer+":"+smtpPort, smtp.PlainAuth("", correo, clave, smtpServer))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Funciones de envío de mensaje a través de WebSockets

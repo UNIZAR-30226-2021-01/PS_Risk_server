@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/badoux/checkmail"
 	"github.com/go-playground/form/v4"
 	"github.com/gorilla/websocket"
 	"github.com/rs/cors"
@@ -22,6 +23,10 @@ import (
 */
 type Servidor struct {
 	Puerto      string
+	SMTPserver  string
+	SMTPport    string
+	Correo      string
+	ClaveCorreo string
 	UsuarioDAO  baseDatos.UsuarioDAO
 	AmigosDAO   baseDatos.AmigosDAO
 	TiendaDAO   baseDatos.TiendaDAO
@@ -36,7 +41,7 @@ type Servidor struct {
 	postgreSQL, crea los DAO que va a utilizar y carga la tienda de la base de
 	datos.
 */
-func NuevoServidor(p, bbdd string) (*Servidor, error) {
+func NuevoServidor(p, bbdd, smtpServer, smtpPort, mail, mailPass string) (*Servidor, error) {
 	b, err := sql.Open("postgres", bbdd)
 	if err != nil {
 		return nil, err
@@ -48,6 +53,10 @@ func NuevoServidor(p, bbdd string) (*Servidor, error) {
 	}
 	return &Servidor{
 		Puerto:      p,
+		SMTPserver:  smtpServer,
+		SMTPport:    smtpPort,
+		Correo:      mail,
+		ClaveCorreo: mailPass,
 		UsuarioDAO:  baseDatos.NuevoUsuarioDAO(b),
 		AmigosDAO:   baseDatos.NuevoAmigosDAO(b),
 		TiendaDAO:   td,
@@ -158,9 +167,21 @@ func (s *Servidor) registroUsuarioHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Comprobar si el formato del correo es correcto
+	correo := strings.ToLower(f.Correo)
+	if correo != "" {
+		if err := checkmail.ValidateFormat(correo); err != nil {
+			devolverError(mensajes.ErrorPeticion, "El correo no esta en formato correcto", w)
+			return
+		}
+		if err := checkmail.ValidateHostAndUser(s.SMTPserver, s.Correo, correo); err != nil {
+			devolverError(mensajes.ErrorPeticion, "No se ha podido validar el correo", w)
+			return
+		}
+	}
+
 	// Crear la cuenta en la base de datos
-	user, err := s.UsuarioDAO.CrearCuenta(f.Nombre, strings.ToLower(f.Correo),
-		f.Clave, f.RecibeCorreos)
+	user, err := s.UsuarioDAO.CrearCuenta(f.Nombre, correo, f.Clave, f.RecibeCorreos)
 	if err != nil {
 		devolverError(mensajes.ErrorPeticion, err.Error(), w)
 		return
