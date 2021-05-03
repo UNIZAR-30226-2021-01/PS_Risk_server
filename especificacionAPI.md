@@ -10,6 +10,7 @@ Esta API utiliza peticiones HTTP POST con los parámetros en formato URL-Encoded
     * [/personalizarUsuario](#personalizarUsuario)
     * [/notificaciones](#notificaciones)
     * [/borrarNotificacionTurno](#borrarnotificacionturno)
+    * [/borrarCuetna](#borrarcuenta)
 * [Sistema de Amigos](#sistema-de-amigos)
     * [/amigos](#amigos)
     * [/enviarSolicitudAmistad](#enviarsolicitudamistad)

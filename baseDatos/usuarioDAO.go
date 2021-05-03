@@ -14,6 +14,8 @@ const (
 	crearUsuario = "INSERT INTO usuario (aspecto, icono, nombre, correo, clave, " +
 		"riskos, recibeCorreos) VALUES (0, 0, $1, $2, $3, 1000, $4) " +
 		"RETURNING id_usuario"
+	crearUsuarioSinCorreo = "INSERT INTO usuario (aspecto, icono, nombre, clave, " +
+		"riskos, recibeCorreos) VALUES (0, 0, $1, $2, 1000, $3) RETURNING id_usuario"
 	darIconosPorDefecto = "INSERT INTO iconosComprados (id_usuario, id_icono) " +
 		"VALUES ($1, 0)"
 	darAspectosPorDefecto = "INSERT INTO aspectosComprados (id_usuario, " +
@@ -30,6 +32,9 @@ const (
 
 	actualizarUsuario = "UPDATE usuario SET aspecto = $1, icono = $2, nombre = $3, " +
 		"correo = $4, clave = $5, recibeCorreos = $6 WHERE id_usuario = $7"
+	actualizarUsuarioSinCorreo = "UPDATE usuario SET aspecto = $1, icono = $2, " +
+		"nombre = $3, correo = NULL, clave = $4, recibeCorreos = $5 " +
+		"WHERE id_usuario = $6"
 	incrementarRiskos = "UPDATE usuario SET riskos = riskos + $1" +
 		"WHERE id_usuario = $2"
 
@@ -101,8 +106,13 @@ func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 	}
 
 	// Crear el usuario en la base de datos
-	err = tx.QueryRowContext(ctx, crearUsuario, nombre, correo, clave,
-		recibeCorreos).Scan(&id)
+	if correo == "" {
+		err = tx.QueryRowContext(ctx, crearUsuarioSinCorreo, nombre, clave,
+			recibeCorreos).Scan(&id)
+	} else {
+		err = tx.QueryRowContext(ctx, crearUsuario, nombre, correo, clave,
+			recibeCorreos).Scan(&id)
+	}
 	if err != nil {
 		tx.Rollback()
 		e := err.(*pq.Error)
@@ -152,15 +162,21 @@ func (dao *UsuarioDAO) IniciarSesionNombre(nombre, clave string) (Usuario, error
 	var correo string
 	var recibeCorreos bool
 	var u Usuario
+	var correoInterface interface{}
 
 	// Obtener los datos de usuario de la base de datos
 	err := dao.bd.QueryRow(consultaUsuarioNombre, nombre, clave).Scan(&id,
-		&icono, &aspecto, &riskos, &correo, &recibeCorreos)
+		&icono, &aspecto, &riskos, &correoInterface, &recibeCorreos)
 	if err == sql.ErrNoRows {
 		return u, errors.New("nombre de usuario o contraseña incorrectos")
 	}
 	if err != nil {
 		return u, err
+	}
+	if correoInterface == nil {
+		correo = ""
+	} else {
+		correo = correoInterface.(string)
 	}
 	u = Usuario{
 		Id: id, Icono: icono, Aspecto: aspecto, Riskos: riskos,
@@ -208,15 +224,21 @@ func (dao *UsuarioDAO) ObtenerUsuario(id int, clave string) (Usuario, error) {
 	var nombre, correo string
 	var recibeCorreos bool
 	var u Usuario
+	var correoInterface interface{}
 
 	// Obtener los datos de usuario de la base de datos
 	err := dao.bd.QueryRow(consultaUsuario, id, clave).Scan(&icono,
-		&aspecto, &riskos, &correo, &nombre, &recibeCorreos)
+		&aspecto, &riskos, &correoInterface, &nombre, &recibeCorreos)
 	if err == sql.ErrNoRows {
 		return u, errors.New("el usuario no existe o la contraseña es incorrecta")
 	}
 	if err != nil {
 		return u, err
+	}
+	if correoInterface == nil {
+		correo = ""
+	} else {
+		correo = correoInterface.(string)
 	}
 	u = Usuario{
 		Id: id, Icono: icono, Aspecto: aspecto, Riskos: riskos,
@@ -235,14 +257,20 @@ func (dao *UsuarioDAO) ObtenerUsuarioId(id int) (Usuario, error) {
 	var nombre, correo, clave string
 	var recibeCorreos bool
 	var u Usuario
+	var correoInterface interface{}
 
 	err := dao.bd.QueryRow(consultaUsuarioId, id).Scan(&icono,
-		&aspecto, &riskos, &correo, &nombre, &clave, &recibeCorreos)
+		&aspecto, &riskos, &correoInterface, &nombre, &clave, &recibeCorreos)
 	if err == sql.ErrNoRows {
 		return u, errors.New("el usuario no existe")
 	}
 	if err != nil {
 		return u, err
+	}
+	if correoInterface == nil {
+		correo = ""
+	} else {
+		correo = correoInterface.(string)
 	}
 	u = Usuario{
 		Id: id, Icono: icono, Aspecto: aspecto, Riskos: riskos,
@@ -259,6 +287,7 @@ func (dao *UsuarioDAO) ObtenerUsuarioId(id int) (Usuario, error) {
 */
 func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
 	var id int
+	var res sql.Result
 
 	// Comprobar que el icono lo tenga comprado
 	err := dao.bd.QueryRow(comprobarIconoComprado, u.Id, u.Icono).Scan(&id)
@@ -278,11 +307,22 @@ func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
 			mensajes.ErrorPeticion)
 	}
 
+	// Comprobar que la clave no es vacía
+	if len(u.Clave) == 0 {
+		return mensajes.ErrorJson("Tu contraseña no puede ser vacía",
+			mensajes.ErrorPeticion)
+	}
+
 	// TODO: comprobar validez del correo
 
 	// Actualizar el usuario en la base de datos
-	res, err := dao.bd.Exec(actualizarUsuario, u.Aspecto, u.Icono, u.Nombre,
-		u.Correo, u.Clave, u.RecibeCorreos, u.Id)
+	if u.Correo == "" {
+		res, err = dao.bd.Exec(actualizarUsuarioSinCorreo, u.Aspecto, u.Icono,
+			u.Nombre, u.Clave, u.RecibeCorreos, u.Id)
+	} else {
+		res, err = dao.bd.Exec(actualizarUsuario, u.Aspecto, u.Icono, u.Nombre,
+			u.Correo, u.Clave, u.RecibeCorreos, u.Id)
+	}
 	if err != nil {
 		e := err.(*pq.Error)
 		if e.Code.Name() == violacionUnicidad {
