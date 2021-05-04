@@ -336,6 +336,7 @@ func (s *Servidor) recargarUsuarios(p *baseDatos.Partida) {
 	las acciones que se requieran para cada notificación.
 */
 func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
+	salidasEsperadas := make(map[int]bool)
 	// Bucle infinito para leer notificaciones
 	timeout := time.After(time.Duration(p.TiempoTurno) * time.Minute)
 	for {
@@ -401,30 +402,32 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 				} else {
 					antiguaConexion, _ := p.Conexiones.Load(mt.IdUsuario)
 					if antiguaConexion != nil {
-						mt.Ws.WriteJSON(mensajes.ErrorJsonPartida("Ya estás conectado a esta"+
-							" partida desde otro lugar", 1))
-						mt.Ws.Close()
-						mt.RecibirMensajes <- false
-						// TODO: actualizar la conexión para usar la nueva sin que
-						// al cerrar la vieja se cierren las dos
-						// antiguaConexion.(*websocket.Conn).Close()
-					} else {
-						// Guardar la nueva conexión
-						p.Conexiones.Store(mt.IdUsuario, mt.Ws)
-						s.PartidasDAO.BorrarNotificacionTurno(p.IdPartida, mt.IdUsuario)
-						msg := mensajes.JsonData{}
-						// Activar la función de recibir mensajes de usuario
-						mt.RecibirMensajes <- true
-						// Enviar estado de la partida en formato json
-						mapstructure.Decode(p, &msg)
-						msg["_tipoMensaje"] = "p"
-						p.Enviar(mt.IdUsuario, msg)
-
+						// Actualizar la conexión para usar la nueva
+						// Registrar que se va a cerrar la conexion vieja
+						salidasEsperadas[mt.IdUsuario] = true
+						// Cerrar la vieja
+						antiguaConexion.(*websocket.Conn).Close()
 					}
+
+					// Guardar la nueva conexión
+					p.Conexiones.Store(mt.IdUsuario, mt.Ws)
+					s.PartidasDAO.BorrarNotificacionTurno(p.IdPartida, mt.IdUsuario)
+					msg := mensajes.JsonData{}
+					// Activar la función de recibir mensajes de usuario
+					mt.RecibirMensajes <- true
+					// Enviar estado de la partida en formato json
+					mapstructure.Decode(p, &msg)
+					msg["_tipoMensaje"] = "p"
+					p.Enviar(mt.IdUsuario, msg)
 				}
 			case mensajesInternos.SalidaUsuario:
 				// Desconexión de un usuario
-				p.Conexiones.Delete(mt.IdUsuario)
+				// Si esta registrado que se espera una desconexion no se hace nada
+				if _, ok := salidasEsperadas[mt.IdUsuario]; ok {
+					delete(salidasEsperadas, mt.IdUsuario)
+				} else {
+					p.Conexiones.Delete(mt.IdUsuario)
+				}
 			case mensajesInternos.MensajeInvalido:
 				p.EnviarError(mensajes.ErrorPeticion, mt.IdUsuario, mt.Err)
 			case mensajesInternos.CuentaEliminada:
