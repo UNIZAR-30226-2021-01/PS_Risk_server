@@ -422,7 +422,7 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 				}
 			case mensajesInternos.SalidaUsuario:
 				// Desconexión de un usuario
-				// Si esta registrado que se espera una desconexion no se hace nada
+				// Si está registrado que se espera una desconexión no se hace nada
 				if _, ok := salidasEsperadas[mt.IdUsuario]; ok {
 					delete(salidasEsperadas, mt.IdUsuario)
 				} else {

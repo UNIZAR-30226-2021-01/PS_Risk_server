@@ -227,6 +227,11 @@ func (p *Partida) IniciarPartida(idUsuario int) error {
 	return nil
 }
 
+/*
+	Restaurar da un valor a los atributos de p que no se guardan en la base de
+	datos, y cambia el momento de inicio del último turno por el momento actual
+	para evitar que haya jugadores que pierdan su turno por una caída del servidor.
+*/
 func (p *Partida) Restaurar() {
 	p.Conexiones = sync.Map{}
 	p.UltimoTurno = time.Now().UTC().Format(time.RFC3339)

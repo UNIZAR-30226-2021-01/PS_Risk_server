@@ -44,16 +44,28 @@ type InvitacionPartida struct {
 	IdCreador, IdInvitado int
 }
 
+/*
+	MensajeFase indica que un usuario quiere avanzar la fase de turno en la que
+	se encuentra.
+*/
 type MensajeFase struct {
 	IdUsuario int
 }
 
+/*
+	MensajeRefuerzos indica cuántas tropas de refuerzo quiere colocar un jugador
+	y en qué territorio.
+*/
 type MensajeRefuerzos struct {
 	IdUsuario    int
 	IdTerritorio int
 	Tropas       int
 }
 
+/*
+	MensajeAtaque indica desde qué territorio ataca un jugador, con cuántas
+	tropas y a qué territorio.
+*/
 type MensajeAtaque struct {
 	IdUsuario           int
 	IdTerritorioOrigen  int
@@ -61,6 +73,10 @@ type MensajeAtaque struct {
 	Tropas              int
 }
 
+/*
+	MensajeMover indica cuántas tropas mueve un jugador, desde qué territorio y
+	hasta cuál.
+*/
 type MensajeMover struct {
 	IdUsuario           int
 	IdTerritorioOrigen  int

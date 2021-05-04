@@ -409,11 +409,20 @@ func (dao *UsuarioDAO) leerNotificaciones(id int, consulta,
 	return notificaciones, nil
 }
 
+/*
+	BorrarUsuario elimina de la base de datos el usuario indicado.
+	Si ha ocurrido algún error lo devuelve.
+*/
 func (dao *UsuarioDAO) BorrarUsuario(u Usuario) error {
 	_, err := dao.bd.Exec(borrarUsuario, u.Id)
 	return err
 }
 
+/*
+	ObtenerId devuelve el identificador numérico en la base de datos del usuario
+	que tiene el correo indicado.
+	Devuelve error si no existe el usuario o hay algún problema.
+*/
 func (dao *UsuarioDAO) ObtenerId(correo string) (int, error) {
 	var id int
 
