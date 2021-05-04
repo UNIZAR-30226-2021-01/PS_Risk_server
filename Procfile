@@ -1,1 +1,1 @@
-web: bin/PS_Risk_server $PORT $DATABASE_URL
+web: bin/PS_Risk_server $PORT $DATABASE_URL "smtp.gmail.com" "587" "pixelrisk@gmail.com" "altosRiskos10"
