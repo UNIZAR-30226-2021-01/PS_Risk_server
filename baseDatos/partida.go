@@ -35,14 +35,14 @@ type Territorio struct {
 	Jugador almacena datos reducidos de un usuario.
 */
 type Jugador struct {
-	Id             int    `mapstructure:"id" json:"id"`
-	Correo         string `mapstructure:"correo" json:"correo"`
-	Nombre         string `mapstructure:"nombre" json:"nombre"`
-	Icono          int    `mapstructure:"icono" json:"icono"`
-	Aspecto        int    `mapstructure:"aspecto" json:"aspecto"`
-	SigueVivo      bool   `mapstructure:"sigueVivo" json:"sigueVivo"`
-	Refuerzos      int    `mapstructure:"refuerzos" json:"refuerzos"`
-	NumTerritorios int    `mapstructure:"-" json:"numTerritorios"`
+	Id             int    `json:"id"`
+	Correo         string `json:"-"`
+	Nombre         string `json:"nombre"`
+	Icono          int    `json:"icono"`
+	Aspecto        int    `json:"aspecto"`
+	SigueVivo      bool   `json:"sigueVivo"`
+	Refuerzos      int    `json:"refuerzos"`
+	NumTerritorios int    `json:"numTerritorios"`
 }
 
 /*
@@ -93,9 +93,9 @@ func (j *Jugador) ActualizarJugador(u Usuario) {
 	jugador.
 */
 type Mano struct {
-	Infanteria int `mapstructure:"-" json:"infanteria"`
-	Caballeria int `mapstructure:"-" json:"caballeria"`
-	Artilleria int `mapstructure:"-" json:"artilleria"`
+	Infanteria int `json:"infanteria"`
+	Caballeria int `json:"caballeria"`
+	Artilleria int `json:"artilleria"`
 }
 
 /*

@@ -494,6 +494,7 @@ func (s *Servidor) RestaurarPartidas() error {
 		if err != nil {
 			return err
 		}
+		s.recargarUsuarios(&p)
 		p.Restaurar()
 		s.Partidas.Store(p.IdPartida, &p)
 		go s.atenderPartida(&p)
