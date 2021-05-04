@@ -419,7 +419,7 @@ func (dao *UsuarioDAO) ObtenerId(correo string) (int, error) {
 
 	err := dao.bd.QueryRow(consultaUsuarioSoloCorreo, correo).Scan(&id)
 	if err != nil {
-		return -1, errors.New("no existe nigun usuario con este correo")
+		return -1, errors.New("no existe ningún usuario con este correo")
 	}
 
 	return id, nil

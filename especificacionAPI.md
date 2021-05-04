@@ -200,6 +200,7 @@ Peticiones relacionadas con la creación de cuentas, inicio de sesión y persona
         JSON de error.
 
 - ## /olvidoClave
+    Se envía la dirección de correo electrónico del usuario que quiere recuperar su contraseña, y se recibe un JSON de error.
 
    - **Parámetros:**
         | Nombre    | Tipo   | Descripción                             |
@@ -211,6 +212,7 @@ Peticiones relacionadas con la creación de cuentas, inicio de sesión y persona
         JSON de error.
 
 - ## /restablecerClave
+    Se envían el token de restablecimiento de clave recibido por correo y la nueva contraseña cifrada, y se recibe un JSON de error.
 
    - **Parámetros:**
         | Nombre    | Tipo   | Descripción                        |

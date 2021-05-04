@@ -37,8 +37,9 @@ type TTLmap struct {
 
 func CrearTTLmap(ttl int) *TTLmap {
 	m := TTLmap{
-		m: make(map[string]tokenRecuperacion),
-		l: sync.Mutex{},
+		m:   make(map[string]tokenRecuperacion),
+		l:   sync.Mutex{},
+		ttl: ttl,
 	}
 
 	go func() {
@@ -79,7 +80,7 @@ func (m *TTLmap) ConsumirToken(t string) (int, error) {
 		return v.id, nil
 	}
 	m.l.Unlock()
-	return -1, errors.New("token invalido")
+	return -1, errors.New("token inválido")
 }
 
 /*
@@ -843,7 +844,7 @@ func (s *Servidor) restablecerClaveHandler(w http.ResponseWriter, r *http.Reques
 
 	id, err := s.Restablecer.ConsumirToken(f.Token)
 	if err != nil {
-		devolverError(mensajes.ErrorPeticion, "Token invalido", w)
+		devolverError(mensajes.ErrorPeticion, "Token inválido", w)
 		return
 	}
 

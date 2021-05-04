@@ -239,6 +239,7 @@ func (p *Partida) Restaurar() {
 func (p *Partida) AnularInicio() {
 	p.Empezada = false
 	p.Territorios = []Territorio{}
+	p.UltimoTurno = ""
 }
 
 /*
@@ -729,7 +730,7 @@ func (p *Partida) EnviarCorreoTurno(smtpServer, smtpPort, correo, clave string) 
 	}
 
 	if _, ok := p.Conexiones.Load(p.Jugadores[p.TurnoJugador].Id); ok {
-		return errors.New("el usuario esta conectado")
+		return errors.New("el usuario está conectado")
 	}
 
 	e := email.NewEmail()
@@ -751,7 +752,7 @@ func (p *Partida) EnviarCorreoFinPartida(smtpServer, smtpPort, correo, clave str
 	}
 
 	if _, ok := p.Conexiones.Load(p.Jugadores[p.TurnoJugador].Id); ok {
-		return errors.New("el usuario esta conectado")
+		return errors.New("el usuario está conectado")
 	}
 
 	e := email.NewEmail()
