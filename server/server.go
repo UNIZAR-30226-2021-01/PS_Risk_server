@@ -61,11 +61,17 @@ func CrearTTLmap(ttl int) *TTLmap {
 func (m *TTLmap) NuevoToken(id int) (string, error) {
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
-		return "", err
+		return "", errors.New("no se ha podido generar el token")
 	}
 	token := hex.EncodeToString(b)
 
 	m.l.Lock()
+	for _, v := range m.m {
+		if v.id == id {
+			m.l.Unlock()
+			return "", errors.New("ya se ha solicitado restablecer clave")
+		}
+	}
 	m.m[token] = tokenRecuperacion{ttl: m.ttl, id: id}
 	m.l.Unlock()
 
@@ -803,7 +809,7 @@ func (s *Servidor) olvidoClaveHandler(w http.ResponseWriter, r *http.Request) {
 
 	t, err := s.Restablecer.NuevoToken(id)
 	if err != nil {
-		devolverError(mensajes.ErrorPeticion, "No se ha podido crear el token para restablecer la clave", w)
+		devolverError(mensajes.ErrorPeticion, err.Error(), w)
 		return
 	}
 
