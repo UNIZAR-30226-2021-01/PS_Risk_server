@@ -4,19 +4,83 @@ import (
 	"PS_Risk_server/baseDatos"
 	"PS_Risk_server/mensajes"
 	"PS_Risk_server/mensajesInternos"
-	"database/sql"
-	"sync"
 
+	"crypto/rand"
+	"database/sql"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"net/smtp"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/badoux/checkmail"
 	"github.com/go-playground/form/v4"
 	"github.com/gorilla/websocket"
+	"github.com/jordan-wright/email"
 	"github.com/rs/cors"
 )
+
+type tokenRecuperacion struct {
+	ttl int
+	id  int
+}
+
+type TTLmap struct {
+	m   map[string]tokenRecuperacion
+	l   sync.Mutex
+	ttl int
+}
+
+func CrearTTLmap(ttl int) *TTLmap {
+	m := TTLmap{
+		m: make(map[string]tokenRecuperacion),
+		l: sync.Mutex{},
+	}
+
+	go func() {
+		for range time.Tick(time.Duration(1) * time.Minute) {
+			m.l.Lock()
+			for k, v := range m.m {
+				v.ttl--
+				if v.ttl == 0 {
+					delete(m.m, k)
+				}
+			}
+			m.l.Unlock()
+		}
+	}()
+
+	return &m
+}
+
+func (m *TTLmap) NuevoToken(id int) (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	token := hex.EncodeToString(b)
+
+	m.l.Lock()
+	m.m[token] = tokenRecuperacion{ttl: m.ttl, id: id}
+	m.l.Unlock()
+
+	return token, nil
+}
+
+func (m *TTLmap) ConsumirToken(t string) (int, error) {
+	m.l.Lock()
+	if v, ok := m.m[t]; ok {
+		delete(m.m, t)
+		m.l.Unlock()
+		return v.id, nil
+	}
+	m.l.Unlock()
+	return -1, errors.New("token invalido")
+}
 
 /*
 	Servidor almacena los DAO, la tienda, las partidas y las salas activas.
@@ -34,6 +98,7 @@ type Servidor struct {
 	Tienda      baseDatos.Tienda
 	upgrader    websocket.Upgrader
 	Partidas    sync.Map
+	Restablecer *TTLmap
 }
 
 /*
@@ -63,7 +128,8 @@ func NuevoServidor(p, bbdd, smtpServer, smtpPort, mail, mailPass string) (*Servi
 		Tienda:      tienda,
 		upgrader:    websocket.Upgrader{},
 		PartidasDAO: baseDatos.NuevaPartidaDAO(b),
-		Partidas:    sync.Map{}}, nil
+		Partidas:    sync.Map{},
+		Restablecer: CrearTTLmap(10)}, nil
 }
 
 /*
@@ -88,6 +154,8 @@ func (s *Servidor) Iniciar() error {
 	mux.HandleFunc("/entrarPartida", s.aceptarSalaHandler)
 	mux.HandleFunc("/borrarNotificacionTurno", s.borrarNotificacionTurnoHandler)
 	mux.HandleFunc("/borrarCuenta", s.borrarCuentaHandler)
+	mux.HandleFunc("/olvidoClave", s.olvidoClaveHandler)
+	mux.HandleFunc("/restablecerClave", s.restablecerClaveHandler)
 
 	// Eliminar todas las salas que no se han iniciado
 	err := s.PartidasDAO.EliminarSalas()
@@ -266,6 +334,17 @@ func (s *Servidor) personalizarUsuarioHandler(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		devolverError(mensajes.ErrorUsuario, "No se ha podido obtener el usuario", w)
 		return
+	}
+
+	if f.Tipo == "Correo" {
+		if err := checkmail.ValidateFormat(f.Dato); err != nil {
+			devolverError(mensajes.ErrorPeticion, "El correo no esta en formato correcto", w)
+			return
+		}
+		if err := checkmail.ValidateHostAndUser(s.SMTPserver, s.Correo, f.Dato); err != nil {
+			devolverError(mensajes.ErrorPeticion, "No se ha podido validar el correo", w)
+			return
+		}
 	}
 
 	// Modificar los datos y devolver el resultado de la modificación
@@ -693,4 +772,88 @@ func (s *Servidor) borrarCuentaHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Informar de que se ha eliminado correctamente
 	devolverError(mensajes.NoError, "", w)
+}
+
+type formulariOlvidoClave struct {
+	Correo string `form:"correo"`
+}
+
+func (s *Servidor) olvidoClaveHandler(w http.ResponseWriter, r *http.Request) {
+	var f formulariOlvidoClave
+
+	// Comprobar que los datos recibidos son correctos
+	decoder := form.NewDecoder()
+	err := r.ParseForm()
+	if err != nil {
+		devolverError(mensajes.ErrorPeticion, err.Error(), w)
+		return
+	}
+	err = decoder.Decode(&f, r.PostForm)
+	if err != nil {
+		devolverError(mensajes.ErrorPeticion, "Campos formulario incorrectos", w)
+		return
+	}
+
+	id, err := s.UsuarioDAO.ObtenerId(f.Correo)
+	if err != nil {
+		devolverError(mensajes.ErrorPeticion, err.Error(), w)
+		return
+	}
+
+	t, err := s.Restablecer.NuevoToken(id)
+	if err != nil {
+		devolverError(mensajes.ErrorPeticion, "No se ha podido crear el token para restablecer la clave", w)
+		return
+	}
+
+	e := email.NewEmail()
+	e.From = "PixelRisk <" + s.Correo + ">"
+	e.To = []string{f.Correo}
+	e.Subject = "Recuperación de clave"
+	e.Text = []byte("https://risk-webapp.herokuapp.com/restablecerClave/" + t)
+	err = e.Send(s.SMTPserver+":"+s.SMTPport, smtp.PlainAuth("", s.Correo, s.ClaveCorreo, s.SMTPserver))
+	if err != nil {
+		devolverError(mensajes.ErrorPeticion, "No se ha podido enviar el correo para restablecer la clave", w)
+		return
+	}
+
+	devolverError(mensajes.NoError, "", w)
+}
+
+type formularioRestablecerClave struct {
+	Token string `form:"token"`
+	Clave string `form:"clave"`
+}
+
+func (s *Servidor) restablecerClaveHandler(w http.ResponseWriter, r *http.Request) {
+	var f formularioRestablecerClave
+
+	// Comprobar que los datos recibidos son correctos
+	decoder := form.NewDecoder()
+	err := r.ParseForm()
+	if err != nil {
+		devolverError(mensajes.ErrorPeticion, err.Error(), w)
+		return
+	}
+	err = decoder.Decode(&f, r.PostForm)
+	if err != nil {
+		devolverError(mensajes.ErrorPeticion, "Campos formulario incorrectos", w)
+		return
+	}
+
+	id, err := s.Restablecer.ConsumirToken(f.Token)
+	if err != nil {
+		devolverError(mensajes.ErrorPeticion, "Token invalido", w)
+		return
+	}
+
+	u, err := s.UsuarioDAO.ObtenerUsuarioId(id)
+	if err != nil {
+		devolverError(mensajes.ErrorPeticion, err.Error(), w)
+		return
+	}
+
+	u.Modificar("Clave", f.Clave)
+	respuesta, _ := json.MarshalIndent(s.UsuarioDAO.ActualizarUsuario(u), "", " ")
+	fmt.Fprint(w, string(respuesta))
 }

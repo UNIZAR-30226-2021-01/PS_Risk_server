@@ -29,6 +29,7 @@ const (
 		" recibeCorreos FROM usuario WHERE id_usuario = $1"
 	consultaUsuario = "SELECT icono, aspecto, riskos, correo, nombre," +
 		" recibeCorreos FROM usuario WHERE id_usuario = $1 AND clave = $2"
+	consultaUsuarioSoloCorreo = "SELECT id_usuario AS id FROM usuario WHERE correo = $1"
 
 	actualizarUsuario = "UPDATE usuario SET aspecto = $1, icono = $2, nombre = $3, " +
 		"correo = $4, clave = $5, recibeCorreos = $6 WHERE id_usuario = $7"
@@ -94,8 +95,6 @@ func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 	if clave == "" {
 		return u, errors.New("no se puede crear un usuario sin contraseña")
 	}
-
-	// TODO comprobar validez del correo
 
 	// Iniciar una transacción, solo se modifican las tablas si se modifican
 	// todas
@@ -313,8 +312,6 @@ func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
 			mensajes.ErrorPeticion)
 	}
 
-	// TODO: comprobar validez del correo
-
 	// Actualizar el usuario en la base de datos
 	if u.Correo == "" {
 		res, err = dao.bd.Exec(actualizarUsuarioSinCorreo, u.Aspecto, u.Icono,
@@ -415,4 +412,15 @@ func (dao *UsuarioDAO) leerNotificaciones(id int, consulta,
 func (dao *UsuarioDAO) BorrarUsuario(u Usuario) error {
 	_, err := dao.bd.Exec(borrarUsuario, u.Id)
 	return err
+}
+
+func (dao *UsuarioDAO) ObtenerId(correo string) (int, error) {
+	var id int
+
+	err := dao.bd.QueryRow(consultaUsuarioSoloCorreo, correo).Scan(&id)
+	if err != nil {
+		return -1, errors.New("no existe nigun usuario con este correo")
+	}
+
+	return id, nil
 }

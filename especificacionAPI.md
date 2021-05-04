@@ -11,6 +11,8 @@ Esta API utiliza peticiones HTTP POST con los parámetros en formato URL-Encoded
     * [/notificaciones](#notificaciones)
     * [/borrarNotificacionTurno](#borrarnotificacionturno)
     * [/borrarCuetna](#borrarcuenta)
+    * [/olvidoClave](#olvidoClave)
+    * [/restablecerClave](#restablecerClave)
 * [Sistema de Amigos](#sistema-de-amigos)
     * [/amigos](#amigos)
     * [/enviarSolicitudAmistad](#enviarsolicitudamistad)
@@ -196,7 +198,30 @@ Peticiones relacionadas con la creación de cuentas, inicio de sesión y persona
     - **Resultado:**
 
         JSON de error.
-        
+
+- ## /olvidoClave
+
+   - **Parámetros:**
+        | Nombre    | Tipo   | Descripción                             |
+        |-----------|--------|-----------------------------------------|
+        | correo    | string | Correo asociado a la cuenta del usuario.|
+
+    - **Resultado:**
+
+        JSON de error.
+
+- ## /restablecerClave
+
+   - **Parámetros:**
+        | Nombre    | Tipo   | Descripción                        |
+        |-----------|--------|------------------------------------|
+        | token     | string | Token de restablecimiento de clave.|
+        | clave     | string | Hash SHA256 de la nueva clave.     |
+
+    - **Resultado:**
+
+        JSON de error.
+
 ## Sistema de Amigos
 Peticiones relacionadas con enviar solicitudes de amistad, aceptarlas, rechazarlas y obtener la lista de amigos.
 
