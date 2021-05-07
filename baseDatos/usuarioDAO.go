@@ -121,6 +121,12 @@ func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 			} else if strings.Contains(e.Error(), "usuario_nombre_key") {
 				return u, errors.New("el nombre de usuario " + nombre + " ya está en uso")
 			}
+		} else if e.Code.Name() == cadenaDemasiadoLarga {
+			// Hay un atributo de texto demasiado largo, pero el error no da información
+			// suficiente para saber cuál es. El único que debería poder ocurrir
+			// es el de nombre de usuario con más de 20 caracteres
+			err = errors.New("el nombre de usuario es demasiado largo, solo se " +
+				"admiten nombres de 20 caracteres o menos")
 		}
 		return u, err
 	}
@@ -328,6 +334,12 @@ func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
 			} else if strings.Contains(e.Error(), "usuario_nombre_key") {
 				err = errors.New("el nombre de usuario " + u.Nombre + " ya está en uso")
 			}
+		} else if e.Code.Name() == cadenaDemasiadoLarga {
+			// Hay un atributo de texto demasiado largo, pero el error no da información
+			// suficiente para saber cuál es. El único que debería poder ocurrir
+			// es el de nombre de usuario con más de 20 caracteres
+			err = errors.New("el nombre de usuario es demasiado largo, solo se " +
+				"admiten nombres de 20 caracteres o menos")
 		}
 		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}

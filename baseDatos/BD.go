@@ -10,6 +10,8 @@ import (
 )
 
 const (
+	cadenaDemasiadoLarga   = "string_data_right_truncation"
+	violacionCheck         = "check_violation"
 	violacionUnicidad      = "unique_violation"
 	violacionClaveForanea  = "foreign_key_violation"
 	violacionRestricciones = "check_violation"

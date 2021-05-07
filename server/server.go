@@ -303,7 +303,7 @@ func (s *Servidor) registroUsuarioHandler(w http.ResponseWriter, r *http.Request
 	correo := strings.ToLower(f.Correo)
 	if correo != "" {
 		if err := checkmail.ValidateFormat(correo); err != nil {
-			devolverError(mensajes.ErrorPeticion, "El correo no esta en formato correcto", w)
+			devolverError(mensajes.ErrorPeticion, "El correo no está en formato correcto", w)
 			return
 		}
 		if err := checkmail.ValidateHostAndUser(s.SMTPserver, s.Correo, correo); err != nil {
@@ -402,7 +402,7 @@ func (s *Servidor) personalizarUsuarioHandler(w http.ResponseWriter, r *http.Req
 
 	if f.Tipo == "Correo" {
 		if err := checkmail.ValidateFormat(f.Dato); err != nil {
-			devolverError(mensajes.ErrorPeticion, "El correo no esta en formato correcto", w)
+			devolverError(mensajes.ErrorPeticion, "El correo no está en formato correcto", w)
 			return
 		}
 		if err := checkmail.ValidateHostAndUser(s.SMTPserver, s.Correo, f.Dato); err != nil {
