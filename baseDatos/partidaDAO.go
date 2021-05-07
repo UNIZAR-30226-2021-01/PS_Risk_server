@@ -78,6 +78,14 @@ func (dao *PartidaDAO) CrearPartida(creador Usuario, tiempoTurno int, nombreSala
 	err := dao.bd.QueryRow(crearPartida, creador.Id, nombreSala,
 		[]byte(`{}`)).Scan(&idPartida)
 	if err != nil {
+		e := err.(*pq.Error)
+		if e.Code.Name() == cadenaDemasiadoLarga {
+			// Hay un atributo de texto demasiado largo, pero el error no da información
+			// suficiente para saber cuál es. El único que debería poder ocurrir
+			// es el de nombre de usuario con más de 20 caracteres
+			err = errors.New("el nombre de la partida es demasiado largo, solo se " +
+				"admiten nombres de 20 caracteres o menos")
+		}
 		return nil, err
 	}
 

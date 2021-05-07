@@ -31,10 +31,11 @@ const (
 	eliminarAmistad      = "DELETE FROM esAmigo WHERE id_usuario1 = $1 AND id_usuario2 = $2"
 	eliminarInvitaciones = "DELETE FROM invitacionPartida i USING partida p " +
 		"WHERE i.id_envia = p.id_partida AND p.id_creador = $1 AND i.id_recibe = $2"
-	eliminarSolicitudAmistad = "DELETE FROM solicitudAmistad WHERE id_envia = $1 AND id_recibe = $2"
-	crearAmistad             = "INSERT INTO esAmigo (id_usuario1, id_usuario2) VALUES ($1, $2)"
-	solicitarAmistad         = "INSERT INTO solicitudAmistad (id_envia, id_recibe) VALUES ($1, $2)"
-	consultaAmistad          = "SELECT id_usuario1 FROM esAmigo WHERE id_usuario1 = $1 AND " +
+	eliminarSolicitudAmistad  = "DELETE FROM solicitudAmistad WHERE id_envia = $1 AND id_recibe = $2"
+	consultarSolicitudAmistad = "SELECT COUNT(*) FROM solicitudAmistad WHERE id_envia = $1 AND id_recibe = $2"
+	crearAmistad              = "INSERT INTO esAmigo (id_usuario1, id_usuario2) VALUES ($1, $2)"
+	solicitarAmistad          = "INSERT INTO solicitudAmistad (id_envia, id_recibe) VALUES ($1, $2)"
+	consultaAmistad           = "SELECT id_usuario1 FROM esAmigo WHERE id_usuario1 = $1 AND " +
 		"id_usuario2 = $2"
 	obtenerIdUsuario = "SELECT id_usuario FROM usuario WHERE nombre = $1"
 )
@@ -195,6 +196,7 @@ func (dao *AmigosDAO) RechazarSolicitudAmistad(u Usuario, id int) mensajes.JsonD
 */
 func (dao *AmigosDAO) EnviarSolicitudAmistad(u Usuario, amigo string) mensajes.JsonData {
 	var idAmigo int
+	var numSolicitudes int
 
 	// Comprobar si el usuario al que se le quiere enviar la solicitud existe
 	err := dao.bd.QueryRow(obtenerIdUsuario, amigo).Scan(&idAmigo)
@@ -218,23 +220,35 @@ func (dao *AmigosDAO) EnviarSolicitudAmistad(u Usuario, amigo string) mensajes.J
 		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
 
-	// Guardar en la base de datos que se ha enviado la solicitud
-	_, err = dao.bd.Exec(solicitarAmistad, u.Id, idAmigo)
+	// Comprobar si existe una solicitud de amistad del otro usuario
+	err = dao.bd.QueryRow(consultarSolicitudAmistad, idAmigo, u.Id).Scan(&numSolicitudes)
 	if err != nil {
-		if e, ok := err.(*pq.Error); ok {
-			if e.Code.Name() == violacionUnicidad {
-				if strings.Contains(e.Error(), "solicitudamistad_pkey") {
-					return mensajes.ErrorJson("Ya has enviado una solicitud de "+
-						"amistad a este usuario", mensajes.ErrorPeticion)
-				}
-			} else if e.Code.Name() == violacionRestricciones {
-				if strings.Contains(e.Error(), "solicitudamistad_check") {
-					return mensajes.ErrorJson("No puedes enviarte una solicitud"+
-						" de amistad a ti mismo", mensajes.ErrorPeticion)
-				}
-			}
-		}
 		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}
+	if numSolicitudes == 0 {
+		// No había solicitud previa, enviar la nueva
+		// Guardar en la base de datos que se ha enviado la solicitud
+		_, err = dao.bd.Exec(solicitarAmistad, u.Id, idAmigo)
+		if err != nil {
+			if e, ok := err.(*pq.Error); ok {
+				if e.Code.Name() == violacionUnicidad {
+					if strings.Contains(e.Error(), "solicitudamistad_pkey") {
+						return mensajes.ErrorJson("Ya has enviado una solicitud de "+
+							"amistad a este usuario", mensajes.ErrorPeticion)
+					}
+				} else if e.Code.Name() == violacionRestricciones {
+					if strings.Contains(e.Error(), "solicitudamistad_check") {
+						return mensajes.ErrorJson("No puedes enviarte una solicitud"+
+							" de amistad a ti mismo", mensajes.ErrorPeticion)
+					}
+				}
+			}
+			return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
+		}
+	} else {
+		// Había solicitud previa, aceptarla
+		return dao.AceptarSolicitudAmistad(u, idAmigo)
+	}
+
 	return mensajes.ErrorJson("", mensajes.NoError)
 }

@@ -143,6 +143,7 @@ Peticiones relacionadas con la creación de cuentas, inicio de sesión y persona
         - Correo
         - Clave
         - Nombre
+        - RecibeCorreos
     
     - **Resultado:**
 
