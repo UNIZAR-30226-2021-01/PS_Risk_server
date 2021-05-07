@@ -752,19 +752,34 @@ func (p *Partida) EnviarCorreoTurno(smtpServer, smtpPort, correo, clave string) 
 }
 
 func (p *Partida) EnviarCorreoFinPartida(smtpServer, smtpPort, correo, clave string) error {
-	if p.Jugadores[p.TurnoJugador].Correo == "" {
-		return errors.New("este usuario no recibe correos")
+	destinatariosId := []int{}
+	destinatariosCorreo := []string{}
+
+	for i, j := range p.Jugadores {
+		if j.Correo != "" {
+			destinatariosId = append(destinatariosId, i)
+		}
 	}
 
-	if _, ok := p.Conexiones.Load(p.Jugadores[p.TurnoJugador].Id); ok {
-		return errors.New("el usuario está conectado")
+	if len(destinatariosId) == 0 {
+		return errors.New("ningún jugador de la partida recibe correos")
+	}
+
+	for _, i := range destinatariosId {
+		if _, ok := p.Conexiones.Load(p.Jugadores[i].Id); !ok {
+			destinatariosCorreo = append(destinatariosCorreo, p.Jugadores[i].Correo)
+		}
+	}
+	if len(destinatariosCorreo) == 0 {
+		return errors.New("todos los usuarios están conectados")
 	}
 
 	e := email.NewEmail()
 	e.From = "PixelRisk <" + correo + ">"
-	e.To = []string{p.Jugadores[p.TurnoJugador].Correo}
+	e.Bcc = destinatariosCorreo
 	e.Subject = "Fin de partida"
-	e.Text = []byte("Has ganado la partida " + p.Nombre + "!")
+	e.Text = []byte("¡" + p.Jugadores[p.TurnoActual].Nombre +
+		" ha ganado la partida \"" + p.Nombre + "\"!")
 	err := e.Send(smtpServer+":"+smtpPort, smtp.PlainAuth("", correo, clave, smtpServer))
 	if err != nil {
 		return err

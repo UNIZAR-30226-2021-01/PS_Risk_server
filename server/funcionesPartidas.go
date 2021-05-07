@@ -433,11 +433,12 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 			case mensajesInternos.CuentaEliminada:
 				pos := p.ObtenerPosicionJugador(mt.IdUsuario)
 				p.Jugadores[pos].SigueVivo = false
+				p.Jugadores[pos].Correo = ""
 				antiguaConexion, ok := p.Conexiones.Load(mt.IdUsuario)
 				if ok {
 					if antiguaConexion != nil {
-						p.EnviarError(mt.IdUsuario, mensajes.CierreSala, "La cuenta que"+
-							" estás utilizando ha sido eliminada")
+						p.EnviarError(mt.IdUsuario, mensajes.CierreSala,
+							"La cuenta que estás utilizando ha sido eliminada")
 						antiguaConexion.(*websocket.Conn).Close()
 					}
 					p.Conexiones.Delete(mt.IdUsuario)
@@ -447,13 +448,13 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 					// Datos completos de la partida: se avanza turno
 					p.EnviarATodos(res)
 					s.PartidasDAO.NotificarTurno(p)
-					timeout = time.After(time.Duration(p.TiempoTurno) * time.Minute)
-					if p.JugadoresRestantes() == 1 {
-						s.finalizarPartida(p)
-						return
-					} else {
-						p.EnviarCorreoTurno(s.SMTPserver, s.SMTPport, s.Correo, s.ClaveCorreo)
-					}
+				}
+				timeout = time.After(time.Duration(p.TiempoTurno) * time.Minute)
+				if p.JugadoresRestantes() == 1 {
+					s.finalizarPartida(p)
+					return
+				} else {
+					p.EnviarCorreoTurno(s.SMTPserver, s.SMTPport, s.Correo, s.ClaveCorreo)
 				}
 			}
 		case <-timeout:

@@ -130,6 +130,7 @@ type Servidor struct {
 	upgrader    websocket.Upgrader
 	Partidas    sync.Map
 	Restablecer *TTLmap
+	test        bool
 }
 
 /*
@@ -161,6 +162,38 @@ func NuevoServidor(p, bbdd, smtpServer, smtpPort, mail, mailPass string) (*Servi
 		PartidasDAO: baseDatos.NuevaPartidaDAO(b),
 		Partidas:    sync.Map{},
 		Restablecer: CrearTTLmap(10)}, nil
+}
+
+/*
+	NuevoServidor crea un servidor, establece una conexión con la base de datos
+	postgreSQL, crea los DAO que va a utilizar y carga la tienda de la base de
+	datos, y habilita la opción de generar partidas para test.
+*/
+func NuevoServidorConTest(p, bbdd, smtpServer, smtpPort, mail, mailPass string) (*Servidor, error) {
+	b, err := sql.Open("postgres", bbdd)
+	if err != nil {
+		return nil, err
+	}
+	td := baseDatos.NuevaTiendaDAO(b)
+	tienda, err := td.ObtenerTienda()
+	if err != nil {
+		return nil, err
+	}
+	return &Servidor{
+		Puerto:      p,
+		SMTPserver:  smtpServer,
+		SMTPport:    smtpPort,
+		Correo:      mail,
+		ClaveCorreo: mailPass,
+		UsuarioDAO:  baseDatos.NuevoUsuarioDAO(b),
+		AmigosDAO:   baseDatos.NuevoAmigosDAO(b),
+		TiendaDAO:   td,
+		Tienda:      tienda,
+		upgrader:    websocket.Upgrader{},
+		PartidasDAO: baseDatos.NuevaPartidaDAO(b),
+		Partidas:    sync.Map{},
+		Restablecer: CrearTTLmap(10),
+		test:        true}, nil
 }
 
 /*
