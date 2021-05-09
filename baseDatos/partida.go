@@ -774,15 +774,17 @@ func (p *Partida) EnviarCorreoFinPartida(smtpServer, smtpPort, correo, clave str
 		return errors.New("todos los usuarios están conectados")
 	}
 
-	e := email.NewEmail()
-	e.From = "PixelRisk <" + correo + ">"
-	e.Bcc = destinatariosCorreo
-	e.Subject = "Fin de partida"
-	e.Text = []byte("¡" + p.Jugadores[p.TurnoActual].Nombre +
-		" ha ganado la partida \"" + p.Nombre + "\"!")
-	err := e.Send(smtpServer+":"+smtpPort, smtp.PlainAuth("", correo, clave, smtpServer))
-	if err != nil {
-		return err
+	for _, destinatario := range destinatariosCorreo {
+		e := email.NewEmail()
+		e.From = "PixelRisk <" + correo + ">"
+		e.Subject = "Fin de partida"
+		e.Text = []byte("¡" + p.Jugadores[p.TurnoJugador].Nombre +
+			" ha ganado la partida \"" + p.Nombre + "\"!")
+		e.To = []string{destinatario}
+		err := e.Send(smtpServer+":"+smtpPort, smtp.PlainAuth("", correo, clave, smtpServer))
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

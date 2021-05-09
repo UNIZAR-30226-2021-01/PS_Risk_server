@@ -384,6 +384,10 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 					p.Enviar(mt.IdUsuario, msg)
 				} else {
 					p.EnviarATodos(msg)
+					if p.JugadoresRestantes() == 1 {
+						s.finalizarPartida(p)
+						return
+					}
 				}
 			case mensajesInternos.MensajeMover:
 				// Mensaje para realizar un movimiento
