@@ -20,14 +20,19 @@ const (
 /*
 	CrearBD abre una conexión a la base de datos bbdd, borra el contenido actual
 	y crea de nuevo las tablas.
+	Si crearCuentasTest es true, crea algunas cuentas de usuario.
+	Si ocurre algún error al abrir la conexión con la base de datos, lo devuelve.
 */
-func CrearBD(bbdd string) (*sql.DB, error) {
+func CrearBD(bbdd string, crearCuentasTest bool) (*sql.DB, error) {
 	db, err := sql.Open("postgres", bbdd)
 	if err != nil {
 		return db, err
 	}
+	execScript(db, "scripts/destruirBBDD.sql")
 	execScript(db, "scripts/crearBBDD.sql")
-	execScript(db, "scripts/crearCuentasTest.sql")
+	if crearCuentasTest {
+		execScript(db, "scripts/crearCuentasTest.sql")
+	}
 	return db, err
 }
 
@@ -35,6 +40,7 @@ func CrearBD(bbdd string) (*sql.DB, error) {
 	CrearBD abre una conexión a la base de datos bbdd, borra el contenido actual
 	y crea de nuevo las tablas, indicando la ruta a los scripts relativa a los
 	ficheros de test.
+	Si ocurre algún error al abrir la conexión con la base de datos, lo devuelve.
 */
 func CrearBDLocal(bbdd string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", bbdd)
