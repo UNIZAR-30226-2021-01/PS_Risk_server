@@ -163,7 +163,7 @@ func (m *Mano) Robar(c int) {
 	Partida almacena los datos relativos a una partida. Una partida sin iniciar es una
 	sala de espera.
 
-	Las etiquetas `mapstructure` son para codificar los datos que se envian a través de
+	Las etiquetas `mapstructure` son para codificar los datos que se envían a través de
 	los websockets.
 
 	Las etiquetas `json` son para codificar los datos que se guardan en la base de datos.
@@ -269,7 +269,12 @@ func (p *Partida) EntrarPartida(u Usuario, ws *websocket.Conn) error {
 	return nil
 }
 
-// REQUIERE REVISION
+/*
+	ExpulsarDePartida elimina de una partida sin empezar a un jugador que no
+	sea el creador de la misma, o marca como muerto a un jugador en una partida
+	empezada.
+	Devuelve error si hay algún problema.
+*/
 func (p *Partida) ExpulsarDePartida(idJugador int) error {
 	if !p.EstaEnPartida(idJugador) {
 		return errors.New("el jugador no está en la partida, no se puede retirar")
@@ -283,7 +288,8 @@ func (p *Partida) ExpulsarDePartida(idJugador int) error {
 		}
 		p.Conexiones.Delete(idJugador)
 	} else if p.IdCreador == idJugador {
-		return errors.New("no se puede eliminar de la partida al creador")
+		return errors.New("mal uso de la función: no se puede expulsar de la " +
+			"partida al creador")
 	} else {
 		p.Jugadores = borrar(p.Jugadores, idJugador)
 		p.Conexiones.Delete(idJugador)
@@ -729,6 +735,15 @@ func (p *Partida) FinalizarPartida() (mensajes.JsonData, int, error) {
 
 // Funciones de envío de correos
 
+/*
+	EnviarCorreoTurno envía un correo al jugador al que le corresponde el turno
+	en la partida `p` indicando el nombre de la partida.
+	Solo envía el correo si el usuario ha indicado que quiere recibir las
+	notificaciones por correo y no está conectado a la partida desde ningún
+	dispositivo.
+	Para enviar el correo utiliza el servidor, dirección y contraseña indicados
+	como parámetros, y si no consigue enviarlo devuelve el error ocurrido.
+*/
 func (p *Partida) EnviarCorreoTurno(smtpServer, smtpPort, correo, clave string) error {
 	if p.Jugadores[p.TurnoJugador].Correo == "" {
 		return errors.New("este usuario no recibe correos")
@@ -751,6 +766,16 @@ func (p *Partida) EnviarCorreoTurno(smtpServer, smtpPort, correo, clave string) 
 	return nil
 }
 
+/*
+	EnviarCorreoFinPartida envía un correo a todos los jugadores de la partida
+	`p` que no estén conectados a ella desde ningún dispositivo y hayan indicado
+	que quieren recibir las notificaciones por correo.
+	Para preservar la privacidad de los usuarios, los destinatarios están
+	ocultos y el resto no pueden ver su dirección de correo electrónico.
+	Este correo contiene el nombre de la partida y el del ganador.
+	Para enviar el correo utiliza el servidor, dirección y contraseña indicados
+	como parámetros, y si no consigue enviarlo devuelve el error ocurrido.
+*/
 func (p *Partida) EnviarCorreoFinPartida(smtpServer, smtpPort, correo, clave string) error {
 	destinatariosId := []int{}
 	destinatariosCorreo := []string{}
@@ -774,17 +799,15 @@ func (p *Partida) EnviarCorreoFinPartida(smtpServer, smtpPort, correo, clave str
 		return errors.New("todos los usuarios están conectados")
 	}
 
-	for _, destinatario := range destinatariosCorreo {
-		e := email.NewEmail()
-		e.From = "PixelRisk <" + correo + ">"
-		e.Subject = "Fin de partida"
-		e.Text = []byte("¡" + p.Jugadores[p.TurnoJugador].Nombre +
-			" ha ganado la partida \"" + p.Nombre + "\"!")
-		e.To = []string{destinatario}
-		err := e.Send(smtpServer+":"+smtpPort, smtp.PlainAuth("", correo, clave, smtpServer))
-		if err != nil {
-			return err
-		}
+	e := email.NewEmail()
+	e.From = "PixelRisk <" + correo + ">"
+	e.Subject = "Fin de partida"
+	e.Text = []byte("¡" + p.Jugadores[p.TurnoJugador].Nombre +
+		" ha ganado la partida \"" + p.Nombre + "\"!")
+	e.Bcc = destinatariosCorreo
+	err := e.Send(smtpServer+":"+smtpPort, smtp.PlainAuth("", correo, clave, smtpServer))
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -792,6 +815,10 @@ func (p *Partida) EnviarCorreoFinPartida(smtpServer, smtpPort, correo, clave str
 
 // Funciones de envío de mensaje a través de WebSockets
 
+/*
+	EnviarATodos envía el mensaje pasado como parámetro a todos los usuarios
+	conectados a la partida `p`, por el websocket correspondiente.
+*/
 func (p *Partida) EnviarATodos(mensaje mensajes.JsonData) {
 	for _, jugador := range p.Jugadores {
 		ws, ok := p.Conexiones.Load(jugador.Id)
@@ -801,6 +828,10 @@ func (p *Partida) EnviarATodos(mensaje mensajes.JsonData) {
 	}
 }
 
+/*
+	EnviarError envía un mensaje de error al usuario con el identificador global
+	indicado, por el websocket correspondiente en la partida `p`.
+*/
 func (p *Partida) EnviarError(idUsuario, code int, err string) {
 	ws, ok := p.Conexiones.Load(idUsuario)
 	if ok {
@@ -808,6 +839,10 @@ func (p *Partida) EnviarError(idUsuario, code int, err string) {
 	}
 }
 
+/*
+	Enviar envía el mensaje pasado como parámetro al usuario con el identificador
+	global indicado, por el websocket correspondiente en la partida `p`.
+*/
 func (p *Partida) Enviar(id int, mensaje mensajes.JsonData) {
 	ws, ok := p.Conexiones.Load(id)
 	if ok {
@@ -817,6 +852,11 @@ func (p *Partida) Enviar(id int, mensaje mensajes.JsonData) {
 
 // FUNCIONES AUXILIARES PARA EL MANEJO DE ARRAYS
 
+/*
+	borrar elimina de un slice de jugadores el primero que encuentra cuyo
+	identificador coincide con `valor` y devuelve el nuevo slice.
+	Si dicho jugador no está en la lista, se devuelve sin modificar.
+*/
 func borrar(lista []Jugador, valor int) []Jugador {
 	i := -1
 	for ind, v := range lista {

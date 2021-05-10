@@ -1,3 +1,8 @@
+/*
+	El paquete mensajesInternos proporciona tipos de datos para enviar la
+	información que se recibe de los usuarios conectados a una sala o partida
+	desde la goroutine que recibe los mensajes a la que gestiona la sala o partida.
+*/
 package mensajesInternos
 
 import (

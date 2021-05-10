@@ -1,3 +1,9 @@
+/*
+	El paquete mensajes proporciona un tipo de dato para leer, almacenar y
+	manipular los mensajes en formato JSON que se intercambian con los clientes,
+	funciones para crear un mensaje a partir de los datos que debe contener, y
+	los códigos de los distintos tipos de error que se pueden producir.
+*/
 package mensajes
 
 // Códigos de error posibles

@@ -1,3 +1,7 @@
+/*
+	El paquete baseDatos proporciona funciones y tipos de datos para acceder a la
+	base de datos de usuarios y partidas de PixelRisk y manipular los datos leídos.
+*/
 package baseDatos
 
 import (
