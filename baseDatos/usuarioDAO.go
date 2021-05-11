@@ -127,6 +127,11 @@ func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 			// es el de nombre de usuario con más de 20 caracteres
 			err = errors.New("el nombre de usuario es demasiado largo, solo se " +
 				"admiten nombres de 20 caracteres o menos")
+		} else if e.Code.Name() == violacionCheck {
+			if strings.Contains(e.Error(), "si_no_hay_correo_no_recibe") {
+				err = errors.New("no se pueden recibir correos si no hay una " +
+					"dirección de correo electrónico asociada a la cuenta")
+			}
 		}
 		return u, err
 	}
@@ -340,6 +345,11 @@ func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
 			// es el de nombre de usuario con más de 20 caracteres
 			err = errors.New("el nombre de usuario es demasiado largo, solo se " +
 				"admiten nombres de 20 caracteres o menos")
+		} else if e.Code.Name() == violacionCheck {
+			if strings.Contains(e.Error(), "si_no_hay_correo_no_recibe") {
+				err = errors.New("no se pueden recibir correos si no hay una " +
+					"dirección de correo electrónico asociada a la cuenta")
+			}
 		}
 		return mensajes.ErrorJson(err.Error(), mensajes.ErrorPeticion)
 	}

@@ -372,7 +372,7 @@ func (s *Servidor) personalizarUsuarioHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if f.Tipo == "Correo" {
+	if f.Tipo == "Correo" && f.Dato != "" {
 		if err := checkmail.ValidateFormat(f.Dato); err != nil {
 			devolverError(mensajes.ErrorPeticion, "El correo no está en formato correcto", w)
 			return

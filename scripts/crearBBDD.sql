@@ -18,7 +18,8 @@ CREATE TABLE usuario (
     riskos INT NOT NULL CHECK (riskos >= 0),
     recibeCorreos BOOLEAN NOT NULL,
     FOREIGN KEY (aspecto) REFERENCES aspecto(id_aspecto),
-    FOREIGN KEY (icono) REFERENCES icono(id_icono) 
+    FOREIGN KEY (icono) REFERENCES icono(id_icono),
+    CONSTRAINT si_no_hay_correo_no_recibe CHECK (NOT (recibeCorreos AND correo IS NULL))
 );
 
 CREATE TABLE aspectosComprados (
