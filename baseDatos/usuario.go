@@ -10,14 +10,9 @@ import (
 	Usuario contiene los datos de una cuenta de un usuario.
 */
 type Usuario struct {
-	Id            int    `json:"id"`
-	Icono         int    `json:"icono"`
-	Aspecto       int    `json:"aspecto"`
-	Riskos        int    `json:"riskos"`
-	Nombre        string `json:"nombre"`
-	Correo        string `json:"correo"`
-	Clave         string `json:"clave"`
-	RecibeCorreos bool   `json:"recibeCorreos"`
+	Id, Icono, Aspecto, Riskos int
+	Nombre, Correo, Clave      string
+	RecibeCorreos              bool
 }
 
 /*
@@ -30,6 +25,7 @@ func (u *Usuario) ToJSON() mensajes.JsonData {
 		"id":            u.Id,
 		"nombre":        u.Nombre,
 		"correo":        u.Correo,
+		"clave":         u.Clave,
 		"recibeCorreos": u.RecibeCorreos,
 		"icono":         u.Icono,
 		"aspecto":       u.Aspecto,
