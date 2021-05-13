@@ -92,6 +92,9 @@ func (dao *UsuarioDAO) CrearCuenta(nombre, correo, clave string,
 	if nombre == "" {
 		return u, errors.New("no se puede crear un usuario sin nombre")
 	}
+	if strings.Contains(nombre, "@") {
+		return u, errors.New("el nombre de usuario no puede contener el carácter @")
+	}
 	if clave == "" {
 		return u, errors.New("no se puede crear un usuario sin contraseña")
 	}

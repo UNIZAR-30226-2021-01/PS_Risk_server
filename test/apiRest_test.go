@@ -12,6 +12,16 @@ import (
 
 const apiUrl = "http://localhost:8080"
 
+const (
+	nombre1 = "NombreTest"
+	nombre2 = "NombreTest2"
+	nombre3 = "NombreTest3"
+	correo1 = "780448@unizar.es"
+	correo2 = "780378@unizar.es"
+	correo3 = "779333@unizar.es"
+	clave1  = "claveTest"
+)
+
 func realizarPeticionAPI(funcion string, datos url.Values, t *testing.T) mensajes.JsonData {
 
 	res, err := http.PostForm(apiUrl+"/"+funcion, datos)
@@ -35,21 +45,54 @@ func realizarPeticionAPI(funcion string, datos url.Values, t *testing.T) mensaje
 }
 
 func Test_CrearEliminarCuenta(t *testing.T) {
+	// Usuario con correo que no recibe
 	res := realizarPeticionAPI("registrar",
 		url.Values{
-			"nombre":        {"NombreTest"},
+			"nombre":        {nombre1},
 			"correo":        {""},
-			"clave":         {"claveTest"},
+			"clave":         {clave1},
 			"recibeCorreos": {"false"},
 		}, t)
 
 	id := int(res["usuario"].(map[string]interface{})["id"].(float64))
 	usuarioTest := map[string]interface{}{
 		"id":            id,
-		"nombre":        "NombreTest",
+		"nombre":        nombre1,
 		"icono":         0,
 		"aspecto":       0,
 		"correo":        "",
+		"riskos":        1000,
+		"recibeCorreos": false,
+	}
+
+	// TODO: comprobar resto de campos en la respuesta
+
+	if !comprobarJson(res["usuario"].(map[string]interface{}), usuarioTest) {
+		t.Log(usuarioTest)
+		t.Log(res["usuario"].(map[string]interface{}))
+		t.Fatal("No coinciden los usuarios")
+	}
+
+	borrarCuenta(id, clave1, t)
+}
+
+func Test_CrearCuentaRestoCasos(t *testing.T) {
+	// Usuario con correo que no recibe
+	res := realizarPeticionAPI("registrar",
+		url.Values{
+			"nombre":        {nombre1},
+			"correo":        {correo1},
+			"clave":         {clave1},
+			"recibeCorreos": {"false"},
+		}, t)
+
+	id1 := int(res["usuario"].(map[string]interface{})["id"].(float64))
+	usuarioTest := map[string]interface{}{
+		"id":            id1,
+		"nombre":        "NombreTest",
+		"icono":         0,
+		"aspecto":       0,
+		"correo":        correo1,
 		"riskos":        1000,
 		"recibeCorreos": false,
 	}
@@ -60,14 +103,83 @@ func Test_CrearEliminarCuenta(t *testing.T) {
 		t.Fatal("No coinciden los usuarios")
 	}
 
-	res = realizarPeticionAPI("borrarCuenta",
+	// Usuario con correo que recibe
+	res = realizarPeticionAPI("registrar",
 		url.Values{
-			"idUsuario": {strconv.Itoa(id)},
-			"clave":     {"claveTest"},
+			"nombre":        {nombre2},
+			"correo":        {correo2},
+			"clave":         {clave1},
+			"recibeCorreos": {"true"},
 		}, t)
-	if res["code"].(float64) != 0 {
-		t.Fatal(res)
+
+	id2 := int(res["usuario"].(map[string]interface{})["id"].(float64))
+	usuarioTest["id"] = id2
+	usuarioTest["nombre"] = nombre2
+	usuarioTest["correo"] = correo2
+	usuarioTest["recibeCorreos"] = true
+	if !comprobarJson(res["usuario"].(map[string]interface{}), usuarioTest) {
+		t.Log(usuarioTest)
+		t.Log(res["usuario"].(map[string]interface{}))
+		t.Fatal("No coinciden los usuarios")
 	}
+
+	// Casos que deben dar error
+	crearCuentasIncorrectas(t)
+
+	borrarCuenta(id1, clave1, t)
+	borrarCuenta(id2, clave1, t)
+}
+
+func crearCuentasIncorrectas(t *testing.T) {
+	claveDemasiadoLarga := "a"
+	for len(claveDemasiadoLarga) <= 64 {
+		claveDemasiadoLarga = claveDemasiadoLarga + claveDemasiadoLarga
+	}
+	crearCuentaError("", correo3, clave1, true, t)
+	crearCuentaError("12345678901234567890b", correo3, clave1, true, t)
+	crearCuentaError("nombre@invalido", correo3, clave1, true, t)
+	crearCuentaError(nombre1, correo3, clave1, true, t)
+	crearCuentaError(nombre3, "correo@invalido", clave1, true, t)
+	crearCuentaError(nombre3, "", clave1, true, t)
+	crearCuentaError(nombre3, correo1, clave1, true, t)
+	crearCuentaError(nombre3, correo3, "", true, t)
+	crearCuentaError(nombre3, correo3, claveDemasiadoLarga, true, t)
+
+	// Valor no parseable a bool en recibeCorreos
+	res := realizarPeticionAPI("registrar",
+		url.Values{
+			"nombre":        {nombre3},
+			"correo":        {correo3},
+			"clave":         {clave1},
+			"recibeCorreos": {"k"},
+		}, t)
+
+	if _, ok := res["code"].(float64); !ok {
+		borrarCuenta(int(res["usuario"].(map[string]interface{})["id"].(float64)),
+			clave1, t)
+		t.Log(res)
+		t.Fatal("No ha habido error al crear la cuenta")
+	}
+}
+
+func crearCuentaError(nombre, correo, clave string, recibeCorreos bool,
+	t *testing.T) /*map[string]interface{}*/ {
+	res := realizarPeticionAPI("registrar",
+		url.Values{
+			"nombre":        {nombre},
+			"correo":        {correo},
+			"clave":         {clave},
+			"recibeCorreos": {strconv.FormatBool(recibeCorreos)},
+		}, t)
+
+	if _, ok := res["code"].(float64); !ok {
+		borrarCuenta(int(res["usuario"].(map[string]interface{})["id"].(float64)),
+			clave1, t)
+		t.Log(res)
+		t.Fatal("No ha habido error al crear la cuenta")
+	}
+
+	//return res
 }
 
 func crearCuenta(nombre, correo, clave string, recibeCorreos bool, t *testing.T) int {
@@ -92,7 +204,8 @@ func borrarCuenta(id int, clave string, t *testing.T) {
 		}, t)
 
 	if res["code"].(float64) != 0 {
-		t.Fatal(res)
+		t.Log(res)
+		t.Fatal("Error al borrar la cuenta")
 	}
 }
 

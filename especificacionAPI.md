@@ -298,6 +298,10 @@ Peticiones relacionadas con la compra de elementos estéticos del juego.
         | cosmetico | int    | Identificador numérico del elemento que se desea comprar. |
         | clave     | string | Hash SHA256 de la clave del usuario                       |
         | tipo      | string | Tipo de elemento a comprar.                               |
+
+        **tipo** puede tomar los siguientes valores:
+        - Aspecto
+        - Icono
     
     - **Resultado:**
 
