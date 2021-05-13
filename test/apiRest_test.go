@@ -65,12 +65,26 @@ func Test_CrearEliminarCuenta(t *testing.T) {
 		"recibeCorreos": false,
 	}
 
-	// TODO: comprobar resto de campos en la respuesta
-
 	if !comprobarJson(res["usuario"].(map[string]interface{}), usuarioTest) {
 		t.Log(usuarioTest)
 		t.Log(res["usuario"].(map[string]interface{}))
 		t.Fatal("No coinciden los usuarios")
+	}
+	if res["iconos"] == nil || len(res["iconos"].([]interface{})) != 1 {
+		t.Log(res)
+		t.Fatal("Lista de iconos comprados incorrecta")
+	}
+	if res["aspectos"] == nil || len(res["aspectos"].([]interface{})) != 1 {
+		t.Log(res)
+		t.Fatal("Lista de aspectos comprados incorrecta")
+	}
+	if res["tiendaIconos"] == nil || len(res["tiendaIconos"].([]interface{})) != 13 {
+		t.Log(res)
+		t.Fatal("Lista de iconos disponibles incorrecta")
+	}
+	if res["tiendaAspectos"] == nil || len(res["tiendaAspectos"].([]interface{})) != 13 {
+		t.Log(res)
+		t.Fatal("Lista de aspectos disponibles incorrecta")
 	}
 
 	borrarCuenta(id, clave1, t)
