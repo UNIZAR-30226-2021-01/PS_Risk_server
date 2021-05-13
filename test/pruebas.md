@@ -159,19 +159,19 @@
 ## /gestionAmistad
 
 	- Datos válidos:
-		- Rechazar solicitud
-		- Aceptar solicitud
-		- Eliminar amigo
+		- Rechazar solicitud - ok
+		- Aceptar solicitud - ok
+		- Eliminar amigo - ok
 
 	- Un dato inválido:
-		- IdUsuario no existe
-		- IdUsuario no se puede parsear a entero
-		- IdAmigo no se puede parsear a entero
-		- Clave incorrecta para idUsuario
-		- Decision incorrecto
-		- Rechazar solicitud que no existe
-		- Aceptar solicitud que no existe
-		- Borrar alguien que no es amigo
+		- IdUsuario no existe - ok
+		- IdUsuario no se puede parsear a entero - ok
+		- IdAmigo no se puede parsear a entero - ok
+		- Clave incorrecta para idUsuario - ok
+		- Decision incorrecto - ok
+		- Rechazar solicitud que no existe - ok
+		- Aceptar solicitud que no existe - ok
+		- Borrar alguien que no es amigo - ok
 
 ## /comprar
 

@@ -433,16 +433,16 @@ func enviarSolicitudError(id int, amigo, clave string, t *testing.T) {
 }
 
 func Test_AceptarSolicitudAmistad(t *testing.T) {
-	idAmigoTest1 := crearCuenta("NombreTestAmigo1", "", "claveTest", false, t)
-	idAmigoTest2 := crearCuenta("NombreTestAmigo2", "", "claveTest", false, t)
+	idAmigoTest1 := crearCuenta(nombre1, "", clave1, false, t)
+	idAmigoTest2 := crearCuenta(nombre2, "", clave1, false, t)
 
-	enviarSolicitud(idAmigoTest1, "NombreTestAmigo2", "claveTest", t)
+	enviarSolicitud(idAmigoTest1, nombre2, clave1, t)
 
 	res := realizarPeticionAPI("gestionAmistad",
 		url.Values{
 			"idUsuario": {strconv.Itoa(idAmigoTest2)},
 			"idAmigo":   {strconv.Itoa(idAmigoTest1)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 			"decision":  {"Aceptar"},
 		}, t)
 	if res["code"].(float64) != 0 {
@@ -452,45 +452,108 @@ func Test_AceptarSolicitudAmistad(t *testing.T) {
 	res = realizarPeticionAPI("amigos",
 		url.Values{
 			"idUsuario": {strconv.Itoa(idAmigoTest1)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 		}, t)
-	if res["amigos"].([]interface{})[0].(map[string]interface{})["nombre"].(string) != "NombreTestAmigo2" {
+	if res["amigos"].([]interface{})[0].(map[string]interface{})["nombre"].(string) != nombre2 {
 		t.Fatal(res)
 	}
 
 	res = realizarPeticionAPI("amigos",
 		url.Values{
 			"idUsuario": {strconv.Itoa(idAmigoTest2)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 		}, t)
-	if res["amigos"].([]interface{})[0].(map[string]interface{})["nombre"].(string) != "NombreTestAmigo1" {
+	if res["amigos"].([]interface{})[0].(map[string]interface{})["nombre"].(string) != nombre1 {
 		t.Fatal(res)
 	}
 
 	res = realizarPeticionAPI("notificaciones",
 		url.Values{
 			"idUsuario": {strconv.Itoa(idAmigoTest2)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 		}, t)
 	if res["notificaciones"] != nil {
 		t.Error(res)
 	}
 
-	borrarCuenta(idAmigoTest1, "claveTest", t)
-	borrarCuenta(idAmigoTest2, "claveTest", t)
+	aceptarSolicitudesIncorrectas(idAmigoTest1, idAmigoTest2, clave1, t)
+
+	borrarCuenta(idAmigoTest1, clave1, t)
+	borrarCuenta(idAmigoTest2, clave1, t)
+}
+
+func aceptarSolicitudesIncorrectas(idAmigo1, idAmigo2 int, clave string, t *testing.T) {
+	aceptarSolicitudError(idAmigo2+1, idAmigo2, clave, t)
+	res := realizarPeticionAPI("gestionAmistad",
+		url.Values{
+			"idUsuario": {"k"},
+			"idAmigo":   {strconv.Itoa(idAmigo1)},
+			"clave":     {clave1},
+			"decision":  {"Aceptar"},
+		}, t)
+	if res["code"].(float64) == 0 {
+		t.Fatal("Se ha aceptado la solicitud con idUsuario=\"k\"")
+	}
+	res = realizarPeticionAPI("gestionAmistad",
+		url.Values{
+			"idUsuario": {strconv.Itoa(idAmigo2)},
+			"idAmigo":   {"k"},
+			"clave":     {clave1},
+			"decision":  {"Aceptar"},
+		}, t)
+	if res["code"].(float64) == 0 {
+		t.Fatal("Se ha aceptado la solicitud con idAmigo=\"k\"")
+	}
+	aceptarSolicitudError(idAmigo1, idAmigo2, "clave incorrecta", t)
+	aceptarSolicitudError(idAmigo2, idAmigo2, clave1, t)
+	res = realizarPeticionAPI("gestionAmistad",
+		url.Values{
+			"idUsuario": {strconv.Itoa(idAmigo2)},
+			"idAmigo":   {strconv.Itoa(idAmigo1)},
+			"clave":     {clave},
+			"decision":  {"incorrecto"},
+		}, t)
+	if res["code"].(float64) == 0 {
+		t.Fatal("No ha dado error un valor incorrecto en decision")
+	}
+
+	// Comprobar que no se ha añadido ningún amigo
+	res = realizarPeticionAPI("amigos",
+		url.Values{
+			"idUsuario": {strconv.Itoa(idAmigo2)},
+			"clave":     {clave},
+		}, t)
+	if res["amigos"] == nil || len(res["amigos"].([]interface{})) != 1 {
+		t.Log(res)
+		t.Fatal("La lista de amigos no es la esperada después de aceptar " +
+			"solicitudes de amistad incorrectas")
+	}
+}
+
+func aceptarSolicitudError(id1, id2 int, clave string, t *testing.T) {
+	res := realizarPeticionAPI("gestionAmistad",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id2)},
+			"idAmigo":   {strconv.Itoa(id1)},
+			"clave":     {clave1},
+			"decision":  {"Aceptar"},
+		}, t)
+	if res["code"].(float64) == 0 {
+		t.Fatal("No ha habido error al aceptar la solicitud de amistad")
+	}
 }
 
 func Test_RechazarSolicitudAmistad(t *testing.T) {
-	idAmigoTest1 := crearCuenta("NombreTestAmigo1", "", "claveTest", false, t)
-	idAmigoTest2 := crearCuenta("NombreTestAmigo2", "", "claveTest", false, t)
+	idAmigoTest1 := crearCuenta(nombre1, "", clave1, false, t)
+	idAmigoTest2 := crearCuenta(nombre2, "", clave1, false, t)
 
-	enviarSolicitud(idAmigoTest1, "NombreTestAmigo2", "claveTest", t)
+	enviarSolicitud(idAmigoTest1, nombre2, clave1, t)
 
 	res := realizarPeticionAPI("gestionAmistad",
 		url.Values{
 			"idUsuario": {strconv.Itoa(idAmigoTest2)},
 			"idAmigo":   {strconv.Itoa(idAmigoTest1)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 			"decision":  {"Rechazar"},
 		}, t)
 	if res["code"].(float64) != 0 {
@@ -500,35 +563,104 @@ func Test_RechazarSolicitudAmistad(t *testing.T) {
 	res = realizarPeticionAPI("amigos",
 		url.Values{
 			"idUsuario": {strconv.Itoa(idAmigoTest1)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 		}, t)
 	if res["amigos"] != nil {
-		t.Fatal(res)
+		t.Log(res)
+		t.Fatal("No ha sido rechazado correctamente")
 	}
 
 	res = realizarPeticionAPI("amigos",
 		url.Values{
 			"idUsuario": {strconv.Itoa(idAmigoTest2)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 		}, t)
 	if res["amigos"] != nil {
-		t.Fatal(res)
+		t.Log(res)
+		t.Fatal("No ha sido rechazado correctamente")
 	}
 
 	res = realizarPeticionAPI("notificaciones",
 		url.Values{
 			"idUsuario": {strconv.Itoa(idAmigoTest2)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 		}, t)
 	if res["notificaciones"] != nil {
-		t.Error(res)
+		t.Log(res)
+		t.Error("No se ha eliminado la solicitud de amistad")
 	}
 
-	borrarCuenta(idAmigoTest1, "claveTest", t)
-	borrarCuenta(idAmigoTest2, "claveTest", t)
+	// Rechazar una solicitud que no existe: error
+	res = realizarPeticionAPI("gestionAmistad",
+		url.Values{
+			"idUsuario": {strconv.Itoa(idAmigoTest2)},
+			"idAmigo":   {strconv.Itoa(idAmigoTest1)},
+			"clave":     {clave1},
+			"decision":  {"Rechazar"},
+		}, t)
+	if res["code"].(float64) == 0 {
+		t.Fatal("No ha dado error eliminar una solicitud de amistad inexistente")
+	}
+
+	borrarCuenta(idAmigoTest1, clave1, t)
+	borrarCuenta(idAmigoTest2, clave1, t)
 }
 
-func GestionAmistad(id1, id2 int, clave, decision string, t *testing.T) {
+func Test_EliminarAmigo(t *testing.T) {
+	idAmigoTest1 := crearCuenta(nombre1, "", clave1, false, t)
+	idAmigoTest2 := crearCuenta(nombre2, "", clave1, false, t)
+
+	enviarSolicitud(idAmigoTest1, nombre2, clave1, t)
+	gestionAmistad(idAmigoTest2, idAmigoTest1, clave1, "Aceptar", t)
+
+	res := realizarPeticionAPI("gestionAmistad",
+		url.Values{
+			"idUsuario": {strconv.Itoa(idAmigoTest1)},
+			"idAmigo":   {strconv.Itoa(idAmigoTest2)},
+			"clave":     {clave1},
+			"decision":  {"Borrar"},
+		}, t)
+	if res["code"].(float64) != 0 {
+		t.Fatal(res)
+	}
+
+	res = realizarPeticionAPI("amigos",
+		url.Values{
+			"idUsuario": {strconv.Itoa(idAmigoTest1)},
+			"clave":     {clave1},
+		}, t)
+	if res["amigos"] != nil {
+		t.Log(res)
+		t.Fatal("No se ha eliminado el amigo de la lista del primer usuario")
+	}
+
+	res = realizarPeticionAPI("amigos",
+		url.Values{
+			"idUsuario": {strconv.Itoa(idAmigoTest2)},
+			"clave":     {clave1},
+		}, t)
+	if res["amigos"] != nil {
+		t.Log(res)
+		t.Fatal("No se ha eliminado el amigo de la lista del segundo usuario")
+	}
+
+	// Borrar a alguien que no es amigo: error
+	res = realizarPeticionAPI("gestionAmistad",
+		url.Values{
+			"idUsuario": {strconv.Itoa(idAmigoTest1)},
+			"idAmigo":   {strconv.Itoa(idAmigoTest2)},
+			"clave":     {clave1},
+			"decision":  {"Borrar"},
+		}, t)
+	if res["code"].(float64) == 0 {
+		t.Fatal("No ha dado error eliminar a un amigo que no era amigo")
+	}
+
+	borrarCuenta(idAmigoTest1, clave1, t)
+	borrarCuenta(idAmigoTest2, clave1, t)
+}
+
+func gestionAmistad(id1, id2 int, clave, decision string, t *testing.T) {
 	res := realizarPeticionAPI("gestionAmistad",
 		url.Values{
 			"idUsuario": {strconv.Itoa(id1)},
