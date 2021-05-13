@@ -70,22 +70,7 @@ func Test_CrearEliminarCuenta(t *testing.T) {
 		t.Log(res["usuario"].(map[string]interface{}))
 		t.Fatal("No coinciden los usuarios")
 	}
-	if res["iconos"] == nil || len(res["iconos"].([]interface{})) != 1 {
-		t.Log(res)
-		t.Fatal("Lista de iconos comprados incorrecta")
-	}
-	if res["aspectos"] == nil || len(res["aspectos"].([]interface{})) != 1 {
-		t.Log(res)
-		t.Fatal("Lista de aspectos comprados incorrecta")
-	}
-	if res["tiendaIconos"] == nil || len(res["tiendaIconos"].([]interface{})) != 13 {
-		t.Log(res)
-		t.Fatal("Lista de iconos disponibles incorrecta")
-	}
-	if res["tiendaAspectos"] == nil || len(res["tiendaAspectos"].([]interface{})) != 13 {
-		t.Log(res)
-		t.Fatal("Lista de aspectos disponibles incorrecta")
-	}
+	comprobarCamposExtraUsuarioDefecto(res, t)
 
 	borrarCuenta(id, clave1, t)
 }
@@ -224,17 +209,17 @@ func borrarCuenta(id int, clave string, t *testing.T) {
 }
 
 func Test_RecargarUsuario(t *testing.T) {
-	id := crearCuenta("NombreTest", "", "claveTest", false, t)
+	id := crearCuenta(nombre1, "", clave1, false, t)
 
 	res := realizarPeticionAPI("recargarUsuario",
 		url.Values{
 			"idUsuario": {strconv.Itoa(id)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 		}, t)
 
 	usuarioTest := map[string]interface{}{
 		"id":            id,
-		"nombre":        "NombreTest",
+		"nombre":        nombre1,
 		"icono":         0,
 		"aspecto":       0,
 		"correo":        "",
@@ -245,26 +230,57 @@ func Test_RecargarUsuario(t *testing.T) {
 		t.Log(usuarioTest)
 		t.Log(res["usuario"].(map[string]interface{}))
 		t.Fatal("No coinciden los usuarios")
+	}
+
+	// Peticiones inválidas
+	res = realizarPeticionAPI("recargarUsuario",
+		url.Values{
+			"idUsuario": {strconv.Itoa(-2)},
+			"clave":     {clave1},
+		}, t)
+	if _, ok := res["code"]; !ok {
+		t.Log(res)
+		t.Fatal("Se ha recargado un usuario que no debería existir")
+	}
+
+	res = realizarPeticionAPI("recargarUsuario",
+		url.Values{
+			"idUsuario": {"a"},
+			"clave":     {clave1},
+		}, t)
+	if _, ok := res["code"]; !ok {
+		t.Log(res)
+		t.Fatal("Se ha recargado un usuario con id no numérico")
+	}
+
+	res = realizarPeticionAPI("recargarUsuario",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"clave":     {""},
+		}, t)
+	if _, ok := res["code"]; !ok {
+		t.Log(res)
+		t.Fatal("Se ha recargado un usuario con una clave que no corresponde")
 	}
 
 	borrarCuenta(id, "claveTest", t)
 }
 
-func Test_IniciarSesionNombre(t *testing.T) {
-	id := crearCuenta("NombreTest", "", "claveTest", false, t)
+func Test_IniciarSesion(t *testing.T) {
+	id := crearCuenta(nombre1, correo1, clave1, false, t)
 
 	res := realizarPeticionAPI("iniciarSesion",
 		url.Values{
-			"usuario": {"NombreTest"},
-			"clave":   {"claveTest"},
+			"usuario": {nombre1},
+			"clave":   {clave1},
 		}, t)
 
 	usuarioTest := map[string]interface{}{
 		"id":            id,
-		"nombre":        "NombreTest",
+		"nombre":        nombre1,
 		"icono":         0,
 		"aspecto":       0,
-		"correo":        "",
+		"correo":        correo1,
 		"riskos":        1000,
 		"recibeCorreos": false,
 	}
@@ -273,8 +289,38 @@ func Test_IniciarSesionNombre(t *testing.T) {
 		t.Log(res["usuario"].(map[string]interface{}))
 		t.Fatal("No coinciden los usuarios")
 	}
+	comprobarCamposExtraUsuarioDefecto(res, t)
 
-	borrarCuenta(id, "claveTest", t)
+	res = realizarPeticionAPI("iniciarSesion",
+		url.Values{
+			"usuario": {correo1},
+			"clave":   {clave1},
+		}, t)
+	if !comprobarJson(res["usuario"].(map[string]interface{}), usuarioTest) {
+		t.Log(usuarioTest)
+		t.Log(res["usuario"].(map[string]interface{}))
+		t.Fatal("No coinciden los usuarios")
+	}
+	comprobarCamposExtraUsuarioDefecto(res, t)
+
+	iniciarSesionError(nombre2, clave1, t)
+	iniciarSesionError(correo2, clave1, t)
+	iniciarSesionError(nombre1, "claveIncorrecta", t)
+
+	borrarCuenta(id, clave1, t)
+}
+
+func iniciarSesionError(usuario, clave string, t *testing.T) {
+	res := realizarPeticionAPI("iniciarSesion",
+		url.Values{
+			"usuario": {usuario},
+			"clave":   {clave},
+		}, t)
+
+	if _, ok := res["code"]; !ok {
+		t.Log(res)
+		t.Fatal("No ha habido error al iniciar sesión")
+	}
 }
 
 func Test_EnviarSolicitudDeAmistad(t *testing.T) {
@@ -439,5 +485,24 @@ func Test_aux(t *testing.T) {
 
 	if res["code"].(float64) != 0 {
 		t.Fatal(res)
+	}
+}
+
+func comprobarCamposExtraUsuarioDefecto(res map[string]interface{}, t *testing.T) {
+	if res["iconos"] == nil || len(res["iconos"].([]interface{})) != 1 {
+		t.Log(res)
+		t.Fatal("Lista de iconos comprados incorrecta")
+	}
+	if res["aspectos"] == nil || len(res["aspectos"].([]interface{})) != 1 {
+		t.Log(res)
+		t.Fatal("Lista de aspectos comprados incorrecta")
+	}
+	if res["tiendaIconos"] == nil || len(res["tiendaIconos"].([]interface{})) != 13 {
+		t.Log(res)
+		t.Fatal("Lista de iconos disponibles incorrecta")
+	}
+	if res["tiendaAspectos"] == nil || len(res["tiendaAspectos"].([]interface{})) != 13 {
+		t.Log(res)
+		t.Fatal("Lista de aspectos disponibles incorrecta")
 	}
 }
