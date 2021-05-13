@@ -145,16 +145,16 @@
 ## /enviarSolicitudAmistad
 
 	- Datos válidos:
-		- El otro usuario no ha enviado solicitud primero
-		- El otro usuario sí ha enviado solicitud primero
+		- El otro usuario no ha enviado solicitud primero - ok
+		- El otro usuario sí ha enviado solicitud primero - ok
 
 	- Un dato inválido:
-		- Id no existe
-		- Id no se puede parsear a entero
-		- Clave incorrecta para el id
-		- Nombre no existe
-		- Nombre es el del propio usuario
-		- Nombre es un usuario que ya es amigo
+		- Id no existe -ok
+		- Id no se puede parsear a entero - ok
+		- Clave incorrecta para el id - ok
+		- Nombre no existe - ok
+		- Nombre es el del propio usuario - ok
+		- Nombre es un usuario que ya es amigo - ok
 
 ## /gestionAmistad
 

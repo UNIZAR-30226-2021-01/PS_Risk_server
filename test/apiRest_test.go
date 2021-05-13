@@ -203,8 +203,7 @@ func borrarCuenta(id int, clave string, t *testing.T) {
 		}, t)
 
 	if res["code"].(float64) != 0 {
-		t.Log(res)
-		t.Fatal("Error al borrar la cuenta")
+		t.Fatal(res)
 	}
 }
 
@@ -325,14 +324,14 @@ func iniciarSesionError(usuario, clave string, t *testing.T) {
 
 func Test_EnviarSolicitudDeAmistad(t *testing.T) {
 
-	idAmigoTest1 := crearCuenta("NombreTestAmigo1", "", "claveTest", false, t)
-	idAmigoTest2 := crearCuenta("NombreTestAmigo2", "", "claveTest", false, t)
+	idAmigoTest1 := crearCuenta(nombre1, "", clave1, false, t)
+	idAmigoTest2 := crearCuenta(nombre2, "", clave1, false, t)
 
 	res := realizarPeticionAPI("enviarSolicitudAmistad",
 		url.Values{
 			"idUsuario":   {strconv.Itoa(idAmigoTest1)},
-			"nombreAmigo": {"NombreTestAmigo2"},
-			"clave":       {"claveTest"},
+			"nombreAmigo": {nombre2},
+			"clave":       {clave1},
 		}, t)
 	if res["code"].(float64) != 0 {
 		t.Fatal(res)
@@ -341,17 +340,71 @@ func Test_EnviarSolicitudDeAmistad(t *testing.T) {
 	res = realizarPeticionAPI("notificaciones",
 		url.Values{
 			"idUsuario": {strconv.Itoa(idAmigoTest2)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 		}, t)
 
 	idEnvio := int(res["notificaciones"].([]interface{})[0].(map[string]interface{})["idEnvio"].(float64))
 	if idEnvio != idAmigoTest1 {
 		t.Log(res)
-		t.Fatal("No se ha recibido la notificacion correcta")
+		t.Fatal("No se ha recibido la notificación correcta")
 	}
 
-	borrarCuenta(idAmigoTest1, "claveTest", t)
-	borrarCuenta(idAmigoTest2, "claveTest", t)
+	// Enviar la solicitud de vuelta: deben añadirse como amigos
+	enviarSolicitud(idAmigoTest2, nombre1, clave1, t)
+
+	res = realizarPeticionAPI("notificaciones",
+		url.Values{
+			"idUsuario": {strconv.Itoa(idAmigoTest2)},
+			"clave":     {clave1},
+		}, t)
+
+	if res["notificaciones"] != nil {
+		t.Log(res)
+		t.Fatal("No se ha eliminado correctamente la notificación")
+	}
+
+	res = realizarPeticionAPI("amigos",
+		url.Values{
+			"idUsuario": {strconv.Itoa(idAmigoTest1)},
+			"clave":     {clave1},
+		}, t)
+	if _, ok := res["code"]; ok {
+		t.Fatal(res)
+	}
+	if res["amigos"] == nil {
+		t.Fatal("Los usuarios no se han añadido como amigos")
+	}
+	amigo := res["amigos"].([]interface{})[0].(map[string]interface{})
+	amigoTest := map[string]interface{}{
+		"id":      idAmigoTest2,
+		"nombre":  nombre2,
+		"icono":   0,
+		"aspecto": 0,
+	}
+	if !comprobarJson(amigo, amigoTest) {
+		t.Log(amigo)
+		t.Log(amigoTest)
+		t.Fatal("Los datos de amigos no coinciden")
+	}
+
+	// Casos de error
+	enviarSolicitudError(idAmigoTest2+1, nombre1, clave1, t)
+	res = realizarPeticionAPI("enviarSolicitudAmistad",
+		url.Values{
+			"idUsuario":   {"k"},
+			"nombreAmigo": {nombre1},
+			"clave":       {clave1},
+		}, t)
+	if res["code"].(float64) == 0 {
+		t.Fatal(res)
+	}
+	enviarSolicitudError(idAmigoTest1, nombre2, "claveIncorrecta", t)
+	enviarSolicitudError(idAmigoTest1, nombre3, clave1, t)
+	enviarSolicitudError(idAmigoTest1, nombre1, clave1, t)
+	enviarSolicitudError(idAmigoTest1, nombre2, clave1, t)
+
+	borrarCuenta(idAmigoTest1, clave1, t)
+	borrarCuenta(idAmigoTest2, clave1, t)
 
 }
 
@@ -364,6 +417,18 @@ func enviarSolicitud(id int, amigo, clave string, t *testing.T) {
 		}, t)
 	if res["code"].(float64) != 0 {
 		t.Fatal(res)
+	}
+}
+
+func enviarSolicitudError(id int, amigo, clave string, t *testing.T) {
+	res := realizarPeticionAPI("enviarSolicitudAmistad",
+		url.Values{
+			"idUsuario":   {strconv.Itoa(id)},
+			"nombreAmigo": {amigo},
+			"clave":       {clave},
+		}, t)
+	if res["code"].(float64) == 0 {
+		t.Fatal("Solicitud enviada sin error")
 	}
 }
 
