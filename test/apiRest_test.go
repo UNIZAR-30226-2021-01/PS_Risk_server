@@ -20,6 +20,7 @@ const (
 	correo2 = "780378@unizar.es"
 	correo3 = "779333@unizar.es"
 	clave1  = "claveTest"
+	clave2  = "claveTest2"
 )
 
 func realizarPeticionAPI(funcion string, datos url.Values, t *testing.T) mensajes.JsonData {
@@ -263,7 +264,7 @@ func Test_RecargarUsuario(t *testing.T) {
 		t.Fatal("Se ha recargado un usuario con una clave que no corresponde")
 	}
 
-	borrarCuenta(id, "claveTest", t)
+	borrarCuenta(id, clave1, t)
 }
 
 func Test_IniciarSesion(t *testing.T) {
@@ -325,14 +326,14 @@ func iniciarSesionError(usuario, clave string, t *testing.T) {
 
 func Test_EnviarSolicitudDeAmistad(t *testing.T) {
 
-	idAmigoTest1 := crearCuenta("NombreTestAmigo1", "", "claveTest", false, t)
-	idAmigoTest2 := crearCuenta("NombreTestAmigo2", "", "claveTest", false, t)
+	idAmigoTest1 := crearCuenta("NombreTestAmigo1", "", clave1, false, t)
+	idAmigoTest2 := crearCuenta("NombreTestAmigo2", "", clave1, false, t)
 
 	res := realizarPeticionAPI("enviarSolicitudAmistad",
 		url.Values{
 			"idUsuario":   {strconv.Itoa(idAmigoTest1)},
 			"nombreAmigo": {"NombreTestAmigo2"},
-			"clave":       {"claveTest"},
+			"clave":       {clave1},
 		}, t)
 	if res["code"].(float64) != 0 {
 		t.Fatal(res)
@@ -341,7 +342,7 @@ func Test_EnviarSolicitudDeAmistad(t *testing.T) {
 	res = realizarPeticionAPI("notificaciones",
 		url.Values{
 			"idUsuario": {strconv.Itoa(idAmigoTest2)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 		}, t)
 
 	idEnvio := int(res["notificaciones"].([]interface{})[0].(map[string]interface{})["idEnvio"].(float64))
@@ -350,8 +351,8 @@ func Test_EnviarSolicitudDeAmistad(t *testing.T) {
 		t.Fatal("No se ha recibido la notificacion correcta")
 	}
 
-	borrarCuenta(idAmigoTest1, "claveTest", t)
-	borrarCuenta(idAmigoTest2, "claveTest", t)
+	borrarCuenta(idAmigoTest1, clave1, t)
+	borrarCuenta(idAmigoTest2, clave1, t)
 
 }
 
@@ -368,16 +369,16 @@ func enviarSolicitud(id int, amigo, clave string, t *testing.T) {
 }
 
 func Test_AceptarSolicitudAmistad(t *testing.T) {
-	idAmigoTest1 := crearCuenta("NombreTestAmigo1", "", "claveTest", false, t)
-	idAmigoTest2 := crearCuenta("NombreTestAmigo2", "", "claveTest", false, t)
+	idAmigoTest1 := crearCuenta("NombreTestAmigo1", "", clave1, false, t)
+	idAmigoTest2 := crearCuenta("NombreTestAmigo2", "", clave1, false, t)
 
-	enviarSolicitud(idAmigoTest1, "NombreTestAmigo2", "claveTest", t)
+	enviarSolicitud(idAmigoTest1, "NombreTestAmigo2", clave1, t)
 
 	res := realizarPeticionAPI("gestionAmistad",
 		url.Values{
 			"idUsuario": {strconv.Itoa(idAmigoTest2)},
 			"idAmigo":   {strconv.Itoa(idAmigoTest1)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 			"decision":  {"Aceptar"},
 		}, t)
 	if res["code"].(float64) != 0 {
@@ -387,7 +388,7 @@ func Test_AceptarSolicitudAmistad(t *testing.T) {
 	res = realizarPeticionAPI("amigos",
 		url.Values{
 			"idUsuario": {strconv.Itoa(idAmigoTest1)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 		}, t)
 	if res["amigos"].([]interface{})[0].(map[string]interface{})["nombre"].(string) != "NombreTestAmigo2" {
 		t.Fatal(res)
@@ -396,7 +397,7 @@ func Test_AceptarSolicitudAmistad(t *testing.T) {
 	res = realizarPeticionAPI("amigos",
 		url.Values{
 			"idUsuario": {strconv.Itoa(idAmigoTest2)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 		}, t)
 	if res["amigos"].([]interface{})[0].(map[string]interface{})["nombre"].(string) != "NombreTestAmigo1" {
 		t.Fatal(res)
@@ -405,27 +406,53 @@ func Test_AceptarSolicitudAmistad(t *testing.T) {
 	res = realizarPeticionAPI("notificaciones",
 		url.Values{
 			"idUsuario": {strconv.Itoa(idAmigoTest2)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 		}, t)
 	if res["notificaciones"] != nil {
 		t.Error(res)
 	}
 
-	borrarCuenta(idAmigoTest1, "claveTest", t)
-	borrarCuenta(idAmigoTest2, "claveTest", t)
+	borrarCuenta(idAmigoTest1, clave1, t)
+	borrarCuenta(idAmigoTest2, clave1, t)
+}
+
+func Test_DobleSolicitudAmistad(t *testing.T) {
+	idAmigoTest1 := crearCuenta("NombreTestAmigo1", "", clave1, false, t)
+	idAmigoTest2 := crearCuenta("NombreTestAmigo2", "", clave1, false, t)
+	enviarSolicitud(idAmigoTest1, "NombreTestAmigo2", clave1, t)
+	enviarSolicitud(idAmigoTest2, "NombreTestAmigo1", clave1, t)
+	res := realizarPeticionAPI("amigos",
+		url.Values{
+			"idUsuario": {strconv.Itoa(idAmigoTest1)},
+			"clave":     {clave1},
+		}, t)
+	if res["amigos"].([]interface{})[0].(map[string]interface{})["nombre"].(string) != "NombreTestAmigo2" {
+		t.Fatal(res)
+	}
+
+	res = realizarPeticionAPI("amigos",
+		url.Values{
+			"idUsuario": {strconv.Itoa(idAmigoTest2)},
+			"clave":     {clave1},
+		}, t)
+	if res["amigos"].([]interface{})[0].(map[string]interface{})["nombre"].(string) != "NombreTestAmigo1" {
+		t.Fatal(res)
+	}
+	borrarCuenta(idAmigoTest1, clave1, t)
+	borrarCuenta(idAmigoTest2, clave1, t)
 }
 
 func Test_RechazarSolicitudAmistad(t *testing.T) {
-	idAmigoTest1 := crearCuenta("NombreTestAmigo1", "", "claveTest", false, t)
-	idAmigoTest2 := crearCuenta("NombreTestAmigo2", "", "claveTest", false, t)
+	idAmigoTest1 := crearCuenta("NombreTestAmigo1", "", clave1, false, t)
+	idAmigoTest2 := crearCuenta("NombreTestAmigo2", "", clave1, false, t)
 
-	enviarSolicitud(idAmigoTest1, "NombreTestAmigo2", "claveTest", t)
+	enviarSolicitud(idAmigoTest1, "NombreTestAmigo2", clave1, t)
 
 	res := realizarPeticionAPI("gestionAmistad",
 		url.Values{
 			"idUsuario": {strconv.Itoa(idAmigoTest2)},
 			"idAmigo":   {strconv.Itoa(idAmigoTest1)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 			"decision":  {"Rechazar"},
 		}, t)
 	if res["code"].(float64) != 0 {
@@ -435,7 +462,7 @@ func Test_RechazarSolicitudAmistad(t *testing.T) {
 	res = realizarPeticionAPI("amigos",
 		url.Values{
 			"idUsuario": {strconv.Itoa(idAmigoTest1)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 		}, t)
 	if res["amigos"] != nil {
 		t.Fatal(res)
@@ -444,7 +471,7 @@ func Test_RechazarSolicitudAmistad(t *testing.T) {
 	res = realizarPeticionAPI("amigos",
 		url.Values{
 			"idUsuario": {strconv.Itoa(idAmigoTest2)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 		}, t)
 	if res["amigos"] != nil {
 		t.Fatal(res)
@@ -453,39 +480,53 @@ func Test_RechazarSolicitudAmistad(t *testing.T) {
 	res = realizarPeticionAPI("notificaciones",
 		url.Values{
 			"idUsuario": {strconv.Itoa(idAmigoTest2)},
-			"clave":     {"claveTest"},
+			"clave":     {clave1},
 		}, t)
 	if res["notificaciones"] != nil {
 		t.Error(res)
 	}
 
-	borrarCuenta(idAmigoTest1, "claveTest", t)
-	borrarCuenta(idAmigoTest2, "claveTest", t)
+	borrarCuenta(idAmigoTest1, clave1, t)
+	borrarCuenta(idAmigoTest2, clave1, t)
 }
 
-func GestionAmistad(id1, id2 int, clave, decision string, t *testing.T) {
+func Test_EliminarAmigo(t *testing.T) {
+	idAmigoTest1 := crearCuenta("NombreTestAmigo1", "", clave1, false, t)
+	idAmigoTest2 := crearCuenta("NombreTestAmigo2", "", clave1, false, t)
+	enviarSolicitud(idAmigoTest1, "NombreTestAmigo2", clave1, t)
+	enviarSolicitud(idAmigoTest2, "NombreTestAmigo1", clave1, t)
+
 	res := realizarPeticionAPI("gestionAmistad",
 		url.Values{
-			"idUsuario": {strconv.Itoa(id1)},
-			"idAmigo":   {strconv.Itoa(id2)},
-			"clave":     {clave},
-			"decision":  {decision},
+			"idUsuario": {strconv.Itoa(idAmigoTest2)},
+			"idAmigo":   {strconv.Itoa(idAmigoTest1)},
+			"clave":     {clave1},
+			"decision":  {"Borrar"},
 		}, t)
 	if res["code"].(float64) != 0 {
 		t.Fatal(res)
 	}
-}
 
-func Test_aux(t *testing.T) {
-	res := realizarPeticionAPI("borrarCuenta",
+	res = realizarPeticionAPI("amigos",
 		url.Values{
-			"idUsuario": {strconv.Itoa(45)},
-			"clave":     {"claveTest"},
+			"idUsuario": {strconv.Itoa(idAmigoTest1)},
+			"clave":     {clave1},
 		}, t)
-
-	if res["code"].(float64) != 0 {
+	if res["amigos"] != nil {
 		t.Fatal(res)
 	}
+
+	res = realizarPeticionAPI("amigos",
+		url.Values{
+			"idUsuario": {strconv.Itoa(idAmigoTest2)},
+			"clave":     {clave1},
+		}, t)
+	if res["amigos"] != nil {
+		t.Fatal(res)
+	}
+
+	borrarCuenta(idAmigoTest1, clave1, t)
+	borrarCuenta(idAmigoTest2, clave1, t)
 }
 
 func comprobarCamposExtraUsuarioDefecto(res map[string]interface{}, t *testing.T) {
@@ -504,5 +545,95 @@ func comprobarCamposExtraUsuarioDefecto(res map[string]interface{}, t *testing.T
 	if res["tiendaAspectos"] == nil || len(res["tiendaAspectos"].([]interface{})) != 13 {
 		t.Log(res)
 		t.Fatal("Lista de aspectos disponibles incorrecta")
+	}
+}
+
+func modificarUsuario(id int, clave, tipo, dato string, t *testing.T) {
+
+	res := realizarPeticionAPI("personalizarUsuario",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"nuevoDato": {dato},
+			"clave":     {clave},
+			"tipo":      {tipo},
+		}, t)
+
+	if res["code"].(float64) != 0 {
+		t.Fatal(res)
+	}
+}
+
+func Test_ModificarUsuario(t *testing.T) {
+
+	id := crearCuenta(nombre1, "", clave1, false, t)
+	modificarUsuario(id, clave1, "Nombre", nombre2, t)
+	res := realizarPeticionAPI("recargarUsuario",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"clave":     {clave1},
+		}, t)
+	if res["usuario"].(map[string]interface{})["nombre"].(string) != nombre2 {
+		t.Fatal(res)
+	}
+	modificarUsuario(id, clave1, "Clave", clave2, t)
+	res = realizarPeticionAPI("recargarUsuario",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"clave":     {clave2},
+		}, t)
+	if res["usuario"].(map[string]interface{})["nombre"].(string) != nombre2 {
+		t.Fatal(res)
+	}
+	borrarCuenta(id, clave2, t)
+
+	id = crearCuenta(nombre3, correo1, clave1, false, t)
+	modificarUsuario(id, clave1, "Correo", "", t)
+	res = realizarPeticionAPI("recargarUsuario",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"clave":     {clave1},
+		}, t)
+	if res["usuario"].(map[string]interface{})["correo"].(string) != "" {
+		t.Fatal(res)
+	}
+	modificarUsuario(id, clave1, "Correo", correo1, t)
+	res = realizarPeticionAPI("recargarUsuario",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"clave":     {clave1},
+		}, t)
+	if res["usuario"].(map[string]interface{})["correo"].(string) != correo1 {
+		t.Fatal(res)
+	}
+	modificarUsuario(id, clave1, "Correo", correo2, t)
+	res = realizarPeticionAPI("recargarUsuario",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"clave":     {clave1},
+		}, t)
+	if res["usuario"].(map[string]interface{})["correo"].(string) != correo2 {
+		t.Fatal(res)
+	}
+	modificarUsuario(id, clave1, "RecibeCorreos", "true", t)
+	res = realizarPeticionAPI("recargarUsuario",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"clave":     {clave1},
+		}, t)
+	if res["usuario"].(map[string]interface{})["recibeCorreos"].(bool) != true {
+		t.Fatal(res)
+	}
+	borrarCuenta(id, clave1, t)
+}
+
+func Test_aux(t *testing.T) {
+	res := realizarPeticionAPI("borrarCuenta",
+		url.Values{
+			"idUsuario": {strconv.Itoa(98)},
+			"clave":     {clave1},
+		}, t)
+
+	if res["code"].(float64) != 0 {
+		t.Fatal(res)
 	}
 }

@@ -42,20 +42,14 @@
 ## /personalizarUsuario
 
 	- Datos válidos:
-		- Modificar aspecto por el actual
 		- Modificar aspecto por uno comprado que no sea el actual
-		- Modificar icono por el actual
 		- Modificar icono por uno comprado que no sea el actual
-		- Modificar nombre por el actual
-		- Modificar nombre por uno distinto
-		- Modificar clave por la actual
-		- Modificar clave por una distinta
-		- Eliminar correo teniendo recibeCorreos=false
-		- Añadir correo no teniendo antes
-		- Cambiar de correo
-		- Modificar correo por el actual
-		- Modificar recibeCorreos por el actual
-		- Modificar recibeCorreos por el contrario teniendo correo
+		- Modificar nombre por uno distinto - ok
+		- Modificar clave por una distinta - ok
+		- Eliminar correo teniendo recibeCorreos=false - ok
+		- Añadir correo no teniendo antes - ok
+		- Cambiar de correo - ok
+		- Modificar recibeCorreos por el contrario teniendo correo - ok
 
 	- Un dato inválido:
 		- Id no existe
@@ -81,18 +75,18 @@
 ## /notificaciones
 
 	- Datos válidos:
-		- Comprobar cuando no hay ninguna
-		- Comprobar cuando hay una solicitud de amistad
-		- Comprobar cuando hay una invitacion a partida
-		- Comprobar cuando hay una notificación de turno
-		- Comprobar cuando hay dos de cada
+		- Comprobar cuando no hay ninguna - ok
+		- Comprobar cuando hay una solicitud de amistad - ok
+		- Comprobar cuando hay una invitacion a partida - No se hace con test automaticos
+		- Comprobar cuando hay una notificación de turno - No se hace con test automaticos
+		- Comprobar cuando hay dos de cada - No se hace con test automaticos
 
 	- Datos inválidos:
 		- Id no existe
 		- Id no se puede parsear a entero
 		- Clave incorrecta para el id
 
-## /borrarNotificacionTurno
+## /borrarNotificacionTurno - No se hace con test automaticos
 
 	- Datos válidos
 
@@ -107,14 +101,14 @@
 
 ## /borrarCuenta
 
-	- Datos válidos
+	- Datos válidos - ok
 
 	- Un dato inválido:
 		- Id no existe
 		- Id no se puede parsear a entero
 		- Clave incorrecta para el id
 
-## /olvidoClave
+## /olvidoClave - No se hace con test automaticos, tienes que mirar el correo para comprobar si ha funcionado bien
 
 	- Datos válidos
 
@@ -122,7 +116,7 @@
 		- Correo vacío
 		- Correo no coincide con el de ningún usuario
 
-## / restablecerClave
+## / restablecerClave - No se hace con test automaticos, tienes que mirar el correo para comprobar si ha funcionado bien y necesita usar la web
 
 	- Datos válidos
 
@@ -134,8 +128,9 @@
 ## /amigos
 
 	- Datos válidos:
-		- Comprobar con un usuario sin amigos
-		- Comprobar con un usuario con varios amigos
+		- Comprobar la lista de amigos con un amigo - ok
+		- Comprobar con un usuario sin amigos - ok
+		- Comprobar con un usuario con varios amigos - No creo que sea necesario
 
 	- Un dato inválido:
 		- Id no existe
@@ -145,8 +140,8 @@
 ## /enviarSolicitudAmistad
 
 	- Datos válidos:
-		- El otro usuario no ha enviado solicitud primero
-		- El otro usuario sí ha enviado solicitud primero
+		- El otro usuario no ha enviado solicitud primero - ok
+		- El otro usuario sí ha enviado solicitud primero - ok
 
 	- Un dato inválido:
 		- Id no existe
@@ -159,9 +154,9 @@
 ## /gestionAmistad
 
 	- Datos válidos:
-		- Rechazar solicitud
-		- Aceptar solicitud
-		- Eliminar amigo
+		- Rechazar solicitud - ok
+		- Aceptar solicitud - ok
+		- Eliminar amigo - ok
 
 	- Un dato inválido:
 		- IdUsuario no existe
@@ -190,7 +185,7 @@
 		- Usuario no tiene riskos suficientes para comprar aspecto
 		- Usuario no tiene riskos suficientes para comprar icono
 
-## /partidas
+## /partidas - No se hace con test automaticos
 
 	- Datos válidos:
 		- Comprobar sin partidas
@@ -201,7 +196,7 @@
 		- Id no se puede parsear a entero
 		- Clave incorrecta para el id
 
-## /rechazarPartida
+## /rechazarPartida - No se hace con test automaticos
 
 	- Datos válidos
 
