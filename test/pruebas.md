@@ -42,8 +42,8 @@
 ## /personalizarUsuario
 
 	- Datos válidos:
-		- Modificar aspecto por uno comprado que no sea el actual
-		- Modificar icono por uno comprado que no sea el actual
+		- Modificar aspecto por uno comprado que no sea el actual - ok
+		- Modificar icono por uno comprado que no sea el actual - ok
 		- Modificar nombre por uno distinto - ok
 		- Modificar clave por una distinta - ok
 		- Eliminar correo teniendo recibeCorreos=false - ok
@@ -171,8 +171,8 @@
 ## /comprar
 
 	- Datos válidos:
-		- Comprar aspecto
-		- Comprar icono
+		- Comprar aspecto - ok
+		- Comprar icono - ok
 
 	- Un dato inválido:
 		- Id no existe

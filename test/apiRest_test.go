@@ -626,10 +626,72 @@ func Test_ModificarUsuario(t *testing.T) {
 	borrarCuenta(id, clave1, t)
 }
 
+func Test_ComprarEquipar(t *testing.T) {
+	id := crearCuenta(nombre1, "", clave1, false, t)
+
+	res := realizarPeticionAPI("comprar",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"cosmetico": {strconv.Itoa(1)},
+			"clave":     {clave1},
+			"tipo":      {"Icono"},
+		}, t)
+	if res["code"].(float64) != 0 {
+		t.Fatal(res)
+	}
+	res = realizarPeticionAPI("recargarUsuario",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"clave":     {clave1},
+		}, t)
+	if len(res["iconos"].([]interface{})) != 2 {
+		t.Fatal(res)
+	}
+	modificarUsuario(id, clave1, "Icono", "1", t)
+	res = realizarPeticionAPI("recargarUsuario",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"clave":     {clave1},
+		}, t)
+	if res["usuario"].(map[string]interface{})["icono"].(float64) != 1 {
+		t.Fatal(res)
+	}
+
+	res = realizarPeticionAPI("comprar",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"cosmetico": {strconv.Itoa(1)},
+			"clave":     {clave1},
+			"tipo":      {"Aspecto"},
+		}, t)
+	if res["code"].(float64) != 0 {
+		t.Fatal(res)
+	}
+	res = realizarPeticionAPI("recargarUsuario",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"clave":     {clave1},
+		}, t)
+	if len(res["aspectos"].([]interface{})) != 2 {
+		t.Fatal(res)
+	}
+	modificarUsuario(id, clave1, "Aspecto", "1", t)
+	res = realizarPeticionAPI("recargarUsuario",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"clave":     {clave1},
+		}, t)
+	if res["usuario"].(map[string]interface{})["aspecto"].(float64) != 1 {
+		t.Fatal(res)
+	}
+
+	borrarCuenta(id, clave1, t)
+}
+
 func Test_aux(t *testing.T) {
 	res := realizarPeticionAPI("borrarCuenta",
 		url.Values{
-			"idUsuario": {strconv.Itoa(98)},
+			"idUsuario": {strconv.Itoa(105)},
 			"clave":     {clave1},
 		}, t)
 
