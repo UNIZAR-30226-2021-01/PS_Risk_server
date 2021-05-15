@@ -1030,14 +1030,62 @@ func Test_ComprarEquiparConDatosIncorrectos(t *testing.T) {
 	borrarCuenta(id, clave1, t)
 }
 
-func Test_aux(t *testing.T) {
+func Test_BorrarCuentaDatosIncorrectos(t *testing.T) {
 	res := realizarPeticionAPI("borrarCuenta",
 		url.Values{
-			"idUsuario": {strconv.Itoa(105)},
+			"idUsuario": {strconv.Itoa(0)},
 			"clave":     {clave1},
 		}, t)
 
-	if res["code"].(float64) != 0 {
-		t.Fatal(res)
+	if res["code"].(float64) == 0 {
+		t.Fatal("No da error al eliminar una cuenta con un id que no existe")
 	}
+
+	res = realizarPeticionAPI("borrarCuenta",
+		url.Values{
+			"idUsuario": {"k"},
+			"clave":     {clave1},
+		}, t)
+
+	if res["code"].(float64) == 0 {
+		t.Fatal("No da error al eliminar una cuenta con un id no numérico")
+	}
+
+	id := crearCuenta(nombre1, "", clave1, false, t)
+	res = realizarPeticionAPI("borrarCuenta",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"clave":     {clave2},
+		}, t)
+
+	if res["code"].(float64) == 0 {
+		t.Fatal("No da error al eliminar cuenta con clave incorrecta")
+	}
+
+	borrarCuenta(id, clave1, t)
+}
+
+func listaError(id, clave, peticion string, t *testing.T) {
+	res := realizarPeticionAPI(peticion,
+		url.Values{
+			"idUsuario": {id},
+			"clave":     {clave},
+		}, t)
+	if _, ok := res["code"]; !ok {
+		t.Log(res)
+		t.Fatal("La petición no ha dado error con datos inválidos")
+	}
+}
+
+func Test_AmigosNotificacionesConDatosIncorrectos(t *testing.T) {
+	id := crearCuenta(nombre1, "", clave1, false, t)
+
+	listaError(strconv.Itoa(id+1), clave1, "amigos", t)
+	listaError("k", clave1, "amigos", t)
+	listaError(strconv.Itoa(id), clave2, "amigos", t)
+	listaError(strconv.Itoa(id+1), clave1, "notificaciones", t)
+	listaError("k", clave1, "notificaciones", t)
+	listaError(strconv.Itoa(id), clave2, "notificaciones", t)
+
+	borrarCuenta(id, clave1, t)
 }

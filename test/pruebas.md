@@ -77,38 +77,23 @@
 	- Datos válidos:
 		- Comprobar cuando no hay ninguna - ok
 		- Comprobar cuando hay una solicitud de amistad - ok
-		- Comprobar cuando hay una invitacion a partida - No se hace con test automaticos
+		- Comprobar cuando hay una invitación a partida - No se hace con test automaticos
 		- Comprobar cuando hay una notificación de turno - No se hace con test automaticos
 		- Comprobar cuando hay dos de cada - No se hace con test automaticos
 
 	- Datos inválidos:
-		- Id no existe
-		- Id no se puede parsear a entero
-		- Clave incorrecta para el id
-
-## /borrarNotificacionTurno - No se hace con test automaticos
-
-	- Datos válidos
-
-	- Un dato inválido:
-		- Id de usuario no existe
-		- Id de usuario no se puede parsear a entero
-		- Clave incorrecta para el id de usuario
-		- Id de partida no existe
-		- Id de partida no se puede parsear a entero
-		- Usuario no está en la partida idSala
-		- No existe la notificación
+		- Id no existe - ok
+		- Id no se puede parsear a entero - ok
+		- Clave incorrecta para el id - ok
 
 ## /borrarCuenta
 
 	- Datos válidos - ok
 
 	- Un dato inválido:
-		- Id no existe
-		- Id no se puede parsear a entero
-		- Clave incorrecta para el id
-
-
+		- Id no existe - ok
+		- Id no se puede parsear a entero - ok
+		- Clave incorrecta para el id - ok
 
 ## /amigos
 
@@ -117,9 +102,9 @@
 		- Comprobar con un usuario sin amigos - ok
 
 	- Un dato inválido:
-		- Id no existe
-		- Id no se puede parsear a entero
-		- Clave incorrecta para el id
+		- Id no existe - ok
+		- Id no se puede parsear a entero - ok
+		- Clave incorrecta para el id - ok
 
 ## /enviarSolicitudAmistad
 
@@ -169,6 +154,19 @@
 		- Cosmetico ya comprado - ok
 		- Usuario no tiene riskos suficientes para comprar aspecto - ok
 		- Usuario no tiene riskos suficientes para comprar icono - ok
+
+## /borrarNotificacionTurno - No se hace con test automaticos
+
+	- Datos válidos
+
+	- Un dato inválido:
+		- Id de usuario no existe
+		- Id de usuario no se puede parsear a entero
+		- Clave incorrecta para el id de usuario
+		- Id de partida no existe
+		- Id de partida no se puede parsear a entero
+		- Usuario no está en la partida idSala
+		- No existe la notificación
 
 ## /olvidoClave - No se hace con test automaticos, tienes que mirar el correo para comprobar si ha funcionado bien
 
