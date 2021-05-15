@@ -902,6 +902,134 @@ func Test_ComprarEquipar(t *testing.T) {
 	borrarCuenta(id, clave1, t)
 }
 
+func comprar(idUsuario, idCosmetico int, clave, tipo string, t *testing.T) {
+	res := realizarPeticionAPI("comprar",
+		url.Values{
+			"idUsuario": {strconv.Itoa(idUsuario)},
+			"cosmetico": {strconv.Itoa(idCosmetico)},
+			"clave":     {clave},
+			"tipo":      {tipo},
+		}, t)
+	if res["code"].(float64) != 0 {
+		t.Fatal(res)
+	}
+}
+
+func comprarError(idUsuario, idCosmetico int, clave, tipo string, t *testing.T) {
+	res := realizarPeticionAPI("comprar",
+		url.Values{
+			"idUsuario": {strconv.Itoa(idUsuario)},
+			"cosmetico": {strconv.Itoa(idCosmetico)},
+			"clave":     {clave},
+			"tipo":      {tipo},
+		}, t)
+	if res["code"].(float64) == 0 {
+		t.Fatal("No ha dado error comprar con datos inválidos")
+	}
+}
+
+func Test_ComprarEquiparConDatosIncorrectos(t *testing.T) {
+	id := crearCuenta(nombre1, "", clave1, false, t)
+
+	comprarError(id+1, 1, clave1, "Icono", t)
+
+	res := realizarPeticionAPI("comprar",
+		url.Values{
+			"idUsuario": {"k"},
+			"cosmetico": {strconv.Itoa(1)},
+			"clave":     {clave1},
+			"tipo":      {"Icono"},
+		}, t)
+	if res["code"].(float64) == 0 {
+		t.Fatal("No ha dado error comprar con datos inválidos")
+	}
+
+	comprarError(id, 1, clave2, "Icono", t)
+
+	res = realizarPeticionAPI("recargarUsuario",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"clave":     {clave1},
+		}, t)
+	if len(res["iconos"].([]interface{})) != 1 {
+		t.Log(res)
+		t.Fatal("Se ha comprado el icono aunque la clave fuera incorrecta")
+	}
+
+	comprarError(id, 1, clave1, "cosmetico", t)
+	comprarError(id, 50, clave1, "Icono", t)
+	comprarError(id, 50, clave1, "Aspecto", t)
+	comprarError(id, 0, clave1, "Icono", t)
+
+	res = realizarPeticionAPI("comprar",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"cosmetico": {"k"},
+			"clave":     {clave1},
+			"tipo":      {"Icono"},
+		}, t)
+	if res["code"].(float64) == 0 {
+		t.Fatal("No ha dado error comprar con datos inválidos")
+	}
+
+	// Gastar riskos del usuario para comprobar que intentar comprar sin tener
+	// suficientes genera un error
+	res = realizarPeticionAPI("recargarUsuario",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"clave":     {clave1},
+		}, t)
+	riskos := int(res["usuario"].(map[string]interface{})["riskos"].(float64))
+	iconosInterface := res["tiendaIconos"].([]interface{})
+	preciosIconos := []int{}
+	for _, icono := range iconosInterface {
+		preciosIconos = append(preciosIconos,
+			int(icono.(map[string]interface{})["precio"].(float64)))
+	}
+	aspectosInterface := res["tiendaAspectos"].([]interface{})
+	preciosAspectos := []int{}
+	for _, aspecto := range aspectosInterface {
+		preciosAspectos = append(preciosAspectos,
+			int(aspecto.(map[string]interface{})["precio"].(float64)))
+	}
+	iconoComprobado := false
+	for i := 1; i < len(preciosIconos)-1; i++ {
+		if riskos >= preciosIconos[i] {
+			comprar(id, i, clave1, "Icono", t)
+			riskos -= preciosIconos[i]
+		} else {
+			comprarError(id, i, clave1, "Icono", t)
+			iconoComprobado = true
+			break
+		}
+	}
+	aspectoComprobado := false
+	for i := 1; i < len(preciosAspectos)-1; i++ {
+		if riskos >= preciosAspectos[i] {
+			comprar(id, i, clave1, "Aspecto", t)
+			riskos -= preciosAspectos[i]
+		} else {
+			comprarError(id, i, clave1, "Aspecto", t)
+			aspectoComprobado = true
+			break
+		}
+	}
+	if !iconoComprobado {
+		comprarError(id, len(preciosIconos)-1, clave1, "Icono", t)
+	}
+	if !aspectoComprobado {
+		comprarError(id, len(preciosAspectos)-1, clave1, "Aspecto", t)
+	}
+
+	// Pruebas de elegir un icono o aspecto incorrecto
+	modificarUsuarioError(id, clave1, "Aspecto", strconv.Itoa(len(preciosAspectos)-1), t)
+	modificarUsuarioError(id, clave1, "Aspecto", "k", t)
+	modificarUsuarioError(id, clave1, "Icono", strconv.Itoa(len(preciosIconos)-1), t)
+	modificarUsuarioError(id, clave1, "Icono", "k", t)
+
+	borrarCuenta(id, clave1, t)
+}
+
 func Test_aux(t *testing.T) {
 	res := realizarPeticionAPI("borrarCuenta",
 		url.Values{

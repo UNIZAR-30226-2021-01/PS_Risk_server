@@ -55,11 +55,11 @@
 		- Id no existe - ok
 		- Id no se puede parsear a entero - ok
 		- Clave incorrecta para el id - ok
-		- Tipo no es correcto
-		- Aspecto no comprado
-		- Modificar aspecto pero no es un entero
-		- Icono no comprado
-		- Modificar icono pero no es un entero
+		- Tipo no es correcto - ok
+		- Aspecto no comprado - ok
+		- Modificar aspecto pero no es un entero - ok
+		- Icono no comprado - ok
+		- Modificar icono pero no es un entero - ok
 		- Nombre vacío - ok
 		- Nombre demasiado largo (más de 20 caracteres) - ok
 		- Nombre contiene '@' - ok
@@ -108,22 +108,7 @@
 		- Id no se puede parsear a entero
 		- Clave incorrecta para el id
 
-## /olvidoClave - No se hace con test automaticos, tienes que mirar el correo para comprobar si ha funcionado bien
 
-	- Datos válidos
-
-	- Un dato inválido:
-		- Correo vacío
-		- Correo no coincide con el de ningún usuario
-
-## / restablecerClave - No se hace con test automaticos, tienes que mirar el correo para comprobar si ha funcionado bien y necesita usar la web
-
-	- Datos válidos
-
-	- Un dato inválido:
-		- Token no existe
-		- Clave vacía
-		- Clave demasiado larga (más de 256 caracteres, no debería poder ocurrir)
 
 ## /amigos
 
@@ -174,15 +159,33 @@
 		- Comprar icono - ok
 
 	- Un dato inválido:
-		- Id no existe
-		- Id no se puede parsear a entero
-		- Clave incorrecta para el id
-		- Tipo incorrecto
-		- Cosmetico no existe para tipo=Aspecto
-		- Cosmetico no existe para tipo=Icono
-		- Cosmetico no se puede parsear a entero
-		- Usuario no tiene riskos suficientes para comprar aspecto
-		- Usuario no tiene riskos suficientes para comprar icono
+		- Id no existe - ok
+		- Id no se puede parsear a entero - ok
+		- Clave incorrecta para el id - ok
+		- Tipo incorrecto - ok
+		- Cosmetico no existe para tipo=Aspecto - ok
+		- Cosmetico no existe para tipo=Icono - ok
+		- Cosmetico no se puede parsear a entero - ok
+		- Cosmetico ya comprado - ok
+		- Usuario no tiene riskos suficientes para comprar aspecto - ok
+		- Usuario no tiene riskos suficientes para comprar icono - ok
+
+## /olvidoClave - No se hace con test automaticos, tienes que mirar el correo para comprobar si ha funcionado bien
+
+	- Datos válidos
+
+	- Un dato inválido:
+		- Correo vacío
+		- Correo no coincide con el de ningún usuario
+
+## / restablecerClave - No se hace con test automaticos, tienes que mirar el correo para comprobar si ha funcionado bien y necesita usar la web
+
+	- Datos válidos
+
+	- Un dato inválido:
+		- Token no existe
+		- Clave vacía
+		- Clave demasiado larga (más de 256 caracteres, no debería poder ocurrir)
 
 ## /partidas - No se hace con test automaticos
 
