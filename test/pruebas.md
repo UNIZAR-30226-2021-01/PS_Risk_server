@@ -52,25 +52,25 @@
 		- Modificar recibeCorreos por el contrario teniendo correo - ok
 
 	- Un dato inválido:
-		- Id no existe
-		- Id no se puede parsear a entero
-		- Clave incorrecta para el id
+		- Id no existe - ok
+		- Id no se puede parsear a entero - ok
+		- Clave incorrecta para el id - ok
 		- Tipo no es correcto
 		- Aspecto no comprado
 		- Modificar aspecto pero no es un entero
 		- Icono no comprado
 		- Modificar icono pero no es un entero
-		- Nombre vacío
-		- Nombre demasiado largo (más de 20 caracteres)
-		- Nombre contiene '@'
-		- Nombre ya está usado
-		- Nueva clave vacía
-		- Nueva clave demasiado larga (más de 256 caracteres, nunca debería ocurrir)
-		- Eliminar correo teniendo recibeCorreos=true
-		- Correo no vacío inválido
-		- Correo ya está usado
-		- Marcar recibeCorreos=true no teniendo correo
-		- Modificar recibeCorreos pero el valor no se puede parsear a bool
+		- Nombre vacío - ok
+		- Nombre demasiado largo (más de 20 caracteres) - ok
+		- Nombre contiene '@' - ok
+		- Nombre ya está usado - ok
+		- Nueva clave vacía - ok
+		- Nueva clave demasiado larga (más de 256 caracteres, nunca debería ocurrir) - ok
+		- Eliminar correo teniendo recibeCorreos=true - ok
+		- Correo no vacío inválido - ok
+		- Correo ya está usado - ok
+		- Marcar recibeCorreos=true no teniendo correo - ok
+		- Modificar recibeCorreos pero el valor no se puede parsear a bool - ok
 
 ## /notificaciones
 
@@ -130,7 +130,6 @@
 	- Datos válidos:
 		- Comprobar la lista de amigos con un amigo - ok
 		- Comprobar con un usuario sin amigos - ok
-		- Comprobar con un usuario con varios amigos - No creo que sea necesario
 
 	- Un dato inválido:
 		- Id no existe

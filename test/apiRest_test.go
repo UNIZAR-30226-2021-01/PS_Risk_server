@@ -694,7 +694,6 @@ func comprobarCamposExtraUsuarioDefecto(res map[string]interface{}, t *testing.T
 }
 
 func modificarUsuario(id int, clave, tipo, dato string, t *testing.T) {
-
 	res := realizarPeticionAPI("personalizarUsuario",
 		url.Values{
 			"idUsuario": {strconv.Itoa(id)},
@@ -769,6 +768,76 @@ func Test_ModificarUsuario(t *testing.T) {
 		t.Fatal(res)
 	}
 	borrarCuenta(id, clave1, t)
+}
+
+func modificarUsuarioError(id int, clave, tipo, dato string, t *testing.T) {
+	res := realizarPeticionAPI("personalizarUsuario",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"nuevoDato": {dato},
+			"clave":     {clave},
+			"tipo":      {tipo},
+		}, t)
+
+	if res["code"].(float64) == 0 {
+		t.Fatal("El usuario se ha modificado sin error")
+	}
+}
+
+func Test_ModificarUsuarioConDatosIncorrectos(t *testing.T) {
+	claveDemasiadoLarga := "a"
+	for len(claveDemasiadoLarga) <= 64 {
+		claveDemasiadoLarga = claveDemasiadoLarga + claveDemasiadoLarga
+	}
+
+	id := crearCuenta(nombre1, correo1, clave1, true, t)
+
+	modificarUsuarioError(id+1, clave1, "Nombre", nombre2, t)
+
+	res := realizarPeticionAPI("personalizarUsuario",
+		url.Values{
+			"idUsuario": {"k"},
+			"nuevoDato": {nombre2},
+			"clave":     {clave1},
+			"tipo":      {"Nombre"},
+		}, t)
+	if res["code"].(float64) == 0 {
+		t.Fatal("No ha dado error modificar un usuario con id no numérico")
+	}
+
+	modificarUsuarioError(id, clave2, "Nombre", nombre2, t)
+	modificarUsuarioError(id, clave1, "Tipo incorrecto", nombre2, t)
+	modificarUsuarioError(id, clave1, "Nombre", "", t)
+	modificarUsuarioError(id, clave1, "Nombre", "1234567890.123456789a", t)
+	modificarUsuarioError(id, clave1, "Nombre", "nombre@invalido", t)
+	modificarUsuarioError(id, clave1, "Clave", "", t)
+	modificarUsuarioError(id, clave1, "Clave", claveDemasiadoLarga, t)
+	modificarUsuarioError(id, clave1, "Correo", "", t)
+	modificarUsuarioError(id, clave1, "Correo", "correo_invalido", t)
+
+	res = realizarPeticionAPI("personalizarUsuario",
+		url.Values{
+			"idUsuario": {strconv.Itoa(id)},
+			"nuevoDato": {"k"},
+			"clave":     {clave1},
+			"tipo":      {"RecibeCorreos"},
+		}, t)
+	if res["code"].(float64) == 0 {
+		t.Fatal("No ha dado error modificar un usuario con recibeCorreos no booleano")
+	}
+
+	// Modificar recibeCorreos y el correo para probar más casos
+	modificarUsuario(id, clave1, "RecibeCorreos", "false", t)
+	modificarUsuario(id, clave1, "Correo", "", t)
+	modificarUsuarioError(id, clave1, "RecibeCorreos", "true", t)
+
+	// Crear otro usuario para comprobar que se mantiene unicidad en nombre y correo
+	id2 := crearCuenta(nombre2, correo2, clave1, false, t)
+	modificarUsuarioError(id, clave1, "Nombre", nombre2, t)
+	modificarUsuarioError(id, clave1, "Correo", correo2, t)
+
+	borrarCuenta(id, clave1, t)
+	borrarCuenta(id2, clave1, t)
 }
 
 func Test_ComprarEquipar(t *testing.T) {

@@ -319,6 +319,10 @@ func (dao *UsuarioDAO) ActualizarUsuario(u Usuario) mensajes.JsonData {
 		return mensajes.ErrorJson("Tu nombre de usuario no puede ser vacío",
 			mensajes.ErrorPeticion)
 	}
+	if strings.Contains(u.Nombre, "@") {
+		return mensajes.ErrorJson("Tu nombre de usuario no puede contener el "+
+			"caracter @", mensajes.ErrorPeticion)
+	}
 
 	// Comprobar que la clave no es vacía
 	if len(u.Clave) == 0 {
