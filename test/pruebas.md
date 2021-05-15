@@ -144,12 +144,12 @@
 		- El otro usuario sí ha enviado solicitud primero - ok
 
 	- Un dato inválido:
-		- Id no existe
-		- Id no se puede parsear a entero
-		- Clave incorrecta para el id
-		- Nombre no existe
-		- Nombre es el del propio usuario
-		- Nombre es un usuario que ya es amigo
+		- Id no existe -ok
+		- Id no se puede parsear a entero - ok
+		- Clave incorrecta para el id - ok
+		- Nombre no existe - ok
+		- Nombre es el del propio usuario - ok
+		- Nombre es un usuario que ya es amigo - ok
 
 ## /gestionAmistad
 
@@ -159,14 +159,14 @@
 		- Eliminar amigo - ok
 
 	- Un dato inválido:
-		- IdUsuario no existe
-		- IdUsuario no se puede parsear a entero
-		- IdAmigo no se puede parsear a entero
-		- Clave incorrecta para idUsuario
-		- Decision incorrecto
-		- Rechazar solicitud que no existe
-		- Aceptar solicitud que no existe
-		- Borrar alguien que no es amigo
+		- IdUsuario no existe - ok
+		- IdUsuario no se puede parsear a entero - ok
+		- IdAmigo no se puede parsear a entero - ok
+		- Clave incorrecta para idUsuario - ok
+		- Decision incorrecto - ok
+		- Rechazar solicitud que no existe - ok
+		- Aceptar solicitud que no existe - ok
+		- Borrar alguien que no es amigo - ok
 
 ## /comprar
 
