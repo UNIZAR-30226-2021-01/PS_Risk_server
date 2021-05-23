@@ -843,8 +843,8 @@ func (p *Partida) EnviarError(idUsuario, code int, err string) {
 	Enviar envía el mensaje pasado como parámetro al usuario con el identificador
 	global indicado, por el websocket correspondiente en la partida `p`.
 */
-func (p *Partida) Enviar(id int, mensaje mensajes.JsonData) {
-	ws, ok := p.Conexiones.Load(id)
+func (p *Partida) Enviar(idUsuario int, mensaje mensajes.JsonData) {
+	ws, ok := p.Conexiones.Load(idUsuario)
 	if ok {
 		ws.(*websocket.Conn).WriteJSON(mensaje)
 	}
