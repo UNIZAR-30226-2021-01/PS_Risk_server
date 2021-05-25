@@ -1,6 +1,4 @@
 # PS_Risk_server
-## Especificación API
-La especificación completa de la API se puede encontrar [aquí](especificacionAPI.md).
+Servidor de juego de Risk.
 
-## Protocolo de conexión WebSocket 
-La especificación completa se puede encontrar [aquí](especificacionWS.md).
+La documentación del proyecto se encuentra en la [wiki](https://github.com/UNIZAR-30226-2021-01/PS_Risk_server/wiki)
