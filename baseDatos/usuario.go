@@ -22,8 +22,6 @@ type Usuario struct {
 
 /*
 	ToJSON devuelve el usuario en formato JSON.
-
-	CAMBIAR PARA USAR EL MAP ENCODER
 */
 func (u *Usuario) ToJSON() mensajes.JsonData {
 	return mensajes.JsonData{

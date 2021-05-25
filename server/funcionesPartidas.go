@@ -487,11 +487,11 @@ func devolverErrorWebsocket(code int, err string, ws *websocket.Conn) {
 }
 
 /*
-	RestaurarPartidas carga de la base de datos todas las partidas empezadas y
+	restaurarPartidas carga de la base de datos todas las partidas empezadas y
 	comienza a atenderlas de nuevo.
 	Devuelve error si ocurre alguno.
 */
-func (s *Servidor) RestaurarPartidas() error {
+func (s *Servidor) restaurarPartidas() error {
 	res, err := s.PartidasDAO.ObtenerPartidasEmpezadas()
 	if err != nil {
 		return err
