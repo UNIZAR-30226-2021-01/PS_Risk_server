@@ -23,6 +23,12 @@ const (
 	clave2  = "claveTest2"
 )
 
+func comprobarJson(a, b mensajes.JsonData) bool {
+	aByte, _ := json.Marshal(a)
+	bByte, _ := json.Marshal(b)
+	return string(aByte) == string(bByte)
+}
+
 func realizarPeticionAPI(funcion string, datos url.Values, t *testing.T) mensajes.JsonData {
 
 	res, err := http.PostForm(apiUrl+"/"+funcion, datos)
