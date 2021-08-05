@@ -452,8 +452,9 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 					// Datos completos de la partida: se avanza turno
 					p.EnviarATodos(res)
 					s.PartidasDAO.NotificarTurno(p)
+					timeout = time.After(time.Duration(p.TiempoTurno) * time.Minute)
 				}
-				timeout = time.After(time.Duration(p.TiempoTurno) * time.Minute)
+				s.PartidasDAO.ActualizarPartida(p)
 				if p.JugadoresRestantes() == 1 {
 					s.finalizarPartida(p)
 					return
@@ -465,6 +466,7 @@ func (s *Servidor) atenderPartida(p *baseDatos.Partida) {
 			p.Jugadores[p.TurnoJugador].SigueVivo = false
 			res := p.PasarTurno()
 			// Datos completos de la partida: se avanza turno
+			s.PartidasDAO.ActualizarPartida(p)
 			p.EnviarATodos(res)
 			s.PartidasDAO.NotificarTurno(p)
 			timeout = time.After(time.Duration(p.TiempoTurno) * time.Minute)
